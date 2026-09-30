@@ -12,7 +12,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds } from './grid.js';
+  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -74,14 +74,14 @@ const wheelsFor = box => Math.max(1, Math.min(8, Math.floor((box.w||1) / Math.ma
    own serif. `c` for the drum is the object's own colour, so a counter can
    be any slot the aesthetic has. A digit colour left unset is chosen off the
    drum, because cream figures on an ivory drum are a counter with no count. */
-const WHEEL_COLOURS = [['','Black','#3C352B'],['c','Its colour',''],['#E9E1CC','Ivory'],
+const WHEEL_COLOURS = [['','Black','#3C352B'],['c','Its color',''],['#E9E1CC','Ivory'],
   ['#8E3B38','Red'],['#2E4A6B','Navy'],['#2E6B52','Green'],['#9A7B2F','Brass'],['#6B4A31','Walnut'],['#8A8F94','Steel']];
 /* **What a record is pressed in** (decision 245): the vinyl's own colour,
    literal like the wax, bar the one that is the object's own slot. `clear` is
    translucent, so the board shows through the grooves. */
-const VINYLS = [['','Grey','#6A665F'],['#1B1A18','Black'],['#8E2B2B','Red'],['#23456E','Blue'],
+const VINYLS = [['','Gray','#6A665F'],['#1B1A18','Black'],['#8E2B2B','Red'],['#23456E','Blue'],
   ['#2E6B45','Green'],['#C9A23A','Gold'],['#EDE6D6','White'],['#6C3F8C','Purple'],
-  ['rgba(205,214,220,.42)','Clear'],['c','Its colour','']];
+  ['rgba(205,214,220,.42)','Clear'],['c','Its color','']];
 const vinylOf = o => o.vinyl==='c' ? objColour(o) : (o.vinyl || '');
 const WHEEL_INKS = [['','Cream','#EFE7D2'],['#16120E','Black'],['#FFFFFF','White'],
   ['#D8452F','Red'],['#E2B85C','Gold'],['#8FE39A','Lamp green'],['#9CC7FF','Blue']];
@@ -384,7 +384,7 @@ const CLICKS = {
   none:     'Nothing',
   read:     'Open it to read',
   edit:     'Open it to write',
-  check:    'Tick it off',
+  check:    'Check it off',
   /* The When page: dates, both deadlines, the estimate, the ranks, the repeat
      and the tags. The default for a task, because a task is the one type where
      "what is this worth and when" is the question you have every time you look
@@ -1027,7 +1027,7 @@ function zoomFace(o, box){
         placeholder="Write…">${esc(o.body||'')}</textarea></div></div>`;
   if(readOf(o)==='scroll')
     return `<div class="zoomread zscroll" style="${sty}">${head}<div class="zoombody">${
-      o.body ? md(o.body) : '<p class="thin">Nothing written yet.</p>'}</div></div>`;
+      written(o) ? md(written(o)) : NOTHING_YET}</div></div>`;
   // the page's own box, in the tile's untransformed pixels, less the furniture
   const w = Math.max(30, box.w*cell - 2*ZPAD.x*fs - 4);
   const h = Math.max(30, box.h*cell - 2*ZPAD.y*fs - ZHEAD*fs - 4);
@@ -2051,7 +2051,7 @@ function drawTileFace(o, arr, box, persp){
            title="${esc(x.title||'Untitled')}">
            ${has(x,'check')
              ? `<i class="clbox" data-check="${x.id}"
-              title="Tick it — or hold it to take it out"></i>`
+              title="Check it — or hold it to take it out"></i>`
              : `<i class="clmark">${ic(K(x.kind).ic,12)}</i>`}${
            nameField(x, 'cltext')}${
            has(x,'rating')&&x.rating ? `<u class="clstars">${'★'.repeat(x.rating)}</u>`
@@ -2103,7 +2103,7 @@ function drawTileFace(o, arr, box, persp){
         `<span class="cline lline" data-open="${x.id}"${has(x,'check')?` data-pluck="${x.id}"`:''}
            title="${esc(x.title||'Untitled')}">
            ${has(x,'check')
-             ? `<i class="clbox" data-check="${x.id}" title="Tick it — or hold it to take it out"></i>`
+             ? `<i class="clbox" data-check="${x.id}" title="Check it — or hold it to take it out"></i>`
              : `<i class="clmark" style="color:${objColour(x)}">${ic(K(x.kind).ic,12)}</i>`}<span class="cltext">${
            esc(x.title||'Untitled')}</span>${said(x)}</span>`).join('')
         || `<span class="clempty">Nothing yet — type above</span>`}</div></div>
@@ -3023,7 +3023,7 @@ function drawTileFace(o, arr, box, persp){
       <i>${answered(o)?ic('check',11):ic('help',11)}</i>
       <textarea data-answer="${o.id}" rows="${Math.max(1, Math.min((box.h||2)>=3 ? 3 : 2,
           Math.ceil(String(o.answer||'').length / Math.max(8, (box.w||4)*7))))}"
-        placeholder="${answered(o)?'':'Write the answer…'}">${esc(o.answer||'')}</textarea></label>`:''}
+        placeholder="${answered(o) || (box.w||4) < 3 ? '' : (box.w||4) < 4 ? 'Answer…' : 'Write the answer…'}">${esc(o.answer||'')}</textarea></label>`:''}
     ${handles}
   </${raw?'div':'button'}>`;
 }
@@ -3034,14 +3034,15 @@ function drawTileFace(o, arr, box, persp){
    restores the arrangement you made. */
 const FLOW = new Map();   // id -> box, for one render of a sorted grid
 function flowSorted(kids, cid){
-  const g=gridOf(undefined, cid), dv=dev(), taken=[];
+  let g=gridOf(undefined, cid);
+  const dv=dev(), taken=[];
   /* A packed board fills its shelves in order and respects the seam between
      them, or the sort would produce the straddling tiles the drag is not
      allowed to make. Shelf by shelf, reading order, which is what a sorted
      board *is*: the first thing in the top-left corner of the first shelf. */
   const free=(b)=> !taken.some(t=>overlaps(b,t));
   // the boards there are, never the empty slots between them (decision 219)
-  const shelves=boardsOf(cid).map(b=>[b.x,b.y]);
+  let shelves=boardsOf(cid).map(b=>[b.x,b.y]);
   /* **Each shelf sorts itself** (decision 215). The desk is nine shelves, and
      packing the whole sorted list from the first one pulled everything on the
      desk into its top-left screen, so turning a sort on emptied the shelf you
@@ -3063,12 +3064,19 @@ function flowSorted(kids, cid){
     w=Math.min(w, g.maxW, g.cols); h=Math.min(h, g.maxH, g.rows);
     let put=null;
     const hs = homeOf(o);
-    const order = [[hs.x, hs.y], ...shelves.filter(([sx,sy])=> sx!==hs.x || sy!==hs.y)];
+    let order = [[hs.x, hs.y], ...shelves.filter(([sx,sy])=> sx!==hs.x || sy!==hs.y)];
     /* At its own size, and then a step smaller at a time, the way fitSpot()
        steps down: a full board put everything after the first on top of it
-       in the corner (2026-09-30). The corner is still the last resort. */
+       in the corner (2026-09-30). Past half its size the board grows a page,
+       the way any full drawer does, and it starts again at its own size
+       there; the corner is only for a board that can grow no more. */
     const minW=Math.ceil(w/2), minH=Math.ceil(h/2);
     for(let a=w, b=h; !put && !full; ){
+      if(a<w || b<h) if(a<minW || b<minH) if(growDown(cid, true)){
+        g=gridOf(undefined, cid); shelves=boardsOf(cid).map(q=>[q.x,q.y]);
+        order=[[hs.x, hs.y], ...shelves.filter(([sx,sy])=> sx!==hs.x || sy!==hs.y)];
+        a=w; b=h;
+      }
       for(const [sx,sy] of order){
         const x0=sx*g.shelfW, y0=sy*g.shelfH;
         for(let y=1;y<=Math.min(g.shelfH, g.rows-y0-b+1) && !put;y++) for(let x=1;x<=Math.min(g.shelfW, g.cols-x0-a+1);x++){
@@ -3315,7 +3323,8 @@ function gridOfContainer(cid){
      makes gestures.js refuse a drag, and a thing in a sorting drawer can
      still be carried out of it, filed, dated or thrown. */
   const sorted=sortOf(c), packs = sorted || has(c,'magic');
-  const dv=dev(), g=gridOf(dv, c.id);
+  const dv=dev();
+  let g=gridOf(dv, c.id);
   /* On a phone the board is **windowed** to one shelf; on a Mac the whole
      thing is drawn and the scroller reaches the rows you cannot see. So the
      shift is zero on a Mac and everything below reads the same either way. */
@@ -3356,6 +3365,8 @@ function gridOfContainer(cid){
      frame in question is the first one at launch. See decision 141. */
   if(packs) flowSorted(kids, c.id);           // a sort overrides hand placement
   else kids = kids.filter(o=>!!ensureBox(o, dv, c.id));
+  // either can have grown the board a page, and the rows drawn are read off this
+  g = gridOf(dv, c.id);
   /* **A board can get smaller.** Its size is its container's tile times four
      now, so resizing a drawer resizes the coordinate space inside it, and
      anything that was placed against the old one can be left off the end —
@@ -3632,6 +3643,13 @@ const spreadNow = o => !S.readFull && spreadOf(o);
 const clearPages = ()=>{ PAGES.key=null; PAGES.list=null; };
 const headOf = o => o.media&&o.media.src
   ? `<img class="scrollimg" src="${esc(o.media.src)}" alt="${esc(o.title||'')}">` : '';
+/* **What has been written**, for the reader. A type can start its body with a
+   scaffold to write into (a Quote is `> ` and a `— ` for who said it), and
+   read before anything was put in it that scaffold was the page: a lone dash.
+   A body that is still exactly its type's is nothing written yet. */
+const written = o => { const b = o.body || '';
+  return b.trim() && b.trim() !== String(K(o.kind).body || '').trim() ? b : ''; };
+const NOTHING_YET = '<p class="thin">Nothing written yet.</p>';
 
 /* Split `el`, already on the ruler's page and overflowing it, so that as much
    of it as fits stays; return the rest as a new element of the same kind, or
@@ -3805,7 +3823,7 @@ function pagesOf(o, box){
            // the ruler has to measure at the size the words will be *set* at,
            // or the breaks are for a different typeface entirely
            if(box.fs){ cell.style.fontSize=box.fs+'px'; cell.style.lineHeight='1.45'; } }
-  cell.innerHTML=headOf(o)+md(o.body||'');
+  cell.innerHTML=headOf(o)+(written(o) ? md(written(o)) : NOTHING_YET);
 
   /* **A paragraph runs on to the next page.** Breaking only *between* blocks
      meant one paragraph taller than a page was given a page to itself and cut
@@ -3874,7 +3892,7 @@ function bookOf(o, left, right){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
     return `${book}<div class="spread scrolling ${sheetOf(o)}" style="${facePaper(fc)}"><i class="dgrain"></i>
-      <div class="page">${headOf(o)}${o.body?md(o.body):'<p class="thin">Nothing written yet.</p>'}</div>
+      <div class="page">${headOf(o)}${written(o) ? md(written(o)) : NOTHING_YET}</div>
     </div>${bar('')}</div>`;
   }
   const pages=pagesOf(o), two=spreadNow(o), step=two?2:1;

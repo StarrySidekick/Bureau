@@ -1179,7 +1179,13 @@ html .drawer.dtile.cltile{background-image:none}
    Two classes states the intent and beats the sweep. */
 .projtile .projcover{position:absolute;inset:0;background-size:cover;background-position:center;
   opacity:.30;filter:saturate(.7)}
-.projtile > *{position:relative;z-index:1}
+/* …but not the layers that are meant to sit absolutely over the whole tile:
+   the resize grips, the side light and the grain. Caught by the sweep, the
+   grips were in the flow, four of them stacked down the tile's middle, and
+   ate the room `margin-top:auto` pushes a cover's report down with, so on an
+   unlocked board "0/13 done" sat on the poster's title. `:where()` keeps
+   the sweep at one class, which is what lets `.projtile .projcover` win. */
+.projtile > :where(:not(.rz, .dside, .dgrain)){position:relative;z-index:1}
 .projtile .dtop{align-items:flex-start;justify-content:space-between;gap:6px}
 .projdue{flex:0 0 auto;font-size:10px;letter-spacing:.03em;text-transform:uppercase;
   color:var(--dink-2);border:1px solid var(--dink-3);border-radius:var(--pill);padding:1px 7px;white-space:nowrap}
@@ -1261,7 +1267,10 @@ html .drawer.dtile.cltile{background-image:none}
    is set in the two thirds above it — 20% cleared the bar and not the line
    under it, and a one-sheet with "50%" struck through the word is worse than
    no cover at all. */
-.projtile.hascover .projposter{padding-bottom:36%;justify-content:flex-start;padding-top:14%}
+/* The poster is a flex *row*: the padding is what lifts the title into the top
+   two thirds, and `justify-content` is across, so `flex-start` here sat a
+   one-word title ("FILM") against the left edge. */
+.projtile.hascover .projposter{padding-bottom:36%;justify-content:center;padding-top:14%}
 /* And a poster that *is* the title does not also print it along the bottom.
    The same argument a short drawer front makes when it drops its name for the
    mark: one name on a tile, drawn once, in whichever place says it best. It is
@@ -1272,7 +1281,7 @@ html .drawer.dtile.cltile{background-image:none}
   color-mix(in srgb,var(--c) 66%,#000));padding:12% 10%}
 .projposter b{font-family:var(--serif);font-weight:700;text-align:center;line-height:1.02;
   letter-spacing:-.01em;text-transform:uppercase;color:var(--dink);
-  font-size:clamp(13px,13cqw,54px);
+  font-size:clamp(9px,13cqw,54px);
   display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
   text-shadow:0 2px 10px rgba(0,0,0,.4)}
 
@@ -1916,7 +1925,7 @@ html .drawer.dtile.cltile{background-image:none}
    Segoe on Aeros, Iowan on Victoria); a name on
    a tile is set in it, the same as a drawer's is. */
 .drawer.otile .dname{font-family:var(--serif);font-size:13.5px;font-weight:600;white-space:normal;
-  overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .drawer.otile .dname.done{text-decoration:line-through;color:var(--ink-3)}
 .drawer.otile .dtop{align-items:flex-start;gap:8px}
 /* The body fills the face. It was clamped at four lines, so a note six cells
@@ -4119,7 +4128,7 @@ html[data-style="golf97"] .check,html[data-style="golf97"] .clbox{border-radius:
    Overlays: new-object palette, command bar, toast, menu
    ============================================================ */
 .scrim{position:absolute;inset:0;z-index:70;background:color-mix(in srgb,var(--ink) 38%,transparent);
-  backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:.2s;display:flex;align-items:center;justify-content:center;padding:22px}
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:.2s;display:flex;align-items:center;justify-content:center;padding:22px}
 .scrim.open{opacity:1;pointer-events:auto}
 .modal{
   width:min(560px,100%);max-height:100%;overflow:hidden;background:var(--paper-2);border-radius:18px;border:1px solid var(--rule);
@@ -4259,6 +4268,13 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .radhole{position:absolute;left:0;top:0;width:62px;height:62px;border-radius:50%;
   transform:translate(-50%,-50%);pointer-events:none;
   box-shadow:inset 0 2px 4px rgba(0,0,0,.28), 0 0 0 1px color-mix(in srgb, var(--wood) 40%, transparent)}
+/* …and when the ring had to move off the finger, the hole is a well holding
+   the thing you are holding, so it never frames the drawer next door. */
+.radhole.lens{display:grid;place-items:center;overflow:hidden;
+  background:radial-gradient(circle at 50% 40%, color-mix(in srgb, var(--wood) 22%, var(--paper)),
+    color-mix(in srgb, var(--wood) 44%, var(--paper)));
+  box-shadow:inset 0 2px 5px rgba(0,0,0,.34), 0 0 0 1px color-mix(in srgb, var(--wood) 40%, transparent)}
+.radhole.lens .pvscale, .radhole.lens .pvscale *{pointer-events:none}
 .ctxmenu.radial .ctxhead{position:absolute;left:0;top:calc(-1 * var(--rad,96px) - 52px);
   transform:translateX(-50%);white-space:nowrap;padding:3px 10px;border-radius:var(--pill);
   background:var(--paper);color:var(--ink-2);font-size:12px;box-shadow:var(--shadow)}
@@ -4299,23 +4315,23 @@ html[data-theme="walnut"] .toast{background:var(--paper-3);color:var(--ink)}
 .radtile .pvscale *{pointer-events:none}
 .ctxmenu.radial.shapering .radblob{width:74px;transform:translate(calc(var(--x) - 50%), calc(var(--y) - 31px))}
 .ctxmenu.radial.shapering .radblob:has(> .radpaint:not(.radtile)){transform:translate(calc(var(--x) - 50%), calc(var(--y) - 23px))}
-.radblob b{font-size:10.5px;font-weight:600;line-height:1.1;color:var(--ink);
+.radblob > b{font-size:10.5px;font-weight:600;line-height:1.1;color:var(--ink);
   padding:1px 5px;border-radius:var(--pill);
   background:color-mix(in srgb, var(--paper) 86%, transparent);white-space:nowrap}
-.ctxmenu.radial.shapering .radblob b{max-width:88px;overflow:hidden;text-overflow:ellipsis}
+.ctxmenu.radial.shapering .radblob > b{max-width:88px;overflow:hidden;text-overflow:ellipsis}
 /* The two rings of the fifteen (decision 240): smaller blobs, so seven fit
    round the hole and eight round them on a phone's width. */
 .ctxmenu.radial.tworing .radblob{width:62px;transform:translate(calc(var(--x) - 50%), calc(var(--y) - 26px))}
 .ctxmenu.radial.tworing .radpaint.radtile{width:44px;height:44px}
-.ctxmenu.radial.tworing .radblob b{font-size:9.5px;max-width:70px;padding:1px 4px}
+.ctxmenu.radial.tworing .radblob > b{font-size:9.5px;max-width:70px;padding:1px 4px}
 .ctxmenu.radial.tworing::before{width:calc(var(--rad,96px) * 2 + 70px)}
 /* The hold ring's labels wrap instead (decision 218): "Convert into Project"
    and "Add to New Drawer" are the names Timothy chose, and cut short they
    would say something else. Two lines at most, centred under the blob. */
 .ctxmenu.radial:not(.shapering) .radblob{width:104px}
-.ctxmenu.radial:not(.shapering) .radblob b{white-space:normal;max-width:104px;text-align:center}
+.ctxmenu.radial:not(.shapering) .radblob > b{white-space:normal;max-width:104px;text-align:center}
 .radblob.danger .radpaint{background:radial-gradient(circle at 34% 30%, #F2B6A6, #D2644A 60%, #A9472F);color:#fff}
-.radblob.danger b{color:#B24A33}
+.radblob.danger > b{color:#B24A33}
 @media (prefers-reduced-motion: reduce){
   .ctxmenu.radial.flung::before,.ctxmenu.radial.flung button.radblob{animation:none}
 }
@@ -4780,7 +4796,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
 }
 
 /* ---- the writing surface: the body, full screen, and nothing else ----- */
-.writescrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.62);backdrop-filter:blur(3px)}
+.writescrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
 /* Same as the reading stage: bounded by the visual viewport, because this one
    is a textarea with nothing else on the screen and the keyboard is up for all
    of its working life. See decision 84. */
@@ -4831,7 +4847,7 @@ kbd{font-family:var(--mono);font-size:10.5px;border:1px solid var(--rule);border
    No paper, in fact: an image is shown against the dark, matted rather than
    mounted, because paper behind a photograph is a second frame around a thing
    that already has one on the board. */
-.viewscrim{position:absolute;inset:0;z-index:60;background:rgba(16,13,10,.78);backdrop-filter:blur(4px)}
+.viewscrim{position:absolute;inset:0;z-index:60;background:rgba(16,13,10,.78);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .viewstage{
   position:absolute;z-index:61;inset:var(--stage-y) var(--stage-x);
   display:flex;flex-direction:column;gap:12px;
@@ -5460,7 +5476,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   filter:drop-shadow(0 2px 1.6px rgba(0,0,0,.55));
   -webkit-tap-highlight-color:transparent;transition:transform .12s, filter .12s;
 }
-.railobj svg{display:block;width:100%;height:100%;overflow:visible}
+.railobj > svg{display:block;width:100%;height:100%;overflow:visible}
 .railobj:active{transform:translateY(1px) scale(.95);filter:drop-shadow(0 1px 1px rgba(0,0,0,.55))}
 /* The letter block turns to its new face (decision 215): drawn already
    showing the new letter, and the turn plays over it, the first half edge-on
@@ -5819,6 +5835,14 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    is anyway. The tag keeps its rivets and its room. */
 .drawer.dtile.sz-narrow:is(.pl-plate,.pl-holder) .dtop{padding-inline:4px;margin-inline:3%}
 .drawer.dtile.sz-narrow:is(.pl-plate,.pl-holder) .dname{font-size:calc(10.5px * var(--tscale,1))}
+/* The tag is shorter than the front on purpose, and at two cells that left
+   53px between its rivets: "Keepin / g Up", and a rivet on the K of Kitchen.
+   Narrow, it runs nearly the width, the rivets sit at its very ends and the
+   name clears them. */
+.drawer.dtile.sz-narrow.pl-tag .dtop{width:96%;padding-inline:9px;margin-inline:auto}
+.drawer.dtile.sz-narrow.pl-tag .dtop::after{
+  background:var(--rivet) 2px 50%/7px 7px no-repeat, var(--rivet) calc(100% - 2px) 50%/7px 7px no-repeat}
+.drawer.dtile.sz-narrow.pl-tag .dname{font-size:calc(10px * var(--tscale,1));letter-spacing:-.01em}
 .drawer .tiletext{font-size:calc(11.5px * var(--tscale,1))}
 .drawer.otile.sh-index .tiletext{font-size:calc(11px * var(--tscale,1))}
 .drawer.otile.sh-page .tiletext{font-size:calc(10.5px * var(--tscale,1))}
@@ -6322,8 +6346,10 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   color:var(--ink);font:inherit;transition:border-color .14s, transform .1s}
 @media (hover:hover){.suchoice:hover{border-color:var(--brass)}}
 .suchoice:active{transform:scale(.98)}
-.suchoice b{font-size:16px;font-weight:600}
-.suchoice u{text-decoration:none;font-size:12.5px;color:var(--ink-3);line-height:1.35}
+/* `>`: a choice's art is a real tile, and its own <b> and <u> are not the
+   choice's label (a poster title came out at 16px and clipped to "FEATU"). */
+.suchoice > b{font-size:16px;font-weight:600}
+.suchoice > u{text-decoration:none;font-size:12.5px;color:var(--ink-3);line-height:1.35}
 .suart{display:flex;align-items:center;justify-content:center;width:100%;height:92px;margin-bottom:6px;
   pointer-events:none;overflow:hidden}
 .suart .sumini{width:100%;height:100%;aspect-ratio:auto}
@@ -6849,3 +6875,54 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .ptmetal.m-rose{background:linear-gradient(135deg,#7E4A48,#E7AFA2 40%,#FFE7DE 55%,#C98C80 75%,#8A5552)}
 .ptdecals .ptchip svg{width:26px;height:26px}
 .ptsay{font-size:12.5px;opacity:.7;white-space:nowrap}
+
+/* ---- names with no room (2026-09-30) ------------------------------------
+   Thirteen pixels either side left a one-cell tile 23px for its name, and
+   "Untitled" went down it three letters at a time. A thin tile keeps less
+   margin and a smaller name, and a word that still does not fit breaks where
+   a dictionary would break it, with a hyphen, before it breaks anywhere
+   (`hyphens` needs the page's `lang`, which index.html states). */
+.drawer.sz-thin:is(.otile,.cltile.clidle){padding-left:5px;padding-right:5px}
+.drawer.sz-thin .dname{font-size:11px;letter-spacing:0;line-height:1.15}
+/* a list with nothing in it says so in a sentence, and one cell has no room
+   for a sentence; the name is the whole of what it can say */
+.cltile.sz-thin .clempty{display:none}
+/* The setup badge sits in the top right corner, over the end of the name. On
+   a thin tile the name starts under it; on any other it keeps clear of it. */
+.drawer.sz-thin > .setupmark ~ .dtop{margin-top:14px}
+.drawer:not(.sz-thin) > .setupmark ~ .dtop{padding-right:16px}
+/* A calendar's month gives way before its name does: `.clcount` never shrinks
+   (it is a count everywhere else), so "Calendar" was squeezed to "Calenda" and
+   an "r" beside "September". */
+.caltile .dtop > .dname{flex-shrink:0;max-width:100%}
+.caltile .dtop > .clcount{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A narrow project puts its due chip under its name rather than beside it,
+   where it squeezed "Play" to "P l"; and a small cover drops the count, so
+   the chip is all there is under the poster's title and it clears it. */
+.projtile.sz-narrow .dtop{flex-wrap:wrap;row-gap:3px}
+.projtile.hascover.sz-narrow .projline{display:none}
+/* …and the line under a narrow project's name is one line, not a second
+   that runs off the bottom ("Nothing / inside") */
+.projtile.sz-narrow .projline > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* One cell wide, what sits beside a name goes under it: a task's box took
+   32 of 37px and left its name none at all, and a bar's count left its name
+   a letter a line. */
+.drawer.sz-thin > .dtop{flex-wrap:wrap;row-gap:4px;align-content:center}
+.drawer.otile.sh-sliver.sz-thin .dtop{justify-content:center;text-align:center}
+.drawer.otile.sh-sliver.sz-thin .tilecheck{width:26px;height:26px}
+/* a label and a character card set their names large, for a tile that has
+   the width for it */
+.drawer.otile.sh-band.sz-thin .dname{font-size:12px}
+.chartile.sz-thin .charname{padding:4px 2px;font-size:10px;-webkit-hyphens:auto;hyphens:auto}
+/* a project one cell wide is its cover and its name; the due chip was wider
+   than the tile */
+.projtile.sz-thin .projdue{display:none}
+/* a card too small to write on is the card: "Write on me" in 14px was a W */
+.sz-mini .dkcard .dkword{display:none}
+/* a game box one cell wide keeps less margin by its spine */
+.projtile.sz-thin{padding-left:4px;padding-right:4px}
+.projtile.pcov-game.sz-thin :is(.dtop,.projbar,.projline){margin-left:9px}
+.projtile.sz-thin .dname{font-size:10.5px}
+/* two cells of event: the leaf was 44px of 98 and the name had 32 */
+.drawer.otile.sh-event.sz-narrow .evleaf{width:clamp(36px, 22cqw, 96px);padding-inline:3px}
+.drawer.otile.sh-event.sz-narrow .evbody{padding-left:6px;padding-right:5px}

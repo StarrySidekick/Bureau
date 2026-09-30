@@ -292,7 +292,8 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer .dtop{display:flex;align-items:center;gap:7px}
 .drawer .swatch{display:none}
 .drawer .dname{font-family:var(--serif);font-size:15.5px;font-weight:600;letter-spacing:.005em;
-  color:var(--dink);white-space:normal;overflow-wrap:anywhere;overflow:hidden}
+  color:var(--dink);white-space:normal;overflow-wrap:anywhere;overflow:hidden;
+  -webkit-hyphens:auto;hyphens:auto}
 .drawer .dcount{margin-left:auto;font-size:11px;color:var(--dink-2);font-variant-numeric:tabular-nums;
   background:rgba(0,0,0,.20);border:1px solid rgba(255,255,255,.14);padding:1px 7px;border-radius:var(--pill)}
 .drawer .dbody{flex:1;min-height:0;margin-top:8px;overflow:hidden;position:relative}
@@ -1172,7 +1173,13 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    here, kept as the floor. */
 .cntnum{font-size:clamp(30px, min(60cqw, 62cqh), 260px)}
 /* the book, floating in the middle like a real one */
-.bookscrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.55);backdrop-filter:blur(2px)}
+.bookscrim{position:absolute;inset:0;z-index:60;background:rgba(20,16,12,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+/* On a phone the page nearly fills the screen, so what shows of the board is
+   the strip under the title and the strip under the bar, and a tile's words
+   read straight through the bar's glyphs ("1 of 2" over "Water the fig").
+   The veil is the picture viewer's there: dark enough that the bar is the
+   only thing written on it. */
+.is-phone .bookscrim{background:rgba(16,13,10,.8);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
 /* the inset is a variable because the page size is worked out from what is
    left over after it — see --avail-w / --avail-h in chrome.css */
 :root{--stage-x:6vw;--stage-y:4vh}
@@ -3368,7 +3375,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   border:0;border-radius:9px;cursor:pointer;color:var(--ink-2);
   background:color-mix(in srgb, var(--paper) 82%, transparent);
   box-shadow:0 1px 3px rgba(0,0,0,.18), inset 0 0 0 1px var(--rule-2);
-  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
 }
 @media (hover:hover){.camtool:hover{color:var(--ink);background:var(--paper)}}
 /* A drawer's insides read light, so its controls have to as well. */
@@ -3592,6 +3599,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   flex:1;min-width:0;font-family:var(--serif);font-size:15px;font-weight:600;
   color:var(--dink);line-height:1.15;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+  -webkit-hyphens:auto;hyphens:auto;
 }
 .tagtile .tagname.notag{font-weight:400;font-style:italic;color:var(--dink-2)}
 .tagtile .tagn{flex:0 0 auto;text-decoration:none;font-size:11px;color:var(--dink-2);

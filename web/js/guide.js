@@ -138,12 +138,12 @@ function survey(draw){
 const FAMILIES = [
   { fam:'bd', prop:'border',  nm:'Edges',      of:'front',
     ds:'The line round a thing. Seven positions, the same seven on a drawer front and on a sheet of paper, drawn in wood on one and in ink on the other.' },
-  { fam:'pn', prop:'panel',   nm:'Panellings', of:'front',
-    ds:'How a drawer front is worked. All five are mouldings and all five are lit from the upper left, which is where the knob&rsquo;s highlight is.' },
+  { fam:'pn', prop:'panel',   nm:'Panelings', of:'front',
+    ds:'How a drawer front is worked. All five are moldings and all five are lit from the upper left, which is where the knob&rsquo;s highlight is.' },
   { fam:'kn', prop:'knob',    nm:'Knobs',      of:'front',
     ds:'Turned out of the front&rsquo;s own wood: what makes it a knob is the light on it, not a lighter shade painted where it sits.' },
   { fam:'pl', prop:'plate',   nm:'Nameplates', of:'front',
-    ds:'What the name is written on. Position 0 is printed straight onto the wood, which is what every front made before decision 176 is wearing; the metal on the other four is the aesthetic&rsquo;s own accent, never a colour written down here.' },
+    ds:'What the name is written on. Position 0 is printed straight onto the wood, which is what every front made before decision 176 is wearing; the metal on the other four is the aesthetic&rsquo;s own accent, never a color written down here.' },
   { fam:'tx', prop:'texture', nm:'Grains',     of:'front',
     ds:'What is printed on the surface. Six positions: nothing, the fine tooth of the sheet, a weave, a ruling, a scatter, a pattern.' },
   { fam:'st', prop:'stock',   nm:'Stocks',     of:'paper',
@@ -217,12 +217,12 @@ function chromePlate(s){
         <div class="field" style="margin-top:12px"><label>Name</label>
           <input class="pfield" value="Kitchen" readonly>
         </div>
-        <div class="prow"><label>Colour</label><div>${
+        <div class="prow"><label>Color</label><div>${
           s.cols.slice(OBJ0, OBJ0+7).map((c,i)=>`<span class="pill${i===2?' on':''}"
             style="background:${esc(c)};color:#fff;border-color:${esc(c)}">&nbsp;&nbsp;</span>`).join('')}</div></div>
         <label class="rangerow"><span>Board strength</span><b class="num">62</b>
           <input type="range" min="0" max="100" value="62" disabled></label>
-        <div class="mini" style="--k:var(--brass)">A slot is a <b>position</b>, not a colour. Changing aesthetic swaps every tile to that aesthetic&rsquo;s answer; changing back puts each one exactly where it was.</div>
+        <div class="mini" style="--k:var(--brass)">A slot is a <b>position</b>, not a color. Changing aesthetic swaps every tile to that aesthetic&rsquo;s answer; changing back puts each one exactly where it was.</div>
         <div class="statline" style="margin-top:12px">
           <div class="s"><b>12</b>things</div><div class="s"><b>4</b>done</div><div class="s"><b>1</b>shelf</div>
         </div>
@@ -231,7 +231,7 @@ function chromePlate(s){
         </details>
         <div class="section-h" style="margin-top:14px"><h2>Doors</h2><div class="rule"></div></div>
         <div class="rows osecs">
-          ${[['palette','Aesthetics','the sixteen colours, light and dark'],
+          ${[['palette','Aesthetics','the sixteen colors, light and dark'],
              ['brush','Appearance','the board, the shadows, the grid'],
              ['layers','Depth and light','how solid things look']].map(([i,t,n])=>
             `<div class="row"><span class="kindmark">${B(i,13)}</span>
@@ -458,7 +458,7 @@ function guideBody(){
 
   const swatches = s => `<div class="gx-chips">${s.cols.map((c,i)=>`
     <span class="gx-chip"><i style="background:${A(c)}"></i>
-      <b>${A(i<OBJ0 ? ROLES[i] : (s.names[i-OBJ0] || 'Colour '+(i-OBJ0+1)))}</b>
+      <b>${A(i<OBJ0 ? ROLES[i] : (s.names[i-OBJ0] || 'Color '+(i-OBJ0+1)))}</b>
       <u>${A(c)}</u></span>`).join('')}</div>`;
 
   const plate = s => `
@@ -513,7 +513,7 @@ function guideBody(){
     ...styles.map(s=>['#aes-'+s.key, s.nm]),
     ...FAMILIES.map(f=>['#fam-'+f.fam, f.nm]),
     ['#types','Types'], ['#faces','Faces'], ['#shapes','Shapes'],
-    ['#marks','Ticks, bursts, ornaments']
+    ['#marks','Checks, bursts, ornaments']
   ];
 
   const total = mats.reduce((n,f)=>n+f.rows.reduce((m,r)=>m+r.cells.length,0),0)
@@ -566,7 +566,7 @@ function guideBody(){
     <h3 class="gx-sub">Project covers</h3>
     ${tiles(covers, 'A project face is a report, and the cover says what the thing being reported on <em>is</em>. A slot like any other: per object, then per type.')}
     <h3 class="gx-sub">Life areas</h3>
-    ${tiles(lifes, 'Nine things lying on the desk. Drawn rather than photographed, so they take the aesthetic&rsquo;s own colours and cost nothing to ship; an uploaded picture beats the drawing.')}
+    ${tiles(lifes, 'Nine things lying on the desk. Drawn rather than photographed, so they take the aesthetic&rsquo;s own colors and cost nothing to ship; an uploaded picture beats the drawing.')}
   </section>
 
   <section class="gx-sec" id="shapes">
@@ -577,13 +577,13 @@ function guideBody(){
   </section>
 
   <section class="gx-sec" id="marks">
-    <header class="gx-head"><h2>Ticks, bursts and ornaments</h2>
-      <p>A tick box is a fact about the desk rather than about a type, so a task ticked one way and a
-         checklist line ticked another cannot happen. A burst belongs to a new object arriving and to
+    <header class="gx-head"><h2>Checks, bursts and ornaments</h2>
+      <p>A checkbox is a fact about the desk rather than about a type, so a task checked one way and a
+         checklist line checked another cannot happen. A burst belongs to a new object arriving and to
          nothing else. And a decoration is a made object, so it is tagged with where it belongs
          instead of being re-dressed.</p></header>
 
-    <h3 class="gx-sub">Tick boxes</h3>
+    <h3 class="gx-sub">Checkboxes</h3>
     <div class="gx-plate gx-boxes" data-sty="victorian" style="${A(varsOf(byKey.victorian))}">${
       Object.entries(CHECKS).map(([k,nm])=>`<div class="gx-box" data-checks="${A(k)}">
         <span class="gx-pair"><i class="check"></i><i class="check on">

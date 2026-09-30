@@ -587,7 +587,7 @@ const ACTIVE = {
       : (o.litAt ? 'Burned out' : `${burnOf(o)} min when lit`),
     zoom: o => azSay('How long it burns for, and what the wax is')
       + azStep(o.id, 'burn', burnOf(o), 'min', 15)
-      + azRing(o.id, 'waxc', [['','Its own colour'],['#F2E6C8','Ivory'],['#C9483F','Red'],
+      + azRing(o.id, 'waxc', [['','Its own color'],['#F2E6C8','Ivory'],['#C9483F','Red'],
           ['#3F6B57','Green'],['#2E3A55','Midnight'],['#E8A33D','Beeswax']], o.waxc || '')
   },
 

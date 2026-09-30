@@ -41,7 +41,7 @@ import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteOb
    See decision 131. *//* What a swatch row is called on the undo stack. One per key a `swatches()`
    row can write, because "Colour" on the step that changed a *string's*
    colour is a step that lies about itself. See decision 178. */
-const SWATCH_NM = {c:'Colour', strc:'String colour'};
+const SWATCH_NM = {c:'Color', strc:'String color'};
 
 /* ---- dragging the weight up the arm — decision 182 ---------------------
    The stepper under it is exact and this is the one you actually use: the
@@ -788,7 +788,7 @@ function act(name, el){
     case 'resetslots': {
       const k=(S.look.style)||'victorian';
       if(S.look.slots) delete S.look.slots[k];
-      applyLook(); save(); render(); refreshPanel(); toast('Back to the style\u2019s own colours'); break;
+      applyLook(); save(); render(); refreshPanel(); toast('Back to the style\u2019s own colors'); break;
     }
     case 'stopedit': S.layoutEdit=null; render(); break;
     case 'export': exportBackup(); break;
@@ -1175,7 +1175,7 @@ function act(name, el){
     "title": "Lisbon",
     "face": "checklist",       // drawer front | checklist | calendar | moodboard | timeline
     "w": 8, "h": 6,            // in grid cells; omit for the type's own size
-    "colour": "#3F5F7A",
+    "color": "#3F5F7A",
     "children": [              // only containers keep children
       { "type": "task", "title": "Book the flight", "due": "2026-09-02" },
       { "type": "task", "title": "Renew passport", "done": true }
@@ -2264,7 +2264,7 @@ function wire(){
          rather than a control of its own. `'c'` when nothing says otherwise,
          which is every caller that existed before. See decision 178. */
       if(pn.dataset.ocolour!=null){ const key=pn.dataset.key||'c';
-        pushSet(SWATCH_NM[key]||'Colour', id, key, o[key]);
+        pushSet(SWATCH_NM[key]||'Color', id, key, o[key]);
         o[key] = pn.dataset.ocolour==='' ? null : slotVal(pn.dataset.ocolour); }
       /* 0 is a real answer and '' is the absence of one, so the empty string
          has to be tested for rather than falsiness. See decision 72. */
@@ -2464,7 +2464,7 @@ function wire(){
       // the swatch *buttons* carry `data-key`; the input carries its key as the
       // value of `data-ocolinput`, which is what this has to read
       const key=e.target.dataset.ocolinput||'c';
-      if(o){ pushSet(SWATCH_NM[key]||'Colour', id, key, o[key]); o[key]=e.target.value; save(); renderSoon(); }
+      if(o){ pushSet(SWATCH_NM[key]||'Color', id, key, o[key]); o[key]=e.target.value; save(); renderSoon(); }
       return;
     }
     // colour pickers: live preview while dragging, committed on 'change'

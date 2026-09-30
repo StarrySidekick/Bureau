@@ -1675,11 +1675,15 @@ function pagerBegin(axis, dir, two){
     twin.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));
     twin.removeAttribute('id');
     twin.style.transform=''; twin.style.willChange=''; twin.style.visibility='';
-    const sc=host.classList.contains('scroll') ? host : host.querySelector('.scroll');
-    if(sc){ const t2=twin.classList.contains('scroll') ? twin : twin.querySelector('.scroll');
-            if(t2) t2.scrollTop=sc.scrollTop; }
     cur.appendChild(twin);
     track.insertBefore(cur, nextPane);
+    /* …scrolled to where the real one is, and only now: a detached scroller
+       cannot scroll, so set before it was in the document the picture showed
+       the board from its top and it dropped a row as the swipe began. Both
+       ways, since the phone pans both ways (decision 273). */
+    const sc=host.classList.contains('scroll') ? host : host.querySelector('.scroll');
+    if(sc){ const t2=twin.classList.contains('scroll') ? twin : twin.querySelector('.scroll');
+            if(t2){ t2.scrollTop=sc.scrollTop; t2.scrollLeft=sc.scrollLeft; } }
     /* The picture has taken over, so the real board stops moving and stands
        down. Both happen before this frame is painted, so there is no seam. */
     PG.carry=false;

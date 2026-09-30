@@ -785,7 +785,7 @@ const SETSECS = {
      were scattered across Aesthetics and Appearance, and they are the one set
      of settings that means something inside a container too — so inside one,
      the gear opens straight onto this door and nothing else. */
-  board:  ['Board settings', 'grid', 'this desk: how it is laid out, sorted and painted, its colour, grid size and pages'],
+  board:  ['Board settings', 'grid', 'this desk: how it is laid out, sorted and painted, its color, grid size and pages'],
   /* **Global Settings** (decision 213, Timothy's own arrangement in the
      Workshop): the aesthetic, its palette and light or dark, and what is left
      of Appearance, in one door. Aesthetics was its own door and is gone; a
@@ -862,7 +862,7 @@ const stylePicker = ()=> `<div class="stylegrid">${Object.entries(STYLES).map(([
         <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
           [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
         <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">An aesthetic is sixteen colours, a board, a typeface, and the defaults new drawers are born with. It is the whole desk's, in here as much as out there.</div>`;
+    <div class="mini" style="--k:var(--brass);margin-top:6px">An aesthetic is sixteen colors, a board, a typeface, and the defaults new drawers are born with. It is the whole desk's, in here as much as out there.</div>`;
 
 function settingsBody(sec, cid){
   const standalone = installed();
@@ -934,17 +934,17 @@ function settingsBody(sec, cid){
           thing you set once, so it is a row. See decision 192. */''}
     ${/* Every tile the same squares, or each its own (decision 274). The
           board's own, so a desk and a drawer can answer differently. */''}
-    <div class="field" style="margin-top:12px"><label>Tile Colours</label>
+    <div class="field" style="margin-top:12px"><label>Tile Colors</label>
       <div class="filterbar">${[['','The same on every tile'],['each','Each tile its own']].map(([v,n])=>
         `<button class="fchip${((cfgOf(inside ? cid : ROOT)||{}).tilepaper==='each'?'each':'')===v?' on':''}" data-tilepaper="${v}" data-id="${inside ? cid : ROOT}">${n}</button>`).join('')}
         ${(cfgOf(inside ? cid : ROOT)||{}).tilepaper==='each' ? `<button class="fchip" data-tilepaper="reroll" data-id="${inside ? cid : ROOT}">${ic('spiral',12)} Roll again</button>` : ''}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>The same on every tile</b> is one checkerboard running through the whole board. <b>Each tile its own</b> gives every tile its own two quiet colours, picked at random and kept; <b>Roll again</b> picks a new set.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>The same on every tile</b> is one checkerboard running through the whole board. <b>Each tile its own</b> gives every tile its own two quiet colors, picked at random and kept; <b>Roll again</b> picks a new set.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Board Background Type</label>
       <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
         `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same colour with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own colour is still the board's own colour — this only says what is drawn on it.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same color with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own color is still the board's own color — this only says what is drawn on it.</div>
     </div>
 
     ${/* How a phone gets down a board (decision 209): since decision 272
@@ -952,7 +952,7 @@ function settingsBody(sec, cid){
     <div class="field" style="margin-top:12px"><label>Moving Down a Board</label>
       <div class="filterbar">${[['','Smooth scroll'],['page','A tile at a time'],['rigid','Rigid swipe']].map(([v,n])=>
         `<button class="fchip${(['page','rigid'].includes(S.look.flow)?S.look.flow:'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together, every way, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centred. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one tile, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> runs the tiles of a board together, every way, and when you stop it settles on the nearest row of cells. <b>A tile at a time</b> scrolls the same way and settles on a whole tile, centered. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one tile, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
     </div>
 
     ${/* *How big a drawer is inside* was a row here (decisions 188 and 195)
@@ -993,12 +993,12 @@ function settingsBody(sec, cid){
       <select class="psel" data-darkmode>${Object.entries(DARKMODES).map(([v,n])=>
         `<option value="${v}"${darkMode()===v?' selected':''}>${n}</option>`).join('')}</select>
       <div class="mini" style="--k:var(--brass);margin-top:6px">${hasDark()
-        ? `${esc(styleNow().nm)} has a walnut set of its own — the same sixteen slots after dark, so every drawer keeps the colour you gave it.`
+        ? `${esc(styleNow().nm)} has a walnut set of its own — the same sixteen slots after dark, so every drawer keeps the color you gave it.`
         : `${esc(styleNow().nm)} is one light and has no dark set, so this changes nothing here. Victoria does.`}</div>
     </div>
 
     <div class="field" style="margin-top:14px"><label>Palette</label>
-      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a colour: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aeros. Changing aesthetic swaps every tile to that aesthetic's answer; changing back puts each one exactly where it was.</div>
+      <div class="mini" style="--k:var(--brass);margin:2px 0 8px">The first five dress the app itself. The other eleven are what drawers and objects are painted in. A slot is a <b>position</b>, not a color: a drawer holds slot 11, and slot 11 is a claret here and a deep sea blue in Aeros. Changing aesthetic swaps every tile to that aesthetic's answer; changing back puts each one exactly where it was.</div>
       ${[[0,OBJ0,'chrome'],[OBJ0,16,'']].map(([a,b,cls])=>
         `<div class="slotgrid ${cls}">${palNow().slice(a,b).map((c,n)=>{
           const i=a+n;
@@ -1040,7 +1040,7 @@ function settingsBody(sec, cid){
               : `<i class="spraynone"></i>`}</span>
             <u>${esc(nm)}</u></button>`).join('');
       })()}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">Thrown out of a new object as it lands on the board, and then pulled down. They take its colour and the aesthetic's own accent, so a burst belongs to the desk it happened on.</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Thrown out of a new object as it lands on the board, and then pulled down. They take its color and the aesthetic's own accent, so a burst belongs to the desk it happened on.</div>
     </div>
 
     <div class="field" style="margin-top:12px"><label>Desk Owner</label>
@@ -1141,7 +1141,7 @@ function settingsBody(sec, cid){
     </div>
 
     <div class="section-h"><h2>Drawer fronts</h2><div class="rule"></div></div>
-    <div class="mini" style="--k:var(--brass)">A drawer is a box, and the honest thing to show from the side is a flank. It is also nearly invisible: a front's whole character is the moulding and the knob, and turned up far enough to read, a flank stops being a side and becomes a grey stripe. So the rest of these are drawn on the face the front actually has. They cost no width, which is what lets them survive at the size a drawer is really drawn. Each is off at zero, and <b>⇄ runs it the other way round</b> — there is no single right sign for all of them, and one pointing the wrong way is invisible until it sits beside one that is right.</div>
+    <div class="mini" style="--k:var(--brass)">A drawer is a box, and the honest thing to show from the side is a flank. It is also nearly invisible: a front's whole character is the molding and the knob, and turned up far enough to read, a flank stops being a side and becomes a gray stripe. So the rest of these are drawn on the face the front actually has. They cost no width, which is what lets them survive at the size a drawer is really drawn. Each is off at zero, and <b>⇄ runs it the other way round</b> — there is no single right sign for all of them, and one pointing the wrong way is invisible until it sits beside one that is right.</div>
     <div class="field" style="margin-top:10px">
       <label class="rangerow"><span>How far a drawer stands out</span>
         <input type="range" min="0" max="18" step="1" data-lookpx="depth" value="${px('depth',11)}">
@@ -1149,10 +1149,10 @@ function settingsBody(sec, cid){
       <div class="mini" style="--k:var(--brass)">The flank, in pixels — the side of the box you can see from where you are standing. Cards and pictures stand under this one too.</div>
       ${cue('arris', 'A chamfered edge', 'Two pixels of eased edge, brightening on the side turning towards you — the first thing in a room to catch light.', 0)}
       ${cue('facelight', 'Light across the face', 'The face itself lighter on the edge turning towards you and falling away on the other — what a spine does, on a flat surface.', 0)}
-      ${cue('facesweep', 'A sweep of light', 'One broad band of light travelling across the front. Faint is varnish on wood; bright is glass, which this desk has been through once.', 0)}
+      ${cue('facesweep', 'A sweep of light', 'One broad band of light traveling across the front. Faint is varnish on wood; bright is glass, which this desk has been through once.', 0)}
       ${cue('recess', 'Set into the carcass', 'The lip of the desk laying a shadow across the front from the side you moved away from — the opening\'s depth rather than the drawer\'s.', 0)}
       ${cue('knobturn', 'The knob turns with you', 'The one part of a front that is already solid. The wood does not move; only the light on it does.', 0)}
-      ${cue('fieldshift', 'The field shifts in its frame', 'A panelled field is set back inside its moulding, so it slides against the frame. Real parallax rather than painted light, and the easiest to overdo.', 0)}
+      ${cue('fieldshift', 'The field shifts in its frame', 'A paneled field is set back inside its molding, so it slides against the frame. Real parallax rather than painted light, and the easiest to overdo.', 0)}
     </div>
 
     <div class="section-h"><h2>Both</h2><div class="rule"></div></div>

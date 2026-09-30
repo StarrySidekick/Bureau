@@ -2456,10 +2456,17 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* …but never the tile you arrive on. Its middle is held only if it is
        bare: a hold on a thing there would pick the thing up instead. */
     const st = S.deskCfg.start || BUREAU.startOf('root'), mid = Math.floor(BUREAU.TILE/2) + 1;
-    if(BUREAU.boxOk({x:st.x*BUREAU.TILE+mid, y:st.y*BUREAU.TILE+mid, w:1, h:1}, null, dv, 'root')){
-      await holdTile(st.x, st.y, 1500);
-      out.theHomeBoardStays = BUREAU.boardsOf('root').length === had && BUREAU.isBoard('root', st.x, st.y);
-    } else out.theHomeBoardStays = 'its middle is taken';
+    /* The seed stands things on it, and a hold on one of those picks it up:
+       they step off the tile for the length of the hold and come back. */
+    const cx = st.x*BUREAU.TILE+mid, cy = st.y*BUREAU.TILE+mid;
+    const onMid = S.objects.filter(o => o.parent==='root' && o[dv] && o[dv].x
+      && o[dv].x <= cx && cx < o[dv].x + o[dv].w && o[dv].y <= cy && cy < o[dv].y + (o[dv].h||1));
+    onMid.forEach(o => S.objects.splice(S.objects.indexOf(o), 1));
+    BUREAU.render(); await nap(150);
+    await holdTile(st.x, st.y, 1500);
+    out.theHomeBoardStays = BUREAU.boardsOf('root').length === had && BUREAU.isBoard('root', st.x, st.y);
+    onMid.forEach(o => S.objects.push(o));
+    BUREAU.render(); await nap(150);
     /* A tile with something on it asks where its things go (decision 234),
        held or pressed on Board settings' map. */
     await holdTile(3, 0, 450); await nap(1100);
@@ -10163,15 +10170,20 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const Gs = await import('./js/gestures.js');
     S.view='desk'; S.drawerId=null; S.zoomOn=null; S.q=''; BUREAU.render(); await nap(200);
 
-    /* the vertical pager: the picture and the real board share a top */
+    /* The pager: the picture and the real board share a top. It was the
+       up-and-down pager on the desk; since decision 273 the phone scrolls
+       every way and the pager is only two fingers sideways inside a
+       container, which carries the same picture and the same margin. */
+    S.view='drawer'; S.drawerId='d_studio'; BUREAU.render(); await nap(200);
     const real = document.querySelector('#app #drawergrid').getBoundingClientRect().top;
-    if(M.pagerBegin('y', -1)){
+    if(M.pagerBegin('x', -1, true)){
       await nap(60);
       const cur = document.querySelector('.pager .pane.cur .grid');
-      out.theUpDownPictureSitsOnTheBoard = !!cur && Math.abs(cur.getBoundingClientRect().top - real) < 1
+      out.thePagerPictureSitsOnTheBoard = !!cur && Math.abs(cur.getBoundingClientRect().top - real) < 1
         || {real, cur: cur && cur.getBoundingClientRect().top, look: {p:S.look.parallax, i:S.look.deskinset}};
       M.pagerCancel(); await nap(60);
-    } else out.theUpDownPictureSitsOnTheBoard = 'no neighbour';
+    } else out.thePagerPictureSitsOnTheBoard = false;
+    S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
 
     /* a pigeonhole draws its children, inert */
     const was = S.objects.slice();
@@ -10392,20 +10404,20 @@ const PROP_OFF = () => { const b = document.createElement('button');
       M.pagerMove(-260); await nap(40); M.pagerEnd(); await nap(450);
       out.aSwipeGoesNextDoor = S.view==='drawer' && S.drawerId === b.id;
     } else out.aSwipeGoesNextDoor = 'no neighbour';
-    if(M.pagerBegin('x', -1)){
-      M.pagerMove(-400); await nap(40); M.pagerEnd(); await nap(450);
-      out.oneFingerFindsASlot = S.drawerId === b.id && BUREAU.shelfAt(b.id).x === 1
-        && !!document.querySelector('#drawergrid.vacant') && !document.querySelector('#drawergrid .addboard');
-    } else out.oneFingerFindsASlot = 'no slot';
+    /* One finger pans natively every way since decision 273, and the board
+       is drawn with a tile of slots round it: the finger finds a slot off
+       the edge by scrolling to it, and it wears no plus (276). */
+    const sc = () => document.querySelector('#app .scroll.deskscroll');
+    out.oneFingerFindsASlot = S.drawerId === b.id && !!document.querySelector('#drawergrid .noboard')
+      && sc().scrollWidth > sc().clientWidth + 1 && !document.querySelector('#drawergrid .addboard');
     BUREAU.goShelfTo(b.id, 0, 0); await nap(150);
     // and a full board grows a page at the bottom instead of refusing
     for(let i=0; i<60; i++) BUREAU.create('note', {parent:b.id, title:'n'+i});
     BUREAU.render(); await nap(250);
     out.aFullBoardGrowsDown = BUREAU.shelvesOf(b.id).h > 1 && BUREAU.shelvesOf(b.id).w === 1;
-    if(M.pagerBegin('y', -1)){
-      M.pagerMove(-400); await nap(40); M.pagerEnd(); await nap(450);
-      out.upAndDownWalksThePages = S.drawerId === b.id && BUREAU.shelfAt(b.id).y === 1;
-    } else out.upAndDownWalksThePages = 'no page below';
+    // …and the page it grew is the one you are on once you scroll down to it
+    sc().scrollTop = sc().scrollHeight; sc().dispatchEvent(new Event('scroll')); await nap(500);
+    out.upAndDownWalksThePages = S.drawerId === b.id && BUREAU.shelfAt(b.id).y >= 1;
     S.objects.length=0; was.forEach(o=>S.objects.push(o));
     S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;

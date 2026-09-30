@@ -400,8 +400,11 @@ const growsDown = cid => cid!=null && cid!==ROOT && !innerOf(cid) && !!byId(cid)
    board of that column, when there is room for one. Written as a fact — the
    board is that big now — and counted in `PLACED` so the render that asked
    saves it, the same as a box ensureBox() invented. */
-function growDown(cid){
-  if(!growsDown(cid) || growsNot(cid)) return false;
+/* `shows`: a sorting drawer holds nothing, so nothing is ever *placed* on a
+   second board of one; but it packs what it collects (decision 278), and a
+   packing that has run out of room asks for a page to show the rest on. */
+function growDown(cid, shows){
+  if(!growsDown(cid) || (growsNot(cid) && !shows)) return false;
   const all = boardsOf(cid);
   if(all.length >= PAGES_MAX) return false;
   const at = shelfAt(cid);
@@ -781,7 +784,7 @@ const overlaps = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y 
    between siblings — two objects in different drawers can share coordinates,
    because they are in different coordinate spaces. */
 const hasBox = (o,dv)=> !!(o && o[dv] && o[dv].w);
-function boxOk(box, id, device, parentId){
+function boxOk(box, id, device, parentId, clear){
   const g=gridOf(device, parentId||ROOT), dv=device||dev();
   if(box.x<1 || box.y<1 || box.w<1 || box.h<1) return false;
   /* The board is **finite** now: nine shelves, or one. A box past the last of
@@ -802,14 +805,19 @@ function boxOk(box, id, device, parentId){
      See decision 86. */
   /* Words set **over the others** (decision 247) float the same way: a
      caption written across a picture has to be allowed to lie on it. */
+  /* `clear` asks for a box nothing is standing on, a decoration included:
+     what a *search* for somewhere to put a thing wants first (freeSpot), so
+     a new tile is not laid down under a plant and a plant is not set down on
+     a tile. A background is still under everything, which is what it is for.
+     A drag still gets the rule above. */
   const floats = d => has(d,'decor') || has(d,'backdrop') || wordOf(d,'layer')==='above';
   const me = id && byId(id);
-  if(me && floats(me)) return true;
+  if(me && floats(me) && !clear) return true;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
   // a thing standing in the drawer front has given up its cells (decision 252)
   return !childrenOf(container(parentId||ROOT))
-    .some(d=>d.id!==id && !floats(d) && !inFront(d) && hasBox(d,dv)
+    .some(d=>d.id!==id && (clear ? !has(d,'backdrop') : !floats(d)) && !inFront(d) && hasBox(d,dv)
              && overlaps(box, lay(d,device,parentId||ROOT)));
 }
 /* The lowest free spot, **on the shelf you are looking at first**. A board is
@@ -843,7 +851,7 @@ function freeSpot(w,h,device,parentId,prefer){
   if(spot || !growDown(parentId)) return spot;
   return freeSpot(w,h,device,parentId,prefer);
 }
-function freeSpotIn(w,h,device,parentId,prefer){
+function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   const dv=device||dev(), home=parentId||ROOT, g=gridOf(dv, home);
   const oneShelfOnly = dv==='phone';
   w=Math.min(w, oneShelfOnly ? g.maxW : g.cols);
@@ -859,14 +867,17 @@ function freeSpotIn(w,h,device,parentId,prefer){
   order.sort((a,b)=> a[2]-b[2] || lane(a)-lane(b) || (a[1]<p.y)-(b[1]<p.y) || a[1]-b[1] || a[0]-b[0]);
   /* Each tile is asked for a box whose **top row** is in it (decision 272):
      the box may run on into the tile below, which `boxOk()` checks is there. */
-  for(const [sx,sy] of order){
+  /* Twice: somewhere nothing is standing at all, then somewhere only the
+     floating things are (a decoration, a background), which is all a tile has
+     ever had to keep clear of. */
+  for(const clear of clearOnly ? [true] : [true, false]) for(const [sx,sy] of order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
     // the top-left cell is in this tile; the box may run on across the seam
     const lastX = Math.min(g.shelfW, g.cols-x0-w+1);
     const lastY = Math.min(g.shelfH, g.rows-y0-h+1);
     for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
-      if(boxOk(box,null,dv,home)) return box;
+      if(boxOk(box,null,dv,home,clear)) return box;
     }
   }
   return null;
@@ -913,6 +924,18 @@ function randomSpot(w,h,device,parentId){
 function fitSpot(w,h,device,parentId,prefer){
   let a=Math.max(1,w|0), b=Math.max(1,h|0);
   const minA=Math.ceil(a/2), minB=Math.ceil(b/2);
+  /* A clear spot at any size down to half, and then a new page with one on
+     it, come before a spot under a decoration: asked size by size, the first
+     free place at each size was under the sampler's plant, every time. */
+  const clear = ()=>{ for(let c=a, r=b; ; ){
+    const spot = freeSpotIn(c, r, device, parentId, prefer, true);
+    if(spot) return spot;
+    if(c<=minA && r<=minB) return null;
+    if(c>=r && c>minA) c--; else if(r>minB) r--; else c--;
+  } };
+  let first = clear();
+  while(!first && growDown(parentId)) first = clear();
+  if(first) return first;
   let grown=false;
   for(let i=0;i<40;i++){
     const spot = grown ? freeSpot(a,b,device,parentId,prefer)

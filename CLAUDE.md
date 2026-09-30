@@ -345,6 +345,12 @@ labels (`ringReach()`), and a disclosure's note is not shouted.
 there pushes no empty undo; a dropped echo still closes the ring; a
 pigeonhole packs a sorting drawer's miniature; a timeline's end labels sit
 inside the tile.
+**v2.68** (decision 281): **American English** in the interface (migration 52
+respells the stock flows); a darker reader veil on a phone; the hold ring's
+hole holds the thing held; names in thin tiles hyphenate and keep their
+room; three stylesheet leaks into miniatures closed; `fitSpot()` finds a clear
+spot before one under a decoration (migration 53); a full sorting drawer grows
+a page; the pager's picture is scrolled where the board is.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -829,7 +835,9 @@ side of the build. Don't put `save()` back in render(). See decision 64.
 Match what's there. Compact but readable; two-space indent; single quotes;
 template literals for HTML. Comments explain *why*, not *what* — the code already
 says what. Copy in the UI is plain, specific, and unexcited: "Filed in Kitchen",
-not "Successfully moved item!".
+not "Successfully moved item!". **Copy in the UI is American English** (Timothy,
+2026-09-30: "use American English for now"): color, behavior, center, a check
+rather than a tick. Identifiers and stored values keep their old spelling.
 
 No dependencies. If something seems to need a library, say so and make the case
 before adding one — the whole app being one dependency-free file is a feature,

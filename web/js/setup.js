@@ -188,7 +188,7 @@ const ASPECT_STEPS = {
   'a.money.1': {q:'Where do you bank?', sub:'It becomes the first way out of this drawer.',
     text:{ph:'chase.com', go:'Next', skip:'Later'},
     answer:(o,v)=> pointPortal(sref(o,'bank'), v, true) ? 'a.money.2' : 'a.money.1'},
-  'a.money.2': {q:'What are you saving for?', sub:'The savings goal is named for it, and the bar under it fills as you tick its steps.',
+  'a.money.2': {q:'What are you saving for?', sub:'The savings goal is named for it, and the bar under it fills as you check off its steps.',
     text:{ph:'Three months of expenses', go:'Done', skip:'Later'},
     answer:(o,v)=>{ const g = sref(o,'savings'); if(g && v){ pushSet('Renamed', g.id, 'title', g.title); g.title = v; } return null; }},
   'a.exercise.1': {q:'What do you train with?', sub:'The big portal at the top opens it.',
@@ -239,7 +239,7 @@ const ASPECT_STEPS = {
   'a.things.1': {q:'What else needs looking after?', sub:'The car, the laptop and the phone are there already. One a line for the rest.',
     area:{ph:'The bike\nThe camera', go:'Done'},
     answer:(o,v)=>{ fillList(o,'things',v); return null; }},
-  'a.travel.1': {q:'Where do you want to go?', sub:'One a line. Tick one off when you have been.',
+  'a.travel.1': {q:'Where do you want to go?', sub:'One a line. Check one off when you have been.',
     area:{ph:'Lisbon\nThe Lake District', go:'Done'},
     answer:(o,v)=>{ fillList(o,'want',v,'task'); return null; }},
   'a.films.1': {q:'What is your Letterboxd name?', sub:'The portal at the top goes to your own page.',
@@ -247,7 +247,7 @@ const ASPECT_STEPS = {
     answer:(o,v)=>{ const n = String(v||'').trim().replace(/^@/,''); const p = sref(o,'letterboxd');
       if(p && n && /^[\w.-]+$/.test(n)) p.link = Object.assign({}, p.link, {target:'https://letterboxd.com/'+n+'/'});
       return null; }},
-  'a.books.1': {q:'What do you want to read next?', sub:'One a line. Tick one off when you have read it.',
+  'a.books.1': {q:'What do you want to read next?', sub:'One a line. Check one off when you have read it.',
     area:{ph:'Middlemarch\nThe Remains of the Day', go:'Done'},
     answer:(o,v)=>{ fillList(o,'toread',v,'task'); return null; }},
   'a.music.1': {q:'Where do you listen?', sub:'',
@@ -258,13 +258,13 @@ const ASPECT_STEPS = {
   'a.music.2': {q:'Who are you listening to?', sub:'One a line.',
     area:{ph:'An artist\nAnother', go:'Done'},
     answer:(o,v)=>{ fillList(o,'artists',v); return null; }},
-  'a.visual.1': {q:'Which museums would you like to visit?', sub:'One a line. Tick one off when you have been.',
+  'a.visual.1': {q:'Which museums would you like to visit?', sub:'One a line. Check one off when you have been.',
     area:{ph:'The Met\nThe Rijksmuseum', go:'Done'},
     answer:(o,v)=>{ fillList(o,'museums',v,'task'); return null; }},
-  'a.games.1': {q:'What do you want to play?', sub:'One a line. Tick one off when you finish it.',
+  'a.games.1': {q:'What do you want to play?', sub:'One a line. Check one off when you finish it.',
     area:{ph:'A game\nAnother', go:'Done'},
     answer:(o,v)=>{ fillList(o,'toplay',v,'task'); return null; }},
-  'a.food.1': {q:'Restaurants you want to try?', sub:'One a line. Tick one off when you have been.',
+  'a.food.1': {q:'Restaurants you want to try?', sub:'One a line. Check one off when you have been.',
     area:{ph:'A place\nAnother', go:'Done'},
     answer:(o,v)=>{ fillList(o,'restaurants',v,'task'); return null; }},
 };
@@ -295,7 +295,7 @@ const STEPS = {
       if(v) o.makes = {only:[v], sizes:[]}; else delete o.makes; return 'drawer.face'; }},
   'drawer.face': {
     q:'How should it look on the board?', sub:'Its face — what you see before you open it.',
-    ask:()=>[['front','A drawer front','a knob and a name'],['checklist','A checklist','the tasks inside, to tick on the front'],
+    ask:()=>[['front','A drawer front','a knob and a name'],['checklist','A checklist','the tasks inside, to check off on the front'],
       ['list','A list','everything inside, one line each'],
       ['collage','A collage','the pictures inside, pinned up'],['spine','A book spine','standing on a shelf']]
       .map(([f,nm,n])=>choice(f, nm, n, typeArt(f==='front'?'drawer':f==='checklist'||f==='list'?f:f==='collage'?'moodboard':'book'))),
@@ -358,7 +358,7 @@ const STEPS = {
     text:{ph:'Call Grandma', go:'Next', field:'title', skip:'Leave it blank'},
     answer:(o,v)=>{ if(v){ pushSet('Renamed', o.id, 'title', o.title); o.title=v; } return 'card.colour'; }},
   'card.colour': {
-    q:'What colour is it printed in?', sub:'The rule round the face, the corners, and the back.',
+    q:'What color is it printed in?', sub:'The rule round the face, the corners, and the back.',
     ask:()=>CARD_INKS.map(n=>choice(String(n), '', '', swatch(hexOf(n), '#F7F3E8', ''))),
     answer:(o,v)=>{ pushSet('Changed', o.id, 'c', o.c); o.c = +v; return 'card.back'; }},
   'card.back': {
@@ -407,7 +407,7 @@ const STEPS = {
     text:{ph:'Glasses of water', go:'Next', field:'title'},
     answer:(o,v)=>{ if(v){ pushSet('Renamed', o.id, 'title', o.title); o.title=v; } return 'count.look'; }},
   'count.look': {
-    q:'What should the wheels look like?', sub:'The typeface and each colour are in its editor, under Look.',
+    q:'What should the wheels look like?', sub:'The typeface and each color are in its editor, under Look.',
     ask:()=>[['|','Black and cream'],['#E9E1CC|#16120E','Ivory and black'],['#8E3B38|#E2B85C','Red and gold'],
       ['#2E4A6B|#FFFFFF','Navy and white'],['#16120E|#8FE39A','Lamp green'],['#9A7B2F|#16120E','Brass']]
       .map(([v,nm])=>{ const [bg,fg]=v.split('|'); return choice(v, nm, '', swatch(bg||'#3C352B', fg||'#EFE7D2', '07')); }),

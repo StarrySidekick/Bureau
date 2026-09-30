@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.67';
+const APP_VERSION = '2.68';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 51;
+const DATA_V = 53;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1312,6 +1312,36 @@ const MIGRATIONS = [
       c.shelves = {w, h};
       if(kept.length===w*h) delete c.boards; else c.boards = kept.map(([x,y])=>x+','+y);
       if(c.start) c.start = {x:Math.floor(((c.start.x||0)*OLD + OLD/2)/T), y:Math.floor(((c.start.y||0)*OLD + OLD/2)/T)};
+    });
+  }},
+  /* ---- American spelling (2026-09-30) ---------------------------------------
+     Timothy: "use American English for now". The stock flows live in the
+     desk's data, so a desk seeded before the change still stamps "Favourites".
+     Only the flows' own words are respelled, a word at a time, so a flow he
+     has edited keeps its edits; what he stamped or wrote himself is his. */
+  {v:52, up(d){
+    const US = [[/\bFavourite/g,'Favorite'], [/\bfavourite/g,'favorite'], [/\btyres\b/g,'tires'],
+                [/\bColour\b/g,'Color'], [/\bcolour\b/g,'color'], [/\brecce\b/g,'scout']];
+    const us = t => typeof t==='string' ? US.reduce((a,[re,to])=>a.replace(re,to), t) : t;
+    (d.plans||[]).forEach(p=>{ if(!p || !p.stock) return;
+      p.nm = us(p.nm);
+      (p.objects||[]).forEach(o=>{ if(o){ o.title = us(o.title); o.body = us(o.body); } });
+    });
+  }},
+  /* ---- the sampler's plant was standing on Random (2026-09-30) -----------
+     A decoration floats, so the free spot the seed found for the next sample
+     was under it: the Ornament sample stood on the Random one, and three
+     more samples shared a spot in Every object. `freeSpot()` looks for a
+     clear spot first now; a sample decoration standing on another sample is
+     given its size back without a place, and the board finds it one. Only
+     the seed's own samples, only where they overlap: nothing arranged. */
+  {v:53, up(d){
+    const objs = (d.objects||[]).filter(o=>o && /^k_/.test(o.id||'') && (o.tags||[]).includes('sampler'));
+    const ov = (a, b) => a && b && a.x && b.x && a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y < a.y+a.h;
+    objs.forEach(o=>{ if(!kindHas(o.kind,'decor')) return;
+      ['desk','phone'].forEach(dv=>{ const b = o[dv];
+        if(objs.some(t=>t!==o && t.parent===o.parent && !kindHas(t.kind,'backdrop') && ov(b, t[dv])))
+          o[dv] = {w:b.w, h:b.h}; });
     });
   }},
 ];

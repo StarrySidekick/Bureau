@@ -1093,7 +1093,7 @@ const swatches=(id,key,cur)=>{
        class="${cur===slot?'on':''}" style="background:${hexOf(slot)}"></button>`).join('')}
     <label class="swown${literal?' on':''}"
       title="${literal ? 'Your own · '+esc(literal)+' — it stays put when the aesthetic changes'
-                       : 'A colour of your own — it stays put when the aesthetic changes'}"
+                       : 'A color of your own — it stays put when the aesthetic changes'}"
       ${literal?`style="--own:${esc(literal)}"`:''}>
       <input type="color" data-ocolinput="${key}" data-id="${id}"
         value="${esc(literal || hexOf(cur==null?11:cur))}">
@@ -1156,7 +1156,7 @@ const wswatch = (id, key, list, cur) => `<div class="pickgrid sw wsw">${list.map
   `<button data-oclick="${id}:${key}:${esc(v||plainVal(id,key))}" title="${esc(nm)}" class="${(cur==='-'?'':String(cur||''))===v?'on':''}"
     style="background:${v==='none' ? 'repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 0 0/10px 10px'
       : v || 'var(--paper)'};${v?'':'border-style:dashed'}"></button>`).join('')}
-  <label class="swown${cur && /^#/.test(cur) && !list.some(([v])=>v===cur)?' on':''}" title="A colour of your own"
+  <label class="swown${cur && /^#/.test(cur) && !list.some(([v])=>v===cur)?' on':''}" title="A color of your own"
     ${cur && /^#/.test(cur)?`style="--own:${esc(cur)}"`:''}>
     <input type="color" data-ocolinput="${key}" data-id="${id}" value="${esc(/^#/.test(cur||'')?cur:'#333333')}"></label></div>`;
 function wordsDoor(id, d){
@@ -1180,7 +1180,7 @@ function wordsDoor(id, d){
   o.push('<div class="wsec">Ink and paper</div>');
   row('Ink', 'ink', wswatch(id,'ink', INKS, wordOf(d,'ink')), from('ink') && from('ink')!=='its own' ? 'from '+from('ink') : 'unset, it is chosen to read on the paper');
   row('Ink from the aesthetic', 'ink', swatches(id,'ink', typeof d.ink==='number' ? d.ink : null));
-  row('Paper', 'paperc', wswatch(id,'paperc', PAPERS, wordOf(d,'paperc')), 'the chequered one is no paper at all: the words straight on the board');
+  row('Paper', 'paperc', wswatch(id,'paperc', PAPERS, wordOf(d,'paperc')), 'the checkered one is no paper at all: the words straight on the board');
   row('Paper from the aesthetic', 'paperc', swatches(id,'paperc', typeof d.paperc==='number' ? d.paperc : null));
   o.push('<div class="wsec">On the face</div>');
   row('Words size', 'tsize', tsizeRow(id, textSizeOf(d)));
@@ -1240,9 +1240,9 @@ function wordsDoor(id, d){
    into Look, where choosing which one a thing is sits beside its colour.
    The old names still open Behaviour, so nothing that asks for them breaks. */
 const OBJSECS = {
-  look:   ['Look',      'palette',  'colour, face, edges, hardware'],
+  look:   ['Look',      'palette',  'color, face, edges, hardware'],
   words:  ['Words',     'feather',  'typeface, ink, paper, sizes, how the page is laid out'],
-  does:   ['Behaviour', 'sliders',  'what it does, what it collects, its fields and traits']
+  does:   ['Behavior', 'sliders',  'what it does, what it collects, its fields and traits']
 };
 const OBJALIAS = {collect:'does', adv:'does'};
 /* Where the object editor goes back to when it was opened from Settings
@@ -1369,7 +1369,7 @@ function objectPanelBody(id, sec){
       filing.push(prow('Related',
         `<div class="relrow">${rel.map(x=>chip(x,true)).join('')}
           ${has(o,'relates')?`<button class="add" data-act="addrel" data-id="${id}">+ link</button>`
-            :`<span class="mini" style="--k:var(--brass);padding:0">Tick <b>Related</b> under Behaviour to link from here</span>`}</div>
+            :`<span class="mini" style="--k:var(--brass);padding:0">Check <b>Related</b> under Behavior to link from here</span>`}</div>
         ${back.length?`<div class="statline" style="margin:10px 0 4px"><div class="s">Pointed at by</div></div>
           <div class="relrow">${back.map(x=>chip(x,false)).join('')}</div>`:''}`,
         rel.length+back.length ? `${rel.length+back.length}` : ''));
@@ -1418,7 +1418,7 @@ function objectPanelBody(id, sec){
   if(!isRoot) out.push(objectStage(id));
 
   // 1 · colour
-  if(!isRoot) out.push(prow(cont?'Front':'Colour', swatches(id,'c', d.c)));
+  if(!isRoot) out.push(prow(cont?'Front':'Color', swatches(id,'c', d.c)));
   /* Drawn by hand (decision 271): a drawer front, a book spine or a card's
      face, in the painter. Straight under the colour because it is the other
      half of the same question — what is printed on it. */
@@ -1492,7 +1492,7 @@ function objectPanelBody(id, sec){
   /* A notepad's gum strip (decision 263), in the palette's colours. */
   if(!isRoot && shapeOf(d)==='notepad'){
     const cur = d.gum==null ? '' : String(d.gum);
-    out.push(prow('Gum strip', `<div class="pickgrid sw"><button data-oclick="${id}:gum:" title="Its own colour"
+    out.push(prow('Gum strip', `<div class="pickgrid sw"><button data-oclick="${id}:gum:" title="Its own color"
         class="${cur===''?'on':''}" style="background:${objColour(d)}"></button>${objSlots().map(([slot,nm])=>
       `<button data-oclick="${id}:gum:${slot}" title="${esc(nm)}" class="${cur===String(slot)?'on':''}"
         style="background:${hexOf(slot)}"></button>`).join('')}</div>`, 'the band across the top of the pad'));
@@ -1505,22 +1505,22 @@ function objectPanelBody(id, sec){
       `<button data-oclick="${id}:${key}:${esc(v)}" title="${esc(nm)}" class="${(cur||'')===v?'on':''}"
         style="background:${v==='c' ? objColour(d) : (v||show)}"></button>`).join('')}</div>`;
     out.push(prow('Wheels', sw('wheelc', WHEEL_COLOURS, d.wheelc), 'what the drums are painted'));
-    out.push(prow('Figures', sw('wink', WHEEL_INKS, d.wink), 'the colour of the numbers'));
+    out.push(prow('Figures', sw('wink', WHEEL_INKS, d.wink), 'the color of the numbers'));
     out.push(prow('Typeface', pcycle(id,'wfont', Object.entries(WHEEL_FONTS), WHEEL_FONTS[d.wfont] ? d.wfont||'' : '')));
   }
   // what a record is pressed in (decision 245)
   if(!isRoot && mediaTypeOf(d)==='audio'){
     out.push(prow('Vinyl', `<div class="pickgrid sw">${VINYLS.map(([v,nm,show])=>
       `<button data-oclick="${id}:vinyl:${esc(v)}" title="${esc(nm)}" class="${(d.vinyl||'')===v?'on':''}"
-        style="background:${v==='c' ? objColour(d) : (v||show)}"></button>`).join('')}</div>`, 'the colour of the disc'));
+        style="background:${v==='c' ? objColour(d) : (v||show)}"></button>`).join('')}</div>`, 'the color of the disc'));
   }
   if(!isRoot && cont){
     if(faceOf(d)==='spine' || (d[dev()]||{}).w<=1)
       out.push(slotRow('Binding', id, 'bn', slotRaw(d,'binding')||bindingOf(d),
         'how the book is bound \u2014 the spine is the one face that is a made object'));
     else if(faceOf(d)==='front'){
-      out.push(slotRow('Panelling', id, 'pn', slotRaw(d,'panel')||panelOf(d),
-        'how the front is worked \u2014 a moulding, lit from the upper left like the knob'));
+      out.push(slotRow('Paneling', id, 'pn', slotRaw(d,'panel')||panelOf(d),
+        'how the front is worked \u2014 a molding, lit from the upper left like the knob'));
       /* Only the plain front asks. A spine has its name down its back and a
          jar has it on a paper label, and neither of those is a thing you screw
          a plate to. See decision 176. */
@@ -1543,13 +1543,13 @@ function objectPanelBody(id, sec){
       K(d.kind).kshape ? 'its type\u2019s is ' + KSHAPES[K(d.kind).kshape].toLowerCase() : ''));
     out.push(slotRow('Knob', id, 'kn', slotRaw(d,'knob')||knobOf(d)));
     out.push(prow('Knob size', pcycle(id,'knobsize', Object.entries(KNOBSIZES), knobSizeOf(d))
-      + pcycle(id,'knobpos', [['centre','Centre'],['bottom','Bottom']], d.knobpos||'centre')));
+      + pcycle(id,'knobpos', [['centre','Center'],['bottom','Bottom']], d.knobpos||'centre')));
     /* A knob is turned out of the same wood as the front, so by default that is
        what it is: the drawer's own colour, told apart by the light on it rather
        than by being a different colour. Lighter and darker are still there for
        a brass handle on a walnut front — and so is a colour outright. The first
        swatch is the way back to the front's own. */
-    out.push(prow('Knob colour', pcycle(id,'knobtone',
+    out.push(prow('Knob color', pcycle(id,'knobtone',
         [['','Same as the front'],['light','Lighter'],['dark','Darker']], d.knobc?'':(d.knobtone||''))
       + `<div class="pickgrid sw" style="margin-top:5px">
         <button data-pknobc="" data-id="${id}" title="Follow the front" class="${d.knobc?'':'on'}"
@@ -1576,7 +1576,7 @@ function objectPanelBody(id, sec){
      this one's editor — and a checklist front draws its lines from the tasks
      themselves, so each already answers for its own box. */
   if(!isRoot && !cont && has(d,'check'))
-    out.push(prow('Tick box', pcycle(id,'check',
+    out.push(prow('Checkbox', pcycle(id,'check',
       [['','Follow the desk'], ...Object.entries(CHECKS)], d.check||''),
       d.check ? 'its own' : esc(CHECKS[checkNow()]||'')));
   /* Ten of them now, and the list is the table rather than a copy of it — the
@@ -1644,7 +1644,7 @@ function objectPanelBody(id, sec){
             style="background:var(--paper);border-style:dashed"></button>${
           ['#F8F3E6','#A9793F','#2A241C','#C0563F','#3E7A6B','#5D7E99'].map(c=>
           `<button data-prailknobc="${c}" data-id="${id}" class="${d.railknobc===c?'on':''}" style="background:${c}"></button>`).join('')}</div>`,
-        'how big it is, and what colour'));
+        'how big it is, and what color'));
     }
     /* "Where it is kept" was here, and its two answers were "on the board it
        lives on" and "a desk of its own". There is one desk now and it is nine
@@ -1748,7 +1748,7 @@ function objectPanelBody(id, sec){
       [['','Its own milestones'], ...others], d.tracks||''),
       barOf(d) && has(barOf(d),'streak')
         ? 'a streak, against the target below'
-        : 'a drawer reports how much of it is ticked'));
+        : 'a drawer reports how much of it is checked off'));
     if(barOf(d) && has(barOf(d),'streak'))
       out.push(prow('Full at', pfield(id,'target', d.target||'', 'number', '30'), 'days in a row'));
   }
@@ -1938,7 +1938,7 @@ function objectPanelBody(id, sec){
         + (rest.length ? pgroup('From other aesthetics',
             `<div class="decpick">${rest.map(opt).join('')}</div>`, showing) : ''),
         own ? 'a file of your own is showing — remove it below to use one of these'
-            : 'they take this object’s colour and the aesthetic’s'));
+            : 'they take this object’s color and the aesthetic’s'));
     }
     /* A Painting picks one of its gallery's (decision 208), drawn as itself:
        choosing a painting by its name would be choosing blind. */
@@ -2435,7 +2435,7 @@ function modalNewKind(from, editKey, forBoard){
         chip(!phoneSize,'data-kphauto=""','Work it out for me',
              'Objects go full width; containers keep the size they have')
         + sizeSliders('kp', phoneSize||toPhoneSize(size[0],size[1],isCont), GRID.phone.cols), 'kphone')}
-      ${row('Colour','',
+      ${row('Color','',
         `${swatchRows(c,true)}<label class="custcol"><input type="color" data-colinput value="${c}"><span>Custom</span></label>`,
         'dcol')}
       ${row('Mark','', MARKS.map(i=>
@@ -2958,6 +2958,21 @@ function openCtx(x,y,id){
   const cy = clamp(y - r.top,  span, Math.max(span, r.height - span));
   el.style.left = cx+'px';
   el.style.top  = cy+'px';
+  /* **The hole shows what you are holding** (2026-09-30). The nudge above
+     keeps every label on the screen, and on a phone it moves the ring for
+     almost any hold outside the middle third, so the hole in the middle was
+     framing the drawer beside the one held. When the ring has moved off the
+     finger, the hole holds that thing itself, drawn as the picker draws a
+     type: a twin at the origin, its buttons made spans and its fields
+     dropped, pressing nothing. */
+  const hole = el.querySelector('.radhole');
+  const moved = Math.hypot(cx - (x - r.left), cy - (y - r.top)) > 12;
+  hole.classList.toggle('lens', moved && !many);
+  if(moved && !many){
+    const b = lay(o), at = {x:1, y:1, w:b.w, h:b.h};
+    hole.innerHTML = sampleTile(Object.assign({}, o, {id:'__ring', desk:at, phone:at}), 50, 50)
+      .replace(/<(\/?)button\b/g, '<$1span').replace(/<input\b[^>]*>|<textarea\b[^>]*>[\s\S]*?<\/textarea>/g, '');
+  }
   // restart the fling on every open, including one straight after another
   el.classList.remove('flung'); void el.offsetWidth; el.classList.add('flung');
 }

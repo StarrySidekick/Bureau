@@ -272,7 +272,7 @@ const FILM_DEPARTMENTS = c => [
   {at:[2,0], on:[
     {k:'moodboard', t:'Storyboard', b:[1,1,8,6], set:{c:13}},
     {k:'checklist', t:'Shot list', b:[1,7,5,5], set:{c:9}},
-    {k:'note', t:'The look', b:[6,7,3,5], set:{c:12, body:'**Lenses —** \n\n**Light —** \n\n**Colour —** '}}
+    {k:'note', t:'The look', b:[6,7,3,5], set:{c:12, body:'**Lenses —** \n\n**Light —** \n\n**Color —** '}}
   ]},
   {at:[0,1], on:[
     {k:'checklist', t:'Props', b:[1,1,4,6], set:{c:6}},
@@ -285,7 +285,7 @@ const FILM_DEPARTMENTS = c => [
     {k:'checklist', t:'Permits and permissions', b:[1,6,4,4], set:{c:8}},
     LINK('Map', 'https://www.google.com/maps', [5,6,4,1], 9),
     LINK('Find a location', 'https://www.peerspace.com', [5,7,4,1], 9),
-    {k:'note', t:'Notes from the recce', b:[5,8,4,3], set:{c:12}}
+    {k:'note', t:'Notes from the scout', b:[5,8,4,3], set:{c:12}}
   ]}
 ];
 
@@ -432,7 +432,7 @@ const SPECS = [
     {k:'appt', t:'Anniversary', b:[1,9,4,2], set:{c:8, sref:'anniv'}},
     {k:'deck', t:'Pick a date', b:[5,9,2,3], set:{c:10}, kids:CARDS([
       'Go back to where you met', 'A walk somewhere new', 'Board games and takeout',
-      'A show, a museum or a gig', 'Breakfast out, phones away', 'Cook her favourite'
+      'A show, a museum or a gig', 'Breakfast out, phones away', 'Cook her favorite'
     ])},
     LINK('Book a table', 'https://www.opentable.com', [7,9,2,1], 9),
     LINK('Things to do', 'https://www.eventbrite.com', [7,10,2,1], 9),
@@ -524,7 +524,7 @@ const SPECS = [
   {key:'things', sec:'life', nm:'Things', ic:'sliders', c:15, of:'lf_things', on:[
     {k:'drawer', t:'The car', b:[1,1,4,4], set:{c:15, face:'checklist', clhead:'1', layout:'list'}, kids:[
       AGAIN('Oil change', 6, 'month', 'done'),
-      AGAIN('Rotate the tyres', 6, 'month', 'done'),
+      AGAIN('Rotate the tires', 6, 'month', 'done'),
       AGAIN('Registration', 1, 'year'),
       AGAIN('Inspection', 1, 'year'),
       {k:'note', t:'Insurance, VIN and plate'}
@@ -597,7 +597,7 @@ const SPECS = [
   {key:'books', sec:'experience', inbox:'note', nm:'Books', ic:'book', c:11, of:'lf_books', life:'books',
    makes:{only:null, sizes:[{w:[1,1], h:[2,null], kind:'book'}]}, on:[
     LIST('To read', 'bto', [1,1,4,4], 11),
-    LIST('Favourites', 'bfav', [5,1,4,4], 13),
+    LIST('Favorites', 'bfav', [5,1,4,4], 13),
     MAKES('A note on a book…', 'note', [1,5,8,1], 5, '@bnotes'),
     LIST('Book notes', 'bnotes', [1,6,4,4], 5),
     LIST('On my shelves', 'bshelf', [5,6,4,4], 14),
@@ -609,7 +609,7 @@ const SPECS = [
 
   // "keeping track of my favorite songs, artists, musical inspirations"
   {key:'music', sec:'experience', inbox:'note', nm:'Music', ic:'music', c:10, of:'lf_music', on:[
-    LIST('Favourite songs', 'msongs', [1,1,4,5], 10),
+    LIST('Favorite songs', 'msongs', [1,1,4,5], 10),
     LIST('Artists', 'martists', [5,1,4,5], 12),
     {k:'moodboard', t:'Inspirations', b:[1,6,5,4], set:{c:13}},
     {k:'deck', t:'Put something on', b:[6,6,3,4], set:{c:10}, kids:CARDS([
@@ -625,7 +625,7 @@ const SPECS = [
   // "finding new artwork to view, finding museums, keeping track of my
   // favorite artists and artwork"
   {key:'visual', sec:'experience', inbox:'note', nm:'Artwork', ic:'image', c:3, of:'lf_visual', on:[
-    {k:'moodboard', t:'Favourite works', b:[1,1,5,4], set:{c:13}},
+    {k:'moodboard', t:'Favorite works', b:[1,1,5,4], set:{c:13}},
     LIST('Artists', 'aartists', [6,1,3,4], 12),
     LIST('Museums to visit', 'amuseums', [1,5,4,4], 3),
     CAL('Shows and openings', [5,5,4,4], 7),
@@ -642,7 +642,7 @@ const SPECS = [
   // "keep track of games that I need to play; keep track of my favorite games"
   {key:'games', sec:'experience', inbox:'note', nm:'Games', ic:'grid', c:14, of:'lf_games', on:[
     LIST('To play', 'gto', [1,1,4,5], 14),
-    LIST('Favourites', 'gfav', [5,1,4,5], 13),
+    LIST('Favorites', 'gfav', [5,1,4,5], 13),
     {k:'progressbar', t:'How far into this one', b:[1,6,8,1], set:{c:14}},
     {k:'deck', t:'What to play', b:[1,7,3,4], set:{c:10}, kids:CARDS([
       'The one you stopped halfway', 'Something short', 'Co-op with a friend',
@@ -693,7 +693,7 @@ const SPECS = [
 
   {key:'shortfilm', sec:'project', nm:'Short Film', ic:'clapper', c:9, of:'film', on:[
     {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@sfstages'}},
-    STAGES('sfstages', ['Logline','Script locked','Cast','Crew','Locations','Shot list','Shoot','Picture lock','Sound and colour','Festivals'], [1,2,4,6], 9),
+    STAGES('sfstages', ['Logline','Script locked','Cast','Crew','Locations','Shot list','Shoot','Picture lock','Sound and color','Festivals'], [1,2,4,6], 9),
     {k:'question', t:'What is it about?', b:[5,2,4,3], set:{c:10, sref:'logline'}},
     {k:'script', t:'Script', b:[5,5,4,3], set:{c:9, onclick:'write'}},
     {k:'outline', t:'Beats', b:[1,8,4,2], set:{c:14}},
@@ -705,7 +705,7 @@ const SPECS = [
 
   {key:'featurefilm', sec:'project', nm:'Feature Film', ic:'clapper', c:9, of:'pj_featurefilm', on:[
     {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@ffstages'}},
-    STAGES('ffstages', ['Treatment','First draft','Rewrite','Financing','Casting','Crew','Locations','Schedule','Shoot','Edit','Sound and music','Colour','Festivals and distribution'], [1,2,4,7], 9),
+    STAGES('ffstages', ['Treatment','First draft','Rewrite','Financing','Casting','Crew','Locations','Schedule','Shoot','Edit','Sound and music','Color','Festivals and distribution'], [1,2,4,7], 9),
     {k:'question', t:'What is it about?', b:[5,2,4,3], set:{c:10, sref:'logline'}},
     {k:'script', t:'Screenplay', b:[5,5,4,3], set:{c:9, onclick:'write'}},
     {k:'outline', t:'Treatment', b:[5,8,4,2], set:{c:14}},

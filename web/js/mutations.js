@@ -121,13 +121,13 @@ function toggleDone(id){
       S.objects.push(next);
       steps.push({add:next.id});
       o.kind='achievement';   // the archive is a magic drawer; nothing needs moving
-      pushUndo('Ticked', steps);
+      pushUndo('Checked', steps);
       toast(`Done · repeats ${D.human(nd).toLowerCase()}`, true);
     } else {
-      pushUndo('Ticked', steps);
+      pushUndo('Checked', steps);
       toast(repeats(o) ? 'Done · that was the last one' : 'Filed under Done & Dusted', true);
     }
-  } else { o.doneAt=null; pushUndo('Unticked', steps); }
+  } else { o.doneAt=null; pushUndo('Unchecked', steps); }
   render();
   if(o.done) pop(id, was);
   if(o.done && clAt>=0) clRefill(o.parent, clAt);
@@ -981,7 +981,7 @@ const CONTROLS = {
   dark:     {nm:'Light',     ic:'eye',   ds:'Follow the device, or insist',
              cycle:()=>Object.keys(DARKMODES), get:()=>S.look.dark||'auto',
              said:v=>DARKMODES[v]||v, set(v){ S.look.dark=v; applyLook(); }},
-  check:    {nm:'Tick box',  ic:'check', ds:'Which box every tick in the app is drawn in',
+  check:    {nm:'Checkbox',  ic:'check', ds:'Which box every check in the app is drawn in',
              cycle:()=>Object.keys(CHECKS), get:()=>CHECKS[S.look.check]?S.look.check:'square',
              said:v=>CHECKS[v]||v, set(v){ S.look.check=v; applyLook(); }},
   grid:     {nm:'Grid',      ic:'grid',  ds:'How fine a phone board is',
@@ -1301,7 +1301,7 @@ const WANDER = [['A random article','https://en.wikipedia.org/wiki/Special:Rando
   ['A random Commons picture','https://commons.wikimedia.org/wiki/Special:Random/File'],
   ['The Public Domain Review','https://publicdomainreview.org/']];
 // two of these name a drawer made at random: "Cedar ledger", "Harbour thistle"
-const NAMES = 'brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow orchard cobalt linen saffron pewter'.split(' ');
+const NAMES = 'brass ledger cedar tide quarry lantern vellum thistle harbor ember slate poppy compass juniper marrow orchard cobalt linen saffron pewter'.split(' ');
 /* Things to do, for a task made at random: the ordinary run of a week. */
 const CHORES = ['Water the plants','Call the bank','Return the library books','Buy stamps','Oil the hinge on the back door',
   'Book a haircut','Back up the laptop','Clear the inbox','Pay the electric bill','Sharpen the kitchen knives',
@@ -1448,7 +1448,7 @@ function furnish(o, depth){
 }
 
 const TAG_WORDS = ['home','work','someday','reading','errands','ideas','film','money','garden','kitchen','travel','music'];
-const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbour ember slate poppy compass juniper marrow'.split(' ');
+const WORDS='brass ledger cedar tide quarry lantern vellum thistle harbor ember slate poppy compass juniper marrow'.split(' ');
 function randomThing(parentId){
   const pick=a=>a[Math.floor(Math.random()*a.length)];
   const kinds=KEYS.filter(k=>!kindHas(k,'control'));

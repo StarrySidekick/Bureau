@@ -388,7 +388,7 @@ const FAMS = {
      like the others now — decision 94. `plain` and `none` stay last, because
      they mean the same thing in every aesthetic. */
   bd: {prop:'border',  slots:BORDER_SLOTS,  says:'borders',
-       words:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
+       words:['Paneled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
        never:['gilt','none'], read:borderOf},
   /* Five workings of a front. The object stores position 2 and gets Victoria's
      fielded panel here, Carca's ashlar block there and Golf 97's group box in
@@ -491,7 +491,7 @@ const STYLES = {
      jewel greens, regal reds. Nothing pure white and nothing pure black. */
   victorian: {nm:'Victoria', ds:'An old desk: baize, brass, sage and claret',
     board:'#EFEADA|#DDE5CE', boardAlpha:1,
-    borders:['Panelled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
+    borders:['Paneled','Heavy panel','Bar','Beaded','Gilt frame','Plain','None'],
     panels:['Flat front','Cockbead','Raised panel','Reeded','Ogee panel'],
     knobs:['Round','Diamond','Bar','Ring','Square'],
     textures:['None','Grain','Weave','Wide weave','Herringbone','Wash'],
@@ -595,7 +595,7 @@ const STYLES = {
      was all running beside. The board's checker is the mown fairway, and the
      border slots are the outset and sunken bevels of that decade's chrome —
      which the panelling already knows how to light, from the upper left. */
-  golf97: {nm:'Golf 97', ds:'Late-nineties fairway, distressed leather and desktop grey',
+  golf97: {nm:'Golf 97', ds:'Late-nineties fairway, distressed leather and desktop gray',
     board:'#CFD8B8|#C0CBA6', boardAlpha:1,
     borders:['Outset','Deep outset','Sunken','Groove','Marquee','Plain','None'],
     panels:['Flat','Plastic edge','Group box','Scanlines','CRT bezel'],
@@ -633,7 +633,7 @@ const STYLES = {
     cols:['#07080C','#F4F6F8','#F4F6F8','#6FD3F5','#7DE8B0',
           '#14161C','#1B1E25','#23262E','#0E2733','#123544','#16443F',
           '#1A3B2C','#2B2F38','#191D2A','#101820','#33383F'],
-    names:['Ink','Slate night','Charcoal','Deep blue','Harbour','Pine',
+    names:['Ink','Slate night','Charcoal','Deep blue','Harbor','Pine',
            'Fern night','Graphite','Midnight','Pitch','Ash'],
     // Illustration-coded but grown up. Comic Sans reads as a joke about
     // hand-drawn rather than the thing itself; Optima and Gill Sans are what
@@ -661,7 +661,7 @@ const STYLES = {
     cols:['#EAF4F7','#0D3541','#5B8C9B','#18A6C4','#7EE8F5',
           '#1E9AAE','#2FA39A','#3F8F63','#6FA83C','#2B6B99','#4C89C8',
           '#14607A','#5E7A8A','#44515C','#33414D','#8A98A3'],
-    names:['Aqua','Lagoon','Meadow','Bliss','Harbour','Sky',
+    names:['Aqua','Lagoon','Meadow','Bliss','Harbor','Sky',
            'Deep sea','Steel','Slate','Storm','Silver'],
     spray:'twinkles',
     vars:{'--radius':'12px','--radius-d':'10px','--wood':'#25505E',
@@ -745,7 +745,7 @@ const stringColour = o => hexOf(
    names; the eleven are the style's own to name, because they are not the same
    colour from one style to the next and pretending otherwise would put "Rust"
    under a blue swatch. */
-const slotName = i => i<OBJ0 ? ROLES[i] : ((styleNow().names||[])[i-OBJ0] || ('Colour '+(i-OBJ0+1)));
+const slotName = i => i<OBJ0 ? ROLES[i] : ((styleNow().names||[])[i-OBJ0] || ('Color '+(i-OBJ0+1)));
 // The eleven an object may wear, as [slot, name] — the five are the app's.
 const objSlots = ()=> Array.from({length:OBJN}, (_,i)=>[OBJ0+i, slotName(OBJ0+i)]);
 

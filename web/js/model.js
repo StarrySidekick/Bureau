@@ -137,7 +137,7 @@ const FIELDS = {
   '@made':  {key:'created',type:'date', nm:'Made on',           meta:true, get:o=>o.created||null},
   '@holds': {key:'holds',  type:'number', nm:'Things filed in it', meta:true,
              get:o=>S.objects.filter(x=>x.parent===o.id).length},
-  '@colour':{key:'c',      type:'text', nm:'Colour slot',       meta:true, get:o=>o.c==null?'':String(o.c)}
+  '@colour':{key:'c',      type:'text', nm:'Color slot',       meta:true, get:o=>o.c==null?'':String(o.c)}
 };
 /* Every container a thing is inside, innermost first. Bounded, because a
    filing cycle would otherwise hang the app on the first render. */
@@ -220,7 +220,7 @@ const BUILTIN_KINDS = {
      `spawn` gives it a box at the top, and `genKind` says a line you type into
      it is a task. Both are ordinary attributes — a type you invent gets the
      same box by ticking the same trait. */
-  checklist:{setup:'checklist', face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can tick and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
+  checklist:{setup:'checklist', face:'checklist', nm:'Checklist', ic:'list', c:6, key:'K', ds:'Tasks you can check off and add to without opening it', attrs:['container','spawn'], spawnBy:'type', genKind:'task', layout:'list', size:[4,6], phoneSize:[4,6], body:'' },
   /* **A list is the checklist with the task taken out of it** (decision 239).
      Whatever the container holds, every kind, one line each with its type's
      mark, and the front scrolls. A checklist's words rename the line because
@@ -389,7 +389,7 @@ const BUILTIN_KINDS = {
      `newOfKind()` resolves it through `someKind()` before anything is made,
      so no object is ever of this kind. */
   anything:{nm:'Random', ic:'sparkle', c:10, ds:'One of anything, picked when it is made', attrs:['text'], size:[4,3], makesAny:true, body:'' },
-  background:{nm:'Background', ic:'layers', c:12, ds:'A colour, a check or a weave laid under other things', attrs:['backdrop'], size:[8,6], phoneSize:[4,4], onclick:'none', fill:'solid', variants:'fills', body:'' },
+  background:{nm:'Background', ic:'layers', c:12, ds:'A color, a check or a weave laid under other things', attrs:['backdrop'], size:[8,6], phoneSize:[4,4], onclick:'none', fill:'solid', variants:'fills', body:'' },
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
      opening a page about it. See decision 144. */
@@ -775,7 +775,7 @@ const BUILTIN_KINDS = {
      family that names a type, and these must not take a Note away from the
      Note's own family or a Character away from the Fragment. */
   m_list:    {cat:true, master:true, lead:'list', nm:'List', ic:'list', c:4,
-     ds:'A list of anything, or of things to tick', family:['list','checklist'], famSub:'Which list?', attrs:[], body:'' },
+     ds:'A list of anything, or of things to check off', family:['list','checklist'], famSub:'Which list?', attrs:[], body:'' },
   m_calendar:{cat:true, master:true, lead:'calendar', nm:'Calendar', ic:'calendar', c:7,
      ds:'Things laid out along time', family:['calendar','timeline','appt'], famSub:'Which?', attrs:[], body:'' },
   m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
@@ -814,11 +814,11 @@ const LIFE_ASPECTS = [
   ['home','Home',5,'doorknob','#B8923E','fielded','fine','home','folder','The chores, room by room'],
   ['things','Things',15,'nut','#A7ABB1','plain','herring','things','sliders','What you own that needs looking after: the car, the laptop, the rest'],
   ['travel','Travel',9,'compass','#B8923E','cockbead','weave','travel','flag','Places you want to go, finding new ones, and the next trip'],
-  ['films','Films',9,'reel','#A7ABB1','plain','none','films','film','Favourites by genre, with Letterboxd doing the rest'],
-  ['books','Books',11,null,null,null,null,'books','book','What to read, favourites, notes, the shelf you own, and libraries'],
-  ['music','Music',10,'note','#2A241C','ogee','none','music','music','Favourite songs, artists and what inspires you'],
-  ['visual','Artwork',3,'paint','#EFE9DC','fielded','wash','visual','image','Art to see, museums, and favourite artists'],
-  ['games','Games',14,'die','#EFE9DC','cockbead','none','games','grid','Games to play and favourite games'],
+  ['films','Films',9,'reel','#A7ABB1','plain','none','films','film','Favorites by genre, with Letterboxd doing the rest'],
+  ['books','Books',11,null,null,null,null,'books','book','What to read, favorites, notes, the shelf you own, and libraries'],
+  ['music','Music',10,'note','#2A241C','ogee','none','music','music','Favorite songs, artists and what inspires you'],
+  ['visual','Artwork',3,'paint','#EFE9DC','fielded','wash','visual','image','Art to see, museums, and favorite artists'],
+  ['games','Games',14,'die','#EFE9DC','cockbead','none','games','grid','Games to play and favorite games'],
   ['food','Food',6,'plate','#EFE9DC','plain','fine','food','pot','Restaurants, foods and recipes to try'],
 ];
 LIFE_ASPECTS.forEach(([key, nm, c, ks, kc, panel, tex, flow, ic, ds])=>{
@@ -1122,7 +1122,7 @@ Object.entries(WORKSHOP_SIZES).forEach(([k, s])=>{
    (`makeCompound()` in mutations.js). The type's size is the footprint, so
    `fits()` and the Magic Selector ask about the whole of it. */
 const COMPOUNDS = {
-  cp_labelled: {nm:'Labelled drawer', ic:'tag', c:12,
+  cp_labelled: {nm:'Labeled drawer', ic:'tag', c:12,
     ds:'A drawer with a label over it saying what it is for',
     parts:[{k:'label', t:'What it is for', b:[1,1,4,1], ref:'name'},
            {k:'drawer', t:'Drawer', b:[1,2,4,3], rel:['@name']}]},
@@ -1139,7 +1139,7 @@ const COMPOUNDS = {
            {k:'checklist', t:'To do', b:[1,2,4,5], ref:'list'},
            {k:'counter', t:'Left to do', b:[5,2,2,2], tracks:'@list', set:{counts:'open'}}]},
   cp_barlist: {nm:'Checklist with a bar', ic:'bar', c:13,
-    ds:'A checklist with a notepad on top and a progress bar under it filling as you tick',
+    ds:'A checklist with a notepad on top and a progress bar under it filling as you check things off',
     parts:[{k:'notepad', t:'Notepad', b:[1,1,4,1], rel:['@list'], set:{genKind:'task'}},
            {k:'checklist', t:'Steps', b:[1,2,4,4], ref:'list'},
            {k:'progressbar', t:'How far', b:[1,6,4,1], tracks:'@list'}]},
@@ -1149,7 +1149,7 @@ const COMPOUNDS = {
      toward the run you are after. Each can be moved, resized, restyled or
      pulled out on its own, which is what the one combined face could not. */
   cp_habit: {nm:'Habit tracker', ic:'grid', c:6,
-    ds:'A habit you tick each day, a ticker of the days in a row, and a bar toward the run you want',
+    ds:'A habit you check off each day, a ticker of the days in a row, and a bar toward the run you want',
     parts:[{k:'task', t:'Every day', b:[1,1,4,1], ref:'habit',
              set:{attrs:['text','check','streak','repeat'], due:null,
                   repeat:{every:1, unit:'day', days:[], from:'date', ends:null, paused:false, made:0}}},
@@ -1366,10 +1366,10 @@ function seed(){
     // A timeline, so a fresh desk shows one — its face is a real date axis, and
     // an axis with nothing on it demonstrates nothing.
     O({id:'o_reel', kind:'timeline', title:'The video store shoot', parent:'d_studio', tags:['film']}),
-    O({kind:'appt', title:'Location recce', parent:'o_reel', due:dz(-9)}),
+    O({kind:'appt', title:'Location scout', parent:'o_reel', due:dz(-9)}),
     O({kind:'appt', title:'Shoot days', parent:'o_reel', due:dz(3)}),
     O({kind:'appt', title:'First assembly', parent:'o_reel', due:dz(17)}),
-    O({kind:'appt', title:'Colour and sound', parent:'o_reel', due:dz(34)}),
+    O({kind:'appt', title:'Color and sound', parent:'o_reel', due:dz(34)}),
 
     O({kind:'achievement', title:'Cut the reel from 6 min to 2:40', parent:'d_done', done:true, doneAt:dz(-2), tags:['work']}),
     O({kind:'achievement', title:'Read *Understanding Comics* cover to cover', parent:'d_done', done:true, doneAt:dz(-5), tags:['reading']}),
@@ -3369,7 +3369,7 @@ function allUnder(c, seen){
    The tap then opens what it reads, because adding one to a readout would be
    a lie the next render takes back. A tracked object that has gone leaves the
    counter its own count again. */
-const COUNTS = {open:'Things left to tick', done:'Things ticked', items:'Things in it',
+const COUNTS = {open:'Things left to check off', done:'Things checked off', items:'Things in it',
   streak:'Days in a row', words:'Words', days:'Days until its day'};
 function countsOf(o){
   const t = o && o.tracks && byId(o.tracks); if(!t) return null;

@@ -11798,3 +11798,52 @@ A second read of the night's own fixes, looking for what they broke.
   against the tile's outer width and placed in its padding box, so the last
   label ran 13px past the right edge; the insets are taken off the content
   width now and both ends sit ten pixels in.
+
+## 281. Everything on the morning list (v2.68, 2026-09-30)
+
+Timothy, on the report of the overnight pass: "fix all these, and use American
+English for now."
+
+- **American English in the interface.** Every visible string: Color, Behavior,
+  Center, gray, favorite, molding, paneled, labeled, traveling, tires; and the
+  words too, where a checkbox is a *check* (Checked, Unchecked, "check it off")
+  and a recce is a *scout*. Identifiers and stored values keep their spelling
+  (`knobpos:'centre'`, `data-ocolour`, `objColour`), and a paste may still say
+  `colour`. The stock flows live in the desk's data, so migration 52 respells
+  their own words a word at a time and leaves anything written into them alone.
+- **The reader's veil on a phone is the picture viewer's** (80%, a 5px blur), so
+  a tile's words no longer read through the bar's glyphs; and every
+  `backdrop-filter` has its `-webkit-` twin for the iOS versions that want it.
+- **The hold ring's hole holds what you are holding.** On a phone the ring is
+  nudged off the finger for almost any hold outside the middle third, and its
+  hole framed the drawer next door. When it has moved, the hole is a well with
+  the thing in it, drawn as the picker draws a type.
+- **Names with no room.** A one-cell tile keeps 5px of margin, sets its name at
+  11px and hyphenates (`hyphens:auto` on every name); what sits beside a name
+  (a task's box, a bar's count, a project's due chip) goes under it; the setup
+  badge no longer sits on the name. A calendar's month gives way before its
+  name. The riveted tag runs nearly the width of a narrow front. A small
+  project cover drops its count so the due chip clears the poster's title, and
+  a poster title is centred (its flex row's `justify-content` was pushing a
+  one-word title left).
+- **Three stylesheet leaks.** `.suchoice b`, `.radblob b` and `.railobj svg`
+  reached into the miniatures those things hold: the setup card set a poster's
+  title at 16px ("FEATU"). They say `>` now. And `.projtile > *` swept the
+  resize grips and the side light into the flow; it excludes them, in a
+  `:where()` so it stays one class.
+- **An untouched template is nothing written.** A new Quote read as a lone
+  dash; a body that is still exactly its type's reads "Nothing written yet."
+- **A free spot is a clear one first.** Decorations float (decision 86), so the
+  spot found for the next thing was under one: the sampler's Ornament stood on
+  Random. `fitSpot()` asks for a spot nothing but a background is on, down to
+  half size, then grows a page, and only then accepts one under a decoration.
+  Migration 53 gives the seed's overlapping sample decorations a fresh place.
+- **A full sorting drawer grows a page.** Past half a thing's size the packing
+  asks `growDown(cid, true)` for a page to show the rest on, rather than piling
+  everything after the last free cell in a corner.
+- **The pager's picture is scrolled after it is in the document.** A detached
+  scroller cannot scroll, so the still of the board you were leaving showed it
+  from its top and dropped a row as a two-finger swipe began.
+- **The smoke suite's retired checks test what replaced them**: the home tile's
+  middle is cleared for its hold, the pager check is the sideways one, and the
+  slot and the next page are reached by scrolling.
