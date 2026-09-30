@@ -371,11 +371,24 @@ function shapeRing(rect, cell, kind, page){
   el.classList.toggle('tworing', !!masters);
   el.style.setProperty('--rad', R+'px');
   // round the middle of the box you drew, nudged on screen only as far as it must
-  const span = R + pad;
-  el.style.left = clamp(rect.left + rect.width/2  - r.left, span, Math.max(span, r.width  - span))+'px';
+  const span = R + pad, reach = ringReach(el, span);
+  el.style.left = clamp(rect.left + rect.width/2  - r.left, reach, Math.max(reach, r.width  - reach))+'px';
   el.style.top  = clamp(rect.top  + rect.height/2 - r.top,  span + 30, Math.max(span + 30, r.height - span))+'px';
   el.classList.remove('flung'); void el.offsetWidth; el.classList.add('flung');
   RING_AT = Date.now();
+}
+/* **How far a ring reaches sideways, measured** (2026-09-30). A blob's label
+   is as long as its words and hangs past the blob, so a fixed allowance let
+   "Edit Behavior" run off the right of a phone. Asked once the ring is open,
+   when the labels have a width; the ring is nudged in by the widest reach. */
+function ringReach(el, least){
+  let reach = least;
+  el.querySelectorAll('.radblob').forEach(b => {
+    const lab = b.querySelector('b');
+    const half = Math.max(b.offsetWidth, lab ? lab.offsetWidth : 0) / 2;
+    reach = Math.max(reach, Math.abs(parseFloat(b.style.getPropertyValue('--x')) || 0) + half + 4);
+  });
+  return reach;
 }
 /* The release that opened a shape ring leaves a click behind, and it lands on
    the board, which closes any open menu. Swallowing it with `suppressClick`
@@ -2940,8 +2953,8 @@ function openCtx(x,y,id){
   /* Centred on the finger, and nudged in from the edges only as far as it
      takes for the whole ring to be on the screen, so it still reads as coming
      from where you are holding. */
-  const span = R + pad;
-  const cx = clamp(x - r.left, span, Math.max(span, r.width - span));
+  const span = R + pad, reach = ringReach(el, span);
+  const cx = clamp(x - r.left, reach, Math.max(reach, r.width - reach));
   const cy = clamp(y - r.top,  span, Math.max(span, r.height - span));
   el.style.left = cx+'px';
   el.style.top  = cy+'px';

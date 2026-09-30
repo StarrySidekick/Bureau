@@ -5001,6 +5001,9 @@ video.viewimg{background:#000}
   text-transform:uppercase;font-weight:700;color:var(--ink-3);list-style:none;
 }
 .pgroup > summary::-webkit-details-marker{display:none}
+/* A summary's note is said beside its label, not shouted with it: the Flows
+   disclosure read as one uppercase run-on line (2026-09-30). */
+.pgroup > summary .n{text-transform:none;letter-spacing:0;font-weight:400;margin-left:4px}
 .pgroup > summary::after{content:"+";float:right;font-size:13px;line-height:1}
 .pgroup[open] > summary::after{content:"–"}
 @media (hover:hover){.pgroup > summary:hover{color:var(--ink)}}

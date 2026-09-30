@@ -11760,3 +11760,14 @@ it then stood in its real home.
 - **A drag on a sorting drawer writes nothing.** A drop there that is not a
   filing, a date or a gathering has nowhere to be; it renders and stops, where
   it used to write a box in this space onto a thing that lives elsewhere.
+
+## 279. Two small things a phone showed (v2.66, 2026-09-30)
+
+- **The hold ring is kept on the screen by what it measures.** It was nudged
+  in from the edges by the ring and a fixed allowance for a label, and a label
+  is as long as its words: "Edit Behavior" ran off the right of a phone.
+  `ringReach()` in panels.js measures each blob's label once the ring is open
+  and the ring (and the shape ring) is nudged in by the widest reach.
+- **A disclosure's note is said quietly.** The Flows disclosure in the picker
+  printed its note in the label's uppercase bold, so it read as one shouted
+  line; `.pgroup > summary .n` sets it in the ordinary case and weight.

@@ -338,6 +338,8 @@ Undo on its toast; makers place through
 **v2.65** (decision 278): a **sorting drawer packs itself** (`flowSorted()`),
 reading and writing no box on what it collects, and a packed board steps sizes
 down rather than stacking things in the corner.
+**v2.66** (decision 279): the hold ring is kept on screen by its measured
+labels (`ringReach()`), and a disclosure's note is not shouted.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
