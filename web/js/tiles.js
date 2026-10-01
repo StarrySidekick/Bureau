@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, habitOn } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -658,6 +658,14 @@ function tileTap(id){
      where it is tied, and nothing else a tap would do happens in between. The
      spool itself, pressed again, puts the thread down. */
   if(S.threading && actOf(o)!=='spool'){ threadTo(id); return; }
+  /* A copper pipe is a way through (decision 286): pressing it takes you to
+     the drawer at its other end, and an untied pipe says how to tie it. */
+  if(isPipe(o)){
+    const to = pipeTo(o);
+    if(!to){ toast('Tie this pipe to a drawer with the spool'); return; }
+    openTile(id, ()=>{ S.view='drawer'; S.drawerId=to.id; S.kindFilter=null; render(); });
+    return;
+  }
   /* A container opens — **unless it is an instrument**. A deck is a container
      carrying `act`, and a press on one cuts it rather than diving into it:
      what you want from a deck across the desk is a different card showing, and
@@ -1708,6 +1716,25 @@ function drawTileFace(o, arr, box, persp){
         enterkeyhint="done" placeholder="${esc(ph)}"></label>
       ${handles}
     </div>`;
+  }
+
+  /* ---- a copper pipe — decision 286 ---------------------------------------
+     The mouth of a pipe set into the board, seen from above: a flared copper
+     flange, the bore going dark into the wood. `data-pipe` names the drawer
+     at the other end, which is what a drop on it files into (INTO_AT in
+     gestures.js); the tile itself keeps its own id in `data-row`, so it
+     still holds, drags and takes string like anything else. Wider, a brass
+     tag beside it says what it carries and where. */
+  if(isPipe(o)){
+    const to = pipeTo(o), k = takesOf(o);
+    const what = k ? K(k).nm+'s' : 'Anything';
+    const where = to ? (to.title||'Untitled') : 'Nowhere yet';
+    return `<button class="drawer otile pipetile bd-none${box.w>1?' pipewide':''}${to?'':' pipeloose'}${sel}" data-row="${o.id}"${
+        to?` data-pipe="${to.id}"`:''} title="${esc(what+' → '+where)}" style="--c:${colour};${place}">
+      ${chips}<span class="pipemouth" aria-hidden="true"><i class="pipebore"></i></span>
+      ${box.w>1 ? `<span class="pipetag"><b>${esc(what)}</b><u>to ${esc(where)}</u></span>` : ''}
+      ${handles}
+    </button>`;
   }
 
   if(shapeOf(o)==='pushbutton'){

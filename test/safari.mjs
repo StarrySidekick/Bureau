@@ -227,6 +227,31 @@ out.theBinHeapsUp = await page.evaluate(async () => {
 });
 await shot('07-bin-open');
 
+// ---- the inbox and its copper pipes (decision 286): the Brain Dump flow put
+// down, four lines typed into its real input, each down its own pipe, and
+// a pipe's brass tag laid out beside its mouth rather than under it.
+const bdInbox = await page.evaluate(async () => {
+  const P = await import('./js/plans.js'), S = BUREAU.state;
+  const d = BUREAU.create('wf_braindump', {parent:'root', title:'Brain dump', noSeed:true}); delete d.setup;
+  P.stampPlan(P.plans().find(x => x.stock === 'braindump').id, d.id);
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await new Promise(r => setTimeout(r, 400));
+  return document.querySelector('[data-contadd]')?.dataset.contadd;
+});
+for (const t of ['Renew the passport', 'What if the bus stop had a library?', 'Is the lease up in March?', 'The light at six was green and gold']) {
+  const f = page.locator(`[data-contadd="${bdInbox}"]`); await f.click(); await f.fill(t); await f.press('Enter'); await nap(250);
+}
+out.theInboxSendsEachDownItsPipe = await page.evaluate(() => {
+  const S = BUREAU.state, at = t => { const o = S.objects.find(x => x.title === t); return o && (S.objects.find(x => x.id === o.parent) || {}).title; };
+  return at('Renew the passport') === 'Do' && at('What if the bus stop had a library?') === 'Someday'
+    && at('Is the lease up in March?') === 'Questions' && at('The light at six was green and gold') === 'Keep';
+});
+out.aPipeTagSitsBesideItsMouth = await page.evaluate(() => {
+  const t = document.querySelector('.pipetile.pipewide'); if (!t) return false;
+  const m = t.querySelector('.pipemouth').getBoundingClientRect(), g = t.querySelector('.pipetag').getBoundingClientRect();
+  return g.left >= m.right - 1 && g.height > m.height * 0.5;
+});
+await shot('08-brain-dump');
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.73';
+const APP_VERSION = '2.74';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 54;
+const DATA_V = 55;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1371,6 +1371,18 @@ const MIGRATIONS = [
       c.shelves = {w, h};
       if(cells.length===w*h) delete c.boards; else c.boards = cells;
       if(c.start) c.start = {x:(c.start.x||0)*T + 2, y:(c.start.y||0)*T + 2};
+    });
+  }},
+  /* ---- the Brain Dump is an inbox and its pipes (decision 286) ------------
+     The flow was a spawner, a jar and three lists you sorted into by hand.
+     It is an Inbox with four copper pipes now, so the stored copy is replaced
+     with the new one, as migration 47 did for the life flows. Boards already
+     put down from the old one are arrangements and are left as they are. */
+  {v:55, up(d){
+    const f = stockPlans().find(p=>p.stock==='braindump'); if(!f) return;
+    (d.plans||[]).forEach(p=>{ if(!p || p.stock!=='braindump') return;
+      ['objects','of','sec','boards','start','dims','makes','life','rail'].forEach(k=>{
+        if(f[k]!==undefined) p[k] = JSON.parse(JSON.stringify(f[k])); else delete p[k]; });
     });
   }},
 ];

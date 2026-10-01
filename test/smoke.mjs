@@ -1794,6 +1794,37 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return out;
   });
 
+  // --- the inbox and its copper pipes (decision 286): a line becomes what it
+  // reads as and leaves by the pipe that carries that kind, undated; one with
+  // no pipe waits; Sort sends what waits; a pipe's tile names its drawer.
+  const inboxPipes = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {}, M = await import('./js/model.js'), U = await import('./js/mutations.js');
+    const inbox = BUREAU.create('inbox', {parent:'root', title:'Inbox test'}); delete inbox.setup;
+    const todo = BUREAU.create('drawer', {parent:'root', title:'Pipe test to do', noSeed:true}); delete todo.setup;
+    const pipe = BUREAU.create('pipe', {parent:'root'}); pipe.takes = 'task';
+    M.relate(pipe.id, inbox.id); M.relate(pipe.id, todo.id);
+    BUREAU.render();
+    out.pipeLeads = M.pipeTo(pipe) === todo && M.pipesOf(inbox).includes(pipe);
+    out.isAnInbox = M.isInbox(inbox) && !M.isInbox(todo);
+    const t = U.inboxTake(inbox, 'Call the plumber');
+    out.taskDownThePipe = !!t && t.kind === 'task' && t.parent === todo.id && t.due === null;
+    const q = U.inboxTake(inbox, 'Is the boiler under warranty?');
+    out.questionWaits = !!q && q.kind === 'question' && q.parent === inbox.id;
+    const d = U.inboxTake(inbox, 'Fix the tap !today');
+    out.aDayAskedForIsKept = !!d && d.due === M.T;
+    pipe.takes = '';
+    out.sortSendsWhatWaits = U.sortInbox(inbox.id) === 1 && q.parent === todo.id;
+    BUREAU.undo();
+    out.sortUndoes = q.parent === inbox.id;
+    BUREAU.render();
+    const el = document.querySelector(`[data-row="${pipe.id}"]`);
+    out.theTileNamesItsDrawer = !!el && el.dataset.pipe === todo.id;
+    out.anyDrawerCanBeAnInbox = (() => { todo.genKind = 'smart'; const r = M.isInbox(todo); delete todo.genKind; return r; })();
+    S.objects = S.objects.filter(o => ![inbox.id, todo.id, pipe.id].includes(o.id) && ![inbox.id, todo.id].includes(o.parent));
+    S.undo = []; S.redo = []; BUREAU.render();
+    return out;
+  });
+
   // --- reading: three views of one body, and a page that actually turns
   const readViews = await page.evaluate(async () => {
     const S = BUREAU.state, out = {};
@@ -11453,7 +11484,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
-    noDupIds, undoWorks, garbageBin, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
+    noDupIds, undoWorks, garbageBin, inboxPipes, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped,
     settingsHasDoors, settingsBack,

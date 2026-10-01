@@ -213,6 +213,10 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
   choices from the Workshop and the aesthetic.
 - **Never use a cut type** (§8 lists them) or invent a type key, and never
   make a `bin`: there is one garbage bin, made by the first delete.
+- **An inbox comes with its pipes from a flow.** A paste can make an `inbox`
+  and a `pipe`, but cannot tie them (§5), and an untied pipe leads nowhere.
+  For a brain dump, write `{"plan": "braindump"}` and `fill` its lists; for
+  anything else, paste the inbox and say which pipes to lay by hand.
 - **Say what could not be pasted.** If the board needs strings, positions or
   pictures (§5), hand over the paste and say plainly what he will have to do
   by hand, or what the paste bridge would need.
@@ -247,6 +251,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | --- | --- | --- | --- | --- |
 | `list` | List | 4×6 | yes | Whatever is inside it, one line each, on the front |
 | `checklist` | Checklist | 4×6 | yes | Tasks you can check off and add to without opening it |
+| `inbox` | Inbox | 4×5 | yes | Write anything. It becomes what it reads as, and copper pipes tied to it carry each kind to its drawer |
 
 **Calendar** (`m_calendar`)
 
@@ -372,6 +377,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `tgear` | Gear | 1×1 |  | Opens the settings of the board it lies on |
 | `tswipe` | Swipe switch | 1×1 |  | Flips every board between a smooth scroll and a rigid swipe, a tile at a time |
 | `spool` | Spool of thread | 1×1 |  | Press it, then two things, and they are tied with string |
+| `pipe` | Copper pipe | 1×1 |  | Tie it to a drawer with string: what goes in comes out there |
 | `coin` | Spiral coin | 1×1 |  | Toss it and it makes one of anything, somewhere on the board |
 
 **Portal** (`outlink`)
@@ -489,7 +495,7 @@ Name one in `plan`. Its things are what `fill` can address by title.
 | `device` | Device | project | `pj_device` | What does it do?, Parts, Sketches and wiring, Stages, Sketch, Parts ordered, Breadboard, Firmware, Enclosure, Test, Done, What is not working, Where it stands, Code, Add to this… |
 | `handmade` | Handmade Object | project | `pj_handmade` | What is it, and who is it for?, Materials, References, Stages, Design, Make a test, Make it, Finish, Give it or keep it, Hours at the bench, One session, Where it stands, Supplies, Add to this… |
 | `artwork` | Artwork | project | `artpiece` | What is it about?, Studies, References, Hours making, Stages, Sketches, Materials, Underpainting, The work, Finish, Photograph it, Where it stands, A timed study, Supplies, Add to this… |
-| `braindump` | Brain Dump | work | `wf_braindump` | Get it out of your head…, The bucket, Do, Someday, Keep, Ten minutes, Sort it, Two minutes or less? Do it now, Does it have a day? Give it one, Is it someone else’s? Send it, Will you care in a month?, Is it a project in disguise?, Bin it, The rule, Apple Notes, Add to this… |
+| `braindump` | Brain Dump | work | `wf_braindump` | Inbox, Do, Someday, Questions, Keep, Add to this… |
 | `projectmgmt` | Project Management | work | `wf_projectmgmt` | Now, three at most, Next, Waiting on someone, Paused, Deadlines, Google Calendar, Focus, What one thing moves it most?, What can you drop?, What is blocked, and by whom?, Finish before you start, What is due first?, Ship the smallest version, Deep work, Add to this…, Someday, maybe…, Someday, Ideas for projects, Picking the next one, Can’t choose, The rule, Finished, Shipped this year, Looking back, Weekly review, Review, What did you finish?, What stalled, and why?, What should stop?, Who needs an update?, What is next week’s one thing?, This month |
 | `brainstorming` | Brainstorm | work | `wf_brainstorming` | The question, Another idea…, Everything, no judging, The best three, Five minutes, Pick one at random, Oblique turns, Reverse it, Make it absurd, What would a child do?, Steal from another field, Make it free, Make it ten times bigger, Next step, Are.na, Add to this… |
 

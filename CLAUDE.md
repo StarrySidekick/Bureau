@@ -366,6 +366,12 @@ cut is drawn as wooden walls and shadow (`carveEdges()`, `.carve`).
 wastebasket whose board always tumbles; `isGone()` keeps what is in it (and
 in a drawer thrown away whole) out of Today, search and every sorting drawer;
 hold one for Put Back or Delete for Good, hold the bin to Empty it.
+**v2.74** (decision 286): **the inbox and copper pipes**. A container that
+makes *whatever it reads as* is an inbox (`isInbox()`); each line leaves by
+the pipe tied to it that carries its kind (`pipeFor()`), or waits; Sort sends
+what waits. A pipe leads to the drawer it is tied to (`pipeTo()`), a drop on
+it files there (`data-pipe`), a tap goes there. The Brain Dump flow is an
+inbox and four pipes (`from`/`into` on a flow; migration 55).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
