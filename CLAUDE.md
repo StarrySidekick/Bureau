@@ -395,6 +395,8 @@ on it (`carriesOf()`, `travelWith()`). Scope in `docs/BOARDS.md`.
 answer `TILE`. Read decisions 188–195 as history.
 **v2.84** (decision 290): no carved walls round a board; the checkerboard
 meets the wood.
+**v2.85** (decision 291): locked, a board sits on a drawn wooden table
+(`--table`, `--table-grain`) instead of the carcass.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

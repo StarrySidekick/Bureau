@@ -3828,9 +3828,38 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
    each thing stands on a piece of the checkerboard cut to its box, lined up
    with the squares the unlocked board draws (`--px`/`--py`, half a period
    for an odd column or row). */
+/* **…on a wooden table** (decision 291). Timothy: locked, it should look
+   like you are on a table, a lighter brown than the carcass. The grid lets
+   the table through (its paper, and the wood of any empty slot, go clear)
+   and the scroller it sits in is the tabletop, so the wood runs to the edges
+   of the screen rather than stopping at the board. Planks run across, each a
+   few cells deep with a dark seam, and the grain is an SVG noise stretched
+   along them: no picture to fetch, and it scales with the screen. */
 .grid.showcase::before,
 html[data-style] .grid.showcase::before{
-  background-image:none;background-color:var(--wood);opacity:1}
+  background-image:none;background-color:transparent;opacity:1}
+.grid.showcase .noboard{background:transparent}
+:root{
+  --table:#9A6A43;
+  --table-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='480'%3E%3Cfilter id='g' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.00625 0.1625' numOctaves='3' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.24  0 0 0 0 0.13  0 0 0 0 0.05  0 0 0 1.1 -0.38'/%3E%3C/filter%3E%3Crect width='480' height='480' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+.scroll.deskscroll:has(> .grid.showcase){
+  background-color:var(--table);
+  background-image:
+    /* a seam every plank, with a lit edge under it */
+    repeating-linear-gradient(180deg, transparent 0 calc(var(--plank,150px) - 3px),
+      rgba(40,20,8,.55) calc(var(--plank,150px) - 3px) calc(var(--plank,150px) - 1px),
+      rgba(255,225,180,.18) calc(var(--plank,150px) - 1px) var(--plank,150px)),
+    /* each plank a shade apart from the next */
+    repeating-linear-gradient(180deg, rgba(255,230,190,.06) 0 var(--plank,150px),
+      rgba(60,30,10,.08) var(--plank,150px) calc(var(--plank,150px) * 2),
+      rgba(255,240,210,.03) calc(var(--plank,150px) * 2) calc(var(--plank,150px) * 3)),
+    var(--table-grain),
+    /* a soft light across the middle of the table */
+    radial-gradient(120% 80% at 50% 35%, rgba(255,235,200,.16), rgba(0,0,0,.12));
+  background-size:auto, auto, 480px 480px, 100% 100%;
+  background-attachment:local, local, local, scroll;
+}
 .grid > .showpaper{z-index:1;pointer-events:none;display:block;
   opacity:var(--board-alpha,1);background-color:var(--board-1);
   background-image:conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);

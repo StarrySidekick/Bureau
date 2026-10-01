@@ -12257,3 +12257,20 @@ necessary". So the checkerboard simply meets the wood.
   mode, its only setter.
 - `theCutIsDrawn` in the smoke suite and the showcase check in
   `test/safari.mjs` now assert there are no walls.
+
+## 291. Locked, the board is on a wooden table (v2.85, 2026-10-01)
+
+Timothy: locked, it should not just show the carcass; it should look like a
+wooden table, "a slightly lighter brown". So a locked board's showcase
+(decision 287) sits on a tabletop instead of the carcass's dark wood.
+
+- The tabletop is the **scroller** (`.scroll.deskscroll:has(> .grid.showcase)`
+  in board.css), so it runs to the edges of the screen rather than stopping
+  at the board; the grid's paper and the wood of its empty slots go clear
+  over it. `:has()` is in Safari since 15.4.
+- Drawn, not a photograph: `--table` (#9A6A43) under planks a few cells deep
+  with a dark seam and a lit edge, each plank a shade apart, a grain from an
+  SVG `feTurbulence` stretched along the planks (`--table-grain`), and a soft
+  light across the middle. The grain's frequencies are whole cycles of its
+  480px tile, or the repeat shows as a seam.
+- Unlocked is the open checkerboard, as before.
