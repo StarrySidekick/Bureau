@@ -202,6 +202,13 @@ out.aDrawerOpens = await page.evaluate(async () => {
   return document.querySelector('#drawergrid')?.dataset.gridfor === 'd_studio'
     && document.querySelectorAll('#drawergrid > .drawer').length > 0;
 });
+// …and it opens on what is in it, not on the empty margin at its corner
+// (decision 286): something in it is on the screen when it arrives
+out.andOpensOnItsThings = await page.evaluate(() => {
+  const sc = document.querySelector('#app .deskscroll').getBoundingClientRect();
+  return [...document.querySelectorAll('#drawergrid > .drawer')].some(e => { const r = e.getBoundingClientRect();
+    return r.left >= sc.left - 1 && r.right <= sc.right + 1 && r.top >= sc.top - 1 && r.bottom <= sc.bottom + 1; });
+});
 await shot('05-drawer');
 
 // ---- the garbage bin (decision 285): a wire basket on the desk, and a heap

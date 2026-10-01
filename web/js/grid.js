@@ -774,6 +774,20 @@ function startOf(id){
   if(o && o.start && isBoard(id, o.start.x, o.start.y)) return {x:o.start.x, y:o.start.y};
   if(id===ROOT){ const mid = {x:(sh.w-1)>>1, y:(sh.h-1)>>1};
     if(isBoard(id, mid.x, mid.y)) return mid; }
+  /* **A board opens on what is on it** (decision 286): its top-left cell is
+     the margin now, so a drawer opened there showed an empty checkerboard
+     with everything in it off the side of the screen. The middle of what is
+     there, then; the middle of the board when nothing is. */
+  if(!innerOf(id) || id===ROOT){
+    const dv = dev(); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    S.objects.forEach(k=>{
+      if(!k || (k.parent||ROOT)!==id || k.done || inFront(k)) return;
+      const b = k[dv]; if(!b || !b.x || !b.w) return;
+      x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x+b.w-1); y1 = Math.max(y1, b.y+(b.h||1)-1);
+    });
+    const mid = x0===Infinity ? {x:(sh.w-1)>>1, y:(sh.h-1)>>1} : {x:((x0+x1)>>1)-1, y:((y0+y1)>>1)-1};
+    if(isBoard(id, mid.x, mid.y)) return mid;
+  }
   return boardsOf(id)[0] || {x:0, y:0};
 }
 function nearestBoard(id, p){

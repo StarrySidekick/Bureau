@@ -366,7 +366,7 @@ cut is drawn as wooden walls and shadow (`carveEdges()`, `.carve`).
 wastebasket whose board always tumbles; `isGone()` keeps what is in it (and
 in a drawer thrown away whole) out of Today, search and every sorting drawer;
 hold one for Put Back or Delete for Good, hold the bin to Empty it.
-**v2.74–2.76** (decision 286): **a board is as big as what is on it.** Nothing is
+**v2.74–2.77** (decision 286): **a board is as big as what is on it.** Nothing is
 carved: `fitBoard()` makes it the rectangle round its things plus `MARGIN`
 (8) empty cells each side, at least `FRESH`, every render and at boot
 (`fitAll()`). The right and bottom follow what is there both ways; **the

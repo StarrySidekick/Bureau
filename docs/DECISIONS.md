@@ -12011,7 +12011,7 @@ twenty moves of undo, and that is the wrong bargain for a desk you live in.
   paste guard had put its two new items inside Lisbon, which the rollup block
   counts; they sit beside it now.
 
-## 286. A board is as big as what is on it (v2.76, 2026-10-01)
+## 286. A board is as big as what is on it (v2.76–2.77, 2026-10-01)
 
 Timothy: "now that we have this smooth scrolling system in place, we really
 don't need to have like a background that expands and contracts… the objects
@@ -12045,6 +12045,12 @@ presentational… we don't need this one-by-one schema."
   a thing back where it was. `render()` moves the kept scroll by the same
   shift, so nothing moves on the screen. (`shiftBoard()`, which a tile added
   to the left used to go through, never patched the stacks.)
+- **A board opens on what is on it.** With no stored start, `startOf()`
+  answers the middle of what is there (the middle of the board when it is
+  empty): its top-left cell is margin now, and a drawer opened there showed
+  an empty checkerboard with everything off the side of the screen. Found by
+  the garbage bin's own WebKit check, whose heap fell outside the pen; guarded
+  as `andOpensOnItsThings` in `test/safari.mjs`.
 - **A new thing is not put out past the left or the top by itself.**
   `freeSpotIn()` looks inside the corner of what is there first
   (`cornerOf()`), then anywhere. Growing the board that way is for a person
