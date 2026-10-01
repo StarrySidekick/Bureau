@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.70';
+const APP_VERSION = '2.71';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 54;
+const DATA_V = 55;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1372,6 +1372,14 @@ const MIGRATIONS = [
       if(cells.length===w*h) delete c.boards; else c.boards = cells;
       if(c.start) c.start = {x:(c.start.x||0)*T + 2, y:(c.start.y||0)*T + 2};
     });
+  }},
+  /* ---- a board as big as what is on it (decision 284) -------------------
+     Nothing is carved any more, so every board's list of carved cells goes
+     and it is its whole rectangle. `fitBoard()` then sizes each board to what
+     is on it the first time it is drawn; nothing moves on the screen. */
+  {v:55, up(d){
+    if(d.deskCfg) delete d.deskCfg.boards;
+    (d.objects || []).forEach(o=>{ if(o && o.boards) delete o.boards; });
   }},
 ];
 function migrate(d){

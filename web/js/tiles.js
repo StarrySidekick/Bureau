@@ -3415,6 +3415,12 @@ function gridOfContainer(cid){
     kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o, dv, c.id);
       return b.x>shift.x && b.x<=shift.x+drawCols(g, dv) && b.y>shift.y && b.y<=shift.y+tall; });
   }
+  /* **Locked, the board is what is on it** (decision 284): the empty cells
+     go back to the carcass and only the cells things stand on keep the
+     paper, cut into the wood the way a carved board was. Read here, before
+     the tiles are drawn, because gridTile() takes each box out of FLOW. */
+  const show = boardLocked() && !camHere && !(c.id!==ROOT && innerOf(c.id))
+    ? showcaseOf(kids, shift, dv, c.id) : null;
   SHELFSHIFT.x = shift.x; SHELFSHIFT.y = shift.y;
   /* Where the middle of this board is, for the shelf's perspective — once,
      here, rather than once per tile. Off at zero depth, which is what keeps the
@@ -3482,12 +3488,12 @@ function gridOfContainer(cid){
      on it, and when that is all there is the grid gives up its paper too. */
   const holes = vacancies(c.id, dv, g, shift, cols, rows, camHere);
   const vacant = holes.all;
-  const papers = vacant ? '' : tilePapers(c.id, g, shift, cols, rows);
+  const papers = vacant ? '' : show ? show.papers : tilePapers(c.id, g, shift, cols, rows);
   const crosses = vacant ? '' : tileCrosses(c.id, g, shift, cols, rows);
-  const carved = vacant || camHere ? '' : carveEdges(c.id, g, shift, cols, rows);
+  const carved = vacant || camHere ? '' : show ? show.walls : carveEdges(c.id, g, shift, cols, rows);
   const zk = zoomOf(c.id);
   return `<div class="grid g-${dv}${zk!==1?' zoomed':''}${narrow?' narrowboard':''}${vacant?' vacant':''}${
-      dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
+      dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${show?' showcase':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"${zk!==1 ? ` data-zk="${zk.toFixed(4)}"` : ''}
        style="${boardVars}${zk!==1 ? `--zk:${zk.toFixed(4)};--rowb:${(g.rowh/zk).toFixed(3)}px;` : ''}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${papers}${vacant?'':tiles+carved+lights+strings}${holes.html}${crosses}
   </div>`;
@@ -3568,6 +3574,33 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
       j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}"></div>`;
   }
   return {all: none===nx*ny, html};
+}
+
+/* ---- a locked board shows what is on it — decision 284 -----------------
+   One paper per thing, its box on the board, the checkerboard lined up with
+   the grid's own (the squares are two cells across, so an odd column starts
+   half a period in); and the same walls a carved board had, round the cells
+   things cover rather than round cells carved by hand. An empty locked board
+   keeps its paper: nothing is a wooden board. */
+function showcaseOf(kids, shift, dv, cid){
+  const cover = new Set();
+  let papers = '';
+  kids.forEach(o=>{
+    const b = FLOW.get(o.id) || lay(o, dv, cid);
+    if(!b || !b.x || !b.w) return;
+    const i = b.x - 1 - shift.x, j = b.y - 1 - shift.y, h = b.h || 1;
+    for(let y=0; y<h; y++) for(let x=0; x<b.w; x++) cover.add((i+x)+','+(j+y));
+    papers += `<i class="showpaper" aria-hidden="true" style="grid-column:${i+1}/span ${b.w};grid-row:${j+1}/span ${h};--px:${((i%2)+2)%2};--py:${((j%2)+2)%2}"></i>`;
+  });
+  if(!cover.size) return null;
+  let walls = '';
+  cover.forEach(k=>{
+    const [i, j] = k.split(',').map(Number);
+    const e = [[0,-1,'t'],[1,0,'r'],[0,1,'b'],[-1,0,'l']]
+      .filter(([dx,dy])=>!cover.has((i+dx)+','+(j+dy))).map(([,,s])=>s);
+    if(e.length) walls += `<i class="carve${e.map(s=>' c'+s).join('')}" aria-hidden="true" style="grid-column:${i+1};grid-row:${j+1}"></i>`;
+  });
+  return {papers, walls};
 }
 
 /* ---- carved out of the carcass — decision 283 --------------------------

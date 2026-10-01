@@ -11913,3 +11913,43 @@ is inset within the carcass, so sell the carved out of wood effect."
   things on the board, so a thing against the edge sits under the lip. The
   wood carries the cut's rim on the side that meets the board. Only edge cells
   get an element, so the cost is the perimeter.
+
+## 284. A board is as big as what is on it (v2.71, 2026-10-01)
+
+Timothy: "now that we have this smooth scrolling system in place, we really
+don't need to have like a background that expands and contracts… the objects
+themselves are the grid… the checkerboard is just kind of an infinite sort of
+expanse maybe with just like a limit… when you're in locked mode it goes from
+the checkerboard to kind of the carcass border… so it looks more
+presentational… we don't need this one-by-one schema."
+
+- **Nothing is carved.** `fitBoard()` in grid.js makes a board the rectangle
+  round everything on it, on either device, with `MARGIN` (eight cells) of
+  empty checkerboard on every side, never smaller than `FRESH` (8×14, what an
+  empty board is) and never past `SPAN`. It runs on the board being drawn at
+  the start of every `render()`, since every way of changing what is on a
+  board ends in one. Put something in the margin and the board grows past
+  it; take the last thing off an edge and it closes up.
+- **When the left or top edge moves, every number moves with it**
+  (`shiftCells()`): the boxes on the board on both devices, `SHELF`,
+  `start`, and the boxes held on the undo and redo stacks, so an undo after
+  a fit puts a thing back where it was and not eight cells off. `render()`
+  moves the kept scroll by the same shift, so nothing moves on the screen.
+  (`shiftBoard()`, which a tile added to the left used to go through, never
+  patched the stacks.)
+- **The carving gestures are gone**: holding the wood past the edge does
+  nothing, and a long hold on a cell is only the Magic Selector. Board
+  settings' Tiles map is a line saying how big the board is and why.
+  `addBoard()`, `removeBoard()`, `tileHere()` and `tileAway()` stay, for flows
+  and growDown(), whose additions the next fit tidies.
+- **Locked, the board is a showcase** (`showcaseOf()` in tiles.js, `.showcase`
+  and `.showpaper` in board.css): the board's own paper goes to the carcass's
+  wood and each thing stands on a piece of the checkerboard cut to its box,
+  aligned with the squares the unlocked board draws, with decision 283's walls
+  round the cells things cover. An empty locked board keeps its paper.
+  Unlocked is the open checkerboard. Locked is the default, so this is what
+  the board usually looks like.
+- **Migration 55** drops every stored list of carved cells; the first render
+  of each board fits it.
+- Not touched: magic drawers (they pack what they collect into the room they
+  have) and proportional boards.

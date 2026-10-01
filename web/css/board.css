@@ -3698,7 +3698,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
    into its box from its centre, `translate` taking up the difference: the
    same picture in every engine, container units and all. A pinboard's tiles
    hang from their pin, so theirs is taken up from there. */
-.grid.zoomed > *:not(.tilepaper):not(.carve):not(.lights):not(.strings):not(.noboard):not(.tileminus):not(.tilegrow):not(.tilegoing){
+.grid.zoomed > *:not(.tilepaper):not(.showpaper):not(.carve):not(.lights):not(.strings):not(.noboard):not(.tileminus):not(.tilegrow):not(.tilegoing){
   --rowh:var(--rowb);
   width:calc(100% / var(--zk,1));height:calc(100% / var(--zk,1));
   min-width:0;min-height:0;max-width:none;max-height:none;
@@ -3727,6 +3727,23 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
   background:var(--wood)}
 .grid.vacant .noboard{background:transparent}
+/* ---- a locked board shows what is on it — decision 284 -----------------
+   The board's own paper goes to the carcass's wood, said twice like the
+   surface rule above so an aesthetic's own background cannot outrank it, and
+   each thing stands on a piece of the checkerboard cut to its box, lined up
+   with the squares the unlocked board draws (`--px`/`--py`, half a period
+   for an odd column or row). The walls are `.carve`, drawn below. */
+.grid.showcase::before,
+html[data-style] .grid.showcase::before{
+  background-image:none;background-color:var(--wood);opacity:1}
+.grid > .showpaper{z-index:1;pointer-events:none;display:block;
+  opacity:var(--board-alpha,1);background-color:var(--board-1);
+  background-image:conic-gradient(var(--board-2) 0 25%, transparent 0 50%, var(--board-2) 0 75%, transparent 0);
+  background-size:var(--checkerx,var(--checker,160px)) var(--checkery,var(--checker,160px));
+  background-position:calc(var(--checkerx,160px) / -2 * var(--px,0)) calc(var(--checkery,160px) / -2 * var(--py,0))}
+html[data-surface="plain"] .grid > .showpaper{background-image:none}
+html[data-surface="wood"] .grid > .showpaper{display:none}
+
 /* ---- carved out of the carcass — decision 283 ----------------------------
    A board is cells cut out of the wood, so its edge is a cut: the wood stands
    proud and the board is sunk into it. The light is from the top left, as it

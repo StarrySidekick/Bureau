@@ -274,6 +274,14 @@ tile should click into place; and an empty slot should be just a plus,
 thicker and fainter, with no outline or dotted ring, and only when unlocked.
 Built as decision 275 (v2.61).
 
+### Added 2026-10-01 — the objects are the grid
+
+Timothy: with the smooth scroll in place there is no need for a board that is
+carved out cell by cell; the checkerboard can be an expanse with a limit, and
+where you put a thing is where it goes. Locked, the board turns to the
+carcass so it looks presentational, and you can still look around. Built as
+decision 284 (v2.71).
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

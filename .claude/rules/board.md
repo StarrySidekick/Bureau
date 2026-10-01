@@ -5,6 +5,15 @@ paths:
 ---
 # The board
 
+**Read this first of all (decision 284): a board is as big as what is on
+it.** Nothing is carved; `fitBoard()` sizes the board being drawn at every
+render to its things plus `MARGIN` empty cells each side (at least `FRESH`),
+and moves every number (boxes, `SHELF`, `start`, the undo stacks) when the
+top or left edge moves, so **a box's coordinates are not stable across a
+render**: compare positions against a neighbour, never as absolute numbers.
+Locked, the empty cells are drawn as wood (`.showcase`). The carving gestures
+in the next paragraph are history.
+
 **Read this first of all (decision 283): a tile is one cell** (`TILE = 1`).
 `shelves` is the board's rectangle in cells, `boards` the cells carved out
 of it, `start` and `SHELF` are cells, and a phone's pad is one cell of wood.

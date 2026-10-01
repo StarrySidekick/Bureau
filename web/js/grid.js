@@ -385,6 +385,75 @@ function removeBoard(cid, x, y){
   if(keep.length===w*h) delete o.boards; else o.boards = keep.map(b=>b.x+','+b.y);
   return true;
 }
+/* ---- a board as big as what is on it — decision 284 --------------------
+   Timothy, 2026-10-01: with the smooth scroll there is no need for a board
+   you carve out and fill back in; "the objects themselves are the grid".
+   So a board is never shaped by hand. It is the rectangle round everything
+   on it, on either device, with `MARGIN` of empty checkerboard on every side
+   to put the next thing in, and never smaller than `FRESH`. Put something
+   in the margin and the board grows past it; take the last thing off an edge
+   and the board closes up behind it. `SPAN` is the limit.
+
+   Called on the board being drawn at the start of every render, because a
+   board's size follows from what is on it the way a box follows from
+   `ensureBox()`, and every way of changing what is on a board ends in a
+   render. When the left or top edge moves, every box on the board moves by
+   the same number of cells (a box is counted from the top-left corner), and
+   so do where you stand, where it opens, and the boxes on the undo and redo
+   stacks, or an undo would put a thing back by the old numbers. The answer
+   is that shift, so the render can move the scroll with it and nothing
+   moves on the screen. */
+const MARGIN = {w:8, h:8};
+function fitBoard(cid){
+  const id = cid==null ? hereId() : cid;
+  const o = boardCfg(id);
+  if(!o || (id!==ROOT && (!byId(id) || innerOf(id) || growsNot(id)))) return null;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  S.objects.forEach(k=>{
+    if(!k || (k.parent||ROOT)!==id || k.done || inFront(k)) return;
+    ['desk','phone'].forEach(dv=>{
+      const b = k[dv]; if(!b || !b.x || !b.w) return;
+      x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y);
+      x1 = Math.max(x1, b.x + b.w - 1); y1 = Math.max(y1, b.y + (b.h||1) - 1);
+    });
+  });
+  const r = boardRect(id);
+  let w, h, sx = 0, sy = 0;
+  if(x0===Infinity){ w = FRESH.w; h = FRESH.h; }
+  else {
+    // the margin gives way before the things do, so nothing is ever cut off
+    const mx = clamp(Math.floor((SPAN - (x1-x0+1))/2), 0, MARGIN.w);
+    const my = clamp(Math.floor((SPAN - (y1-y0+1))/2), 0, MARGIN.h);
+    sx = mx - (x0-1); sy = my - (y0-1);
+    w = Math.max(FRESH.w, x1 + sx + mx); h = Math.max(FRESH.h, y1 + sy + my);
+  }
+  const same = !sx && !sy && r.w===w && r.h===h && !o.boards;
+  if(same) return null;
+  if(sx || sy) shiftCells(id, sx, sy);
+  o.shelves = {w, h};
+  delete o.boards;
+  PLACED.n++;
+  return {x:sx, y:sy};
+}
+/* Everything on a board moved by whole cells, the undo and redo stacks too. */
+function shiftCells(id, sx, sy){
+  const mv = b => (b && b.x) ? Object.assign({}, b, {x:b.x + sx, y:b.y + sy}) : b;
+  S.objects.forEach(k=>{
+    if(!k || (k.parent||ROOT)!==id) return;
+    k.desk = mv(k.desk); k.phone = mv(k.phone);
+  });
+  [S.undo, S.redo].forEach(stack=>(stack||[]).forEach(m=>(m.steps||[]).forEach(s=>{
+    if(s.set && (s.set.k==='desk' || s.set.k==='phone')){
+      const k = byId(s.set.id);
+      if(k && (k.parent||ROOT)===id) s.set.v = mv(s.set.v);
+    } else if(s.del && s.del.o && (s.del.o.parent||ROOT)===id){
+      s.del.o.desk = mv(s.del.o.desk); s.del.o.phone = mv(s.del.o.phone);
+    }
+  })));
+  if(SHELF[id]) SHELF[id] = {x:SHELF[id].x+sx, y:SHELF[id].y+sy};
+  const o = boardCfg(id);
+  if(o && o.start) o.start = {x:(o.start.x||0)+sx, y:(o.start.y||0)+sy};
+}
 /* The boards a flow puts down, made sure of: each named cell becomes a board,
    in the order given, growing the rectangle as it has to. The cells are
    relative to `at` and the answer is where each one ended up, because adding
@@ -1191,7 +1260,7 @@ function cellW(grid,g){
 
 export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, FRESH, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
-  ensureBoards, boardHolds, onBoard, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  ensureBoards, boardHolds, onBoard, fitBoard, MARGIN, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

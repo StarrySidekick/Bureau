@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -743,35 +743,17 @@ function shelfCountField(cid){
      door to the map, which can add and take away. A drawer's size-picker below
      is the proportional mode's, where the tile decides and none of this
      applies. */
+  /* **A board is as big as what is on it** (decision 284), so there is no
+     map to carve it on: this only says how big that is and how it got so. */
   if(cid===ROOT || !proportional()){
-    const sh = shelvesOf(cid), n = boardsOf(cid).length;
+    const sh = shelvesOf(cid);
     const magic = cid!==ROOT && has(container(cid),'magic');
-    /* **The map is where a tile with things on it is taken away** (Timothy,
-       2026-09-30): the crosses on the board sat on top of what was there. A
-       tile here is pressed to take it away, asking where its things go if it
-       has any; a gap round it is pressed to add one; the tile the board
-       opens on is marked and stays. */
-    const home = homeBoard(cid), pad = magic ? 0 : 1;
-    const cells = [];
-    for(let y=-pad; y<sh.h+pad; y++) for(let x=-pad; x<sh.w+pad; x++){
-      const at = `${cid}:${x}:${y}`;
-      if(isBoard(cid, x, y)){
-        const isHome = home.x===x && home.y===y, full = boardHolds(cid, x, y);
-        cells.push(isHome || n<2
-          ? `<span class="tm on home" title="${isHome?'The tile this board opens on':'The only tile'}"></span>`
-          : `<button class="tm on${full?' full':''}" data-boardremove="${at}" title="Take this tile away${full?' (it has things on it)':''}"
-              aria-label="Take this tile away"></button>`);
-      } else if(!magic && reachable(cid, x, y)){
-        cells.push(`<button class="tm add" data-addboard="${at}" title="Add a tile here" aria-label="Add a tile here">${ic('plus',11)}</button>`);
-      } else cells.push('<span class="tm"></span>');
-    }
-    return `<div class="field" style="margin-top:12px"><label>Tiles</label>
-      <div class="tilemap" style="--sw:${sh.w + 2*pad}">${cells.join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${n} tile${n>1?'s':''}</b>, each five by five. ${magic
-        ? 'A sorting drawer collects rather than holds, so it stays one tile.'
-        : 'Press a tile to take it away, or a plus to add one there. On the board, hold an empty slot to add a tile there, or hold the middle of a tile, past the hold that makes a thing, to take it away.'}${
+    return `<div class="field" style="margin-top:12px"><label>Size</label>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${sh.w} × ${sh.h}</b> cells${magic
+        ? '. A sorting drawer packs what it collects into the room it has.'
+        : `: everything on it with ${MARGIN.w} empty cells round it, and it grows when something is put in that margin.`}${
         cid===ROOT ? '' : ' Two fingers sideways goes to the drawer beside this one.'}
-        <button class="fchip" data-act="zoomfit" data-id="${cid}" style="margin-left:4px">See every tile</button></div>
+        <button class="fchip" data-act="zoomfit" data-id="${cid}" style="margin-left:4px">See all of it</button></div>
     </div>`;
   }
   const g = gridOf(dev(), cid), now = g.shelves;
@@ -1921,6 +1903,11 @@ function render(){
      nothing and sizeGrid's re-render picks it up. See centreDesk(). */
   const trimmed = trimDesk();
   const centred = centreDesk() || trimmed;
+  /* The board as big as what is on it (decision 284), before anything is
+     drawn on it. A shift of its left or top edge moved every box under the
+     kept scroll, so the scroll moves with it below. */
+  const fitId = (S.view==='drawer' && S.drawerId) || ROOT;
+  const fit = (S.view==='desk' || S.view==='drawer') ? fitBoard(fitId) : null;
   const placed = PLACED.n;      // ensureBox() may invent boxes as this builds
   $('#app').innerHTML = viewHTML();
   const key=viewKey(), now=$('#app .scroll');
@@ -1957,6 +1944,11 @@ function render(){
      so the write is skipped in both of the common cases and the layout
      happens once, where it belongs: at paint. A phone that scrolls (decision
      209) keeps its offset across a render the way a Mac does. */
+  if(fit && !moved){
+    const g = gridOf(dev(), fitId), cell = g.rowh + g.gap;
+    SCROLL.left = Math.max(0, SCROLL.left + fit.x*cell);
+    SCROLL.top = Math.max(0, SCROLL.top + fit.y*cell);
+  }
   if(now && SCROLL.top) now.scrollTop=SCROLL.top;
   if(now && SCROLL.left) now.scrollLeft=SCROLL.left;
   SCROLL.key=key;

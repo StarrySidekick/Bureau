@@ -81,7 +81,9 @@ const drag = await page.evaluate(async () => {
   const t = document.querySelector('#drawergrid .drawer[data-drawer="d_in"]');
   t.scrollIntoView({ block: 'center' }); await new Promise(r => setTimeout(r, 150));
   const b = t.getBoundingClientRect();
+  const ref = S.objects.find(o => o.id !== 'd_in' && (o.parent || 'root') === 'root' && o.phone && o.phone.x);
   return { x: b.x + b.width / 2, y: b.y + b.height / 2, before: { ...S.objects.find(o => o.id === 'd_in').phone },
+           ref: ref.id, refBefore: { ...ref.phone },
            cell: parseFloat(document.querySelector('#drawergrid').style.getPropertyValue('--rowh')) };
 });
 await page.mouse.move(drag.x, drag.y); await page.mouse.down(); await nap(350);
@@ -89,11 +91,17 @@ await page.mouse.move(drag.x, drag.y - 2 * drag.cell, { steps: 8 }); await nap(8
 const follows = await page.evaluate(() => {
   const b = document.querySelector('#drawergrid .drawer[data-drawer="d_in"]').getBoundingClientRect(); return b.y + b.height / 2; });
 await page.mouse.up(); await nap(300);
-const after = await page.evaluate(() => BUREAU.state.objects.find(o => o.id === 'd_in').phone);
+// a board fits itself to what is on it (decision 284), so every number may
+// have moved by the same amount: measured against a neighbour
+const [after, refAfter] = await page.evaluate(r => [BUREAU.state.objects.find(o => o.id === 'd_in').phone,
+  BUREAU.state.objects.find(o => o.id === r).phone], drag.ref);
 out.aZoomedDragFollowsTheFinger = Math.abs((drag.y - follows) / drag.cell - 2) < 0.15;
-out.andLandsWhereItWasTaken = after.y === drag.before.y - 2 && after.x === drag.before.x;
-await page.evaluate(b => { const o = BUREAU.state.objects.find(o => o.id === 'd_in'); o.phone = b;
-  BUREAU.setZoom('root', 1); BUREAU.render(); }, drag.before);
+out.andLandsWhereItWasTaken = after.y - refAfter.y === drag.before.y - drag.refBefore.y - 2
+  && after.x - refAfter.x === drag.before.x - drag.refBefore.x;
+await page.evaluate(([b, r, r0]) => { const S = BUREAU.state, o = S.objects.find(o => o.id === 'd_in'),
+  ref = S.objects.find(o => o.id === r).phone;
+  o.phone = { ...b, x: b.x + ref.x - r0.x, y: b.y + ref.y - r0.y };
+  BUREAU.setZoom('root', 1); BUREAU.render(); }, [drag.before, drag.ref, drag.refBefore]);
 await nap(250);
 
 // ---- a synthetic touch reaches the board: a rigid swipe moves one tile ---
@@ -120,56 +128,45 @@ out.rigidSwipeMovesOneTile = await page.evaluate(async () => {
   return Math.abs(moved - step) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
 });
 
-// ---- holding an empty slot makes a tile there, and it clicks into place --
-const slot = await page.evaluate(async () => {
+// ---- a board is as big as what is on it (decision 284) -----------------
+/* No carving: the desk is everything on it with a margin of empty cells
+   round it. A thing put out in the margin grows the board past it, and the
+   view holds still while the numbers under it move. Locked, the empty cells
+   are the carcass's wood and only what things stand on keeps its paper. */
+const fit = await page.evaluate(async () => {
   const nap = n => new Promise(r => setTimeout(r, n));
-  BUREAU.state.look.locked = false; BUREAU.zoomCommit('root', 0.5); await nap(350);
-  const g = document.querySelector('#drawergrid'), s = [...g.querySelectorAll(BUREAU.TILE === 1 ? '.noboard.et,.noboard.eb,.noboard.el,.noboard.er' : '.noboard')]
-    .map(e => e.getBoundingClientRect()).find(r => r.top > 0 && r.bottom < innerHeight && r.left >= 0 && r.right <= innerWidth);
-  return { n: BUREAU.boardsOf('root').length, plus: !!g.querySelector('.addboard,.tiledrop'),
-           x: s && s.x + s.width / 2, y: s && s.y + s.height / 2 };
+  const S = BUREAU.state; S.look.locked = false; BUREAU.zoomCommit('root', 1); await nap(350);
+  const box = () => { let x0 = 1e9, y0 = 1e9, x1 = 0, y1 = 0;
+    S.objects.forEach(o => { if ((o.parent || 'root') !== 'root' || o.done) return;
+      ['desk', 'phone'].forEach(dv => { const b = o[dv]; if (!b || !b.x || !b.w) return;
+        x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w - 1); y1 = Math.max(y1, b.y + (b.h || 1) - 1); }); });
+    return { x0, y0, x1, y1 }; };
+  const r0 = BUREAU.shelvesOf('root'), b0 = box();
+  const margin = b0.x0 - 1 === 8 && b0.y0 - 1 === 8 && r0.w - b0.x1 >= 8 && r0.h - b0.y1 >= 8;
+  // a 1×1 put out at the far left of the margin: the board grows that way
+  const t = S.objects.find(o => o.id === 'd_in'), ref = S.objects.find(o => o.id !== 'd_in' && (o.parent || 'root') === 'root' && o.phone && o.phone.x);
+  const refAt = { ...ref.phone };
+  const g = document.querySelector('#drawergrid').getBoundingClientRect(), r = ref && document.querySelector(`#drawergrid [data-drawer="${ref.id}"],#drawergrid [data-id="${ref.id}"]`);
+  const before = r && r.getBoundingClientRect().left;
+  t.phone = { x: 1, y: t.phone.y, w: 1, h: 1 }; BUREAU.render(); await nap(200);
+  const r1 = BUREAU.shelvesOf('root'), b1 = box();
+  const r2 = r && document.querySelector(`#drawergrid [data-drawer="${ref.id}"],#drawergrid [data-id="${ref.id}"]`);
+  return { margin, grew: r1.w > r0.w && b1.x0 - 1 === 8, shifted: ref.phone.x - refAt.x,
+           still: !r2 || Math.abs(r2.getBoundingClientRect().left - before) < 2,
+           carved: !!document.querySelector('.tilemap'), r0, r1 };
 });
-out.noPlusNoMinus = !slot.plus;
-await page.mouse.move(slot.x, slot.y); await page.mouse.down(); await nap(450);
-const grew = await page.evaluate(() => !!document.querySelector('.tilegrow'));
-await page.mouse.up();
-await shot('03-new-tile');
-await nap(1100);
-out.aHeldSlotMakesATile = grew && await page.evaluate(n => BUREAU.boardsOf('root').length === n + 1, slot.n);
-
-// ---- holding the middle of an empty tile long takes it away --------------
-const gone = await page.evaluate(async () => {
-  const nap = n => new Promise(r => setTimeout(r, n));
-  BUREAU.zoomCommit('root', 1); await nap(350);
-  const g = document.querySelector('#drawergrid'), S = BUREAU.state;
-  const home = BUREAU.startOf('root');
-  const b = BUREAU.boardsOf('root').find(b => (b.x !== home.x || b.y !== home.y) && !BUREAU.boardHolds('root', b.x, b.y));
-  if (!b) return null;
-  const cell = parseFloat(document.querySelector('#drawergrid').style.getPropertyValue('--rowh'));
-  return { b, n: BUREAU.boardsOf('root').length, cell };
+out.aBoardIsItsThingsAndAMargin = fit.margin;
+out.aThingInTheMarginGrowsIt = fit.grew && fit.shifted === 8;
+out.andTheViewHoldsStill = fit.still;
+await shot('03-grown');
+out.lockedIsAShowcase = await page.evaluate(async () => {
+  BUREAU.state.look.locked = true; BUREAU.render(); await new Promise(r => setTimeout(r, 200));
+  const g = document.querySelector('#drawergrid');
+  return g.classList.contains('showcase') && !!g.querySelector('.showpaper') && !!g.querySelector('.carve')
+    && getComputedStyle(g, '::before').backgroundImage === 'none';
 });
-out.aLongCentreHoldTakesATile = null;
-if (gone) {
-  const pt = {}; await page.evaluate(b => {
-    const g = document.querySelector('#drawergrid'), sc = document.querySelector('#app .deskscroll');
-    const r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
-    const sh = BUREAU.shelfShift ? BUREAU.shelfShift('root') : { x: 0, y: 0 };
-    const x = r.left + (b.x * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.x + .5) * c, y = r.top + (b.y * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.y + .5) * c;
-    sc.scrollBy(0, y - innerHeight / 2); sc.scrollBy(x - innerWidth / 2, 0);
-    return true;
-  }, gone.b);
-  await nap(400);
-  Object.assign(pt, await page.evaluate(b => {
-    const g = document.querySelector('#drawergrid'), r = g.getBoundingClientRect(), c = parseFloat(g.style.getPropertyValue('--rowh'));
-    const sh = BUREAU.shelfShift('root');
-    return { x: r.left + (b.x * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.x + .5) * c, y: r.top + (b.y * BUREAU.TILE + (BUREAU.TILE >> 1) - sh.y + .5) * c };
-  }, gone.b));
-  await page.mouse.move(pt.x, pt.y); await page.mouse.down(); await nap(700);
-  await shot('04-tile-going');
-  await nap(800); await page.mouse.up(); await nap(300);
-  out.aLongCentreHoldTakesATile = await page.evaluate(n => BUREAU.boardsOf('root').length === n - 1, gone.n);
-}
-await shot('04b-tile-gone');
+await shot('04-showcase');
+await page.evaluate(() => { BUREAU.state.look.locked = false; BUREAU.render(); });
 
 // ---- tucked away: a flick down on the front, and the board fills ---------
 /* The lip and the drawer front put away (2026-09-30). Driven with the pointer
