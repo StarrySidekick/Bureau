@@ -323,26 +323,10 @@ function setTileDim(cid, part, v){
   PLACED.n++;
   return true;
 }
-/* **Retired by decision 272**: every tile is eight by eight, so no board
-   states a shape of its own. Kept, answering null, so every reader of it
-   takes the plain path; migration 50 takes `bw`/`bh` off. */
-function dimsOf(cid){
-  if(TILE) return null;
-  const id = cid==null ? hereId() : cid;
-  if(id!==ROOT && innerOf(id)) return null;     // a proportional board is its tile
-  const c = boardCfg(id); if(!c) return null;
-  const ok = (v, mx) => Number.isInteger(+v) && +v>=DIM_MIN && +v<=mx ? +v : null;
-  const w = ok(c.bw, DIM_MAX), h = ok(c.bh, DIM_MAX_H);
-  return w || h ? {w, h} : null;
-}
-function colsOf(cid, device){
-  // a tile is eight across on every board and both devices (decision 272)
-  if(TILE) return TILE;
-  const dm = dimsOf(cid);
-  if(dm && dm.w) return dm.w;
-  if((device||dev())!=='phone') return DESK_SHELF_COLS;
-  return PHONE_GRIDS[gridKeyOf(cid)];
-}
+/* The cells one tile of the old grammar is across: one since decision 283,
+   on every board and both devices. Kept as a function because every reader
+   of a shelf divides by it. */
+function colsOf(){ return TILE; }
 /* How many shelves a board is, either way. The desk is three by three; every
    other container is one by one until it is given more — `shelves` on the
    object, which is the "add another shelf" the desk's own editor writes. */
@@ -361,15 +345,6 @@ function colsOf(cid, device){
    its board off the end. See decision 190. */
 function shelvesOf(cid, device){
   const id = cid==null ? hereId() : cid;
-  const d = device || dev();
-  const inner = id===ROOT ? null : innerOf(id, d);
-  if(inner){
-    if(d !== 'phone') return {w:1, h:1};        // a Mac draws the whole board
-    // a page of a proportional board is a screenful, not a tile (274)
-    const sw = VIEW_COLS, sh = Math.max(1, viewRows(d));
-    return {w: Math.max(1, Math.ceil(inner.cols/sw)),
-            h: Math.max(1, Math.ceil(inner.rows/sh))};
-  }
   /* **The desk and every container are as many boards as you have made**
      (decision 219). A board is added by walking off the edge of the ones
      there are and pressing the plus on the empty slot, in any direction, so
@@ -393,7 +368,7 @@ function boardRect(id){
   }
   const o = boardCfg(id), s = o && o.shelves;
   // a board that has never been given a shape is the fresh one (decision 283)
-  if(!s) return TILE===1 ? {w:FRESH.w, h:FRESH.h} : {w:1, h:1};
+  if(!s) return {w:FRESH.w, h:FRESH.h};
   return {w:clamp(s.w||1, 1, SPAN), h:clamp(s.h||1, 1, SPAN)};
 }
 /* The boards of a board, as a set of "x,y". No list means every cell of the
@@ -434,7 +409,6 @@ function isBoard(cid, x, y){
   const id = cid==null ? hereId() : cid;
   const r = shelvesOf(id);
   if(x<0 || y<0 || x>=r.w || y>=r.h) return false;
-  if(id!==ROOT && innerOf(id)) return true;
   const set = boardList(id);
   return !set || set.has(x+','+y);
 }
@@ -452,7 +426,6 @@ const growsNot = id => id!==ROOT && !!byId(id) && has(byId(id), 'magic');
 function reachable(cid, x, y){
   const id = cid==null ? hereId() : cid;
   if(isBoard(id, x, y)) return true;
-  if(id!==ROOT && innerOf(id)) return false;       // a proportional board is its tile
   if(growsNot(id) || formOf(id).form==='fixed') return false;
   return isBoard(id, x-1, y) || isBoard(id, x+1, y) || isBoard(id, x, y-1) || isBoard(id, x, y+1);
 }
@@ -608,7 +581,7 @@ const MARGIN = {w:8, h:8};
 function fitBoard(cid){
   const id = cid==null ? hereId() : cid;
   const o = boardCfg(id);
-  if(!o || (id!==ROOT && (!byId(id) || innerOf(id)))) return null;
+  if(!o || (id!==ROOT && !byId(id))) return null;
   // a tiled or fixed board is its tiles, never the rectangle round its things
   if(tiledBoard(id)) return fitTiles(id);
   if(growsNot(id)) return null;
@@ -708,7 +681,7 @@ function ensureBoards(cid, cells, at){
 }
 /* A board that grows by itself: any container not sized from its tile. The
    desk grows too, but only when you ask it to. */
-const growsDown = cid => cid!=null && !innerOf(cid) && (tiledBoard(cid)
+const growsDown = cid => cid!=null && (tiledBoard(cid)
   ? formOf(cid).full==='add' : cid!==ROOT && !!byId(cid));
 /* **A full container adds a board under the one you are on**, under the last
    board of that column, when there is room for one. Written as a fact — the
@@ -738,47 +711,16 @@ function growDown(cid, shows){
      under the whole width of the board, since one cell under the column you
      are in is never room for anything wider than a cell. Below the rectangle,
      so nothing already counted from the corner moves. */
-  if(TILE===1){
-    const r = boardRect(cid), xs = [...new Set(all.map(b=>b.x))];
-    if(r.h + GROW_ROWS > SPAN) return false;
-    for(let j=0; j<GROW_ROWS; j++) xs.forEach(x=>addBoard(cid, x, r.h + j));
-    PLACED.n++;
-    return true;
-  }
-  const at = shelfAt(cid);
-  const col = isBoard(cid, at.x, at.y) ? at.x : (all[0]||{x:0}).x;
-  const inCol = all.filter(b=>b.x===col);
-  let y = inCol.length ? Math.max(...inCol.map(b=>b.y)) + 1 : 0;
-  if(!addBoard(cid, col, y)) return false;
+  const r = boardRect(cid), xs = [...new Set(all.map(b=>b.x))];
+  if(r.h + GROW_ROWS > SPAN) return false;
+  for(let j=0; j<GROW_ROWS; j++) xs.forEach(x=>addBoard(cid, x, r.h + j));
   PLACED.n++;
   return true;
 }
-/* ---- a drawer is as big inside as it is outside -----------------------
-   **A container's board is its own tile, four cells to a cell.** A 2×2 drawer
-   opens onto 8×8, a 1×1 onto 4×4, a 2×4 onto 8×16. Before this every drawer
-   opened onto exactly one shelf whatever size it was on the desk, so a drawer
-   you had deliberately made small held precisely as much as one you had made
-   big, and the size you chose said nothing at all.
-
-   It is read off the **desk** box on both devices, never the one for the
-   device being drawn. A container's inside is a coordinate space and a
-   coordinate space may not change shape between a phone and a Mac — the boxes
-   in it are the same numbers on both, and halving the container (which is what
-   `sizeOfKind()` does to put it on a phone) would otherwise halve the grid
-   those numbers are measured against. The desk box is the one both devices can
-   agree on.
-
-   The desk itself is not a tile and keeps its nine shelves. */
-const INNER = 4;
-/* **Proportional boards are a setting, and off by default** (decision 195).
-   Decision 188 made a container's board its tile times four, and a plan laid
-   out in one then depended on how big somebody had made the front: the same
-   board was a squeeze in a two-by-two drawer and a field in a five-by-five.
-   Off, a container is what it was before 188 — `o.shelves` screenfuls, one
-   unless it says otherwise — and every board is the same size to arrange on.
-   `S.look.proportional` turns 188 back on; everything below it is untouched,
-   because `innerOf()` answering null was always the way back to shelves. */
-const proportional = () => !!(S.look && S.look.proportional);
+/* ---- old desks ----------------------------------------------------------
+   The proportional mode (decisions 188, 195: a container's inside its front
+   times four) is gone with decision 288, which gives a board a size of its
+   own. This one reader stays for the migrations that still call it. */
 /* How many screenfuls a container needs to hold what is already in it, off
    the boxes on both devices. Read when the setting goes off (and once, by
    migration 38, for desks that had it on without a key) so a board arranged
@@ -797,42 +739,6 @@ function shelvesToHold(o, objects){
   const had = o.shelves || {};
   return {w: clamp(Math.max(had.w||1, Math.ceil(mx/DESK_SHELF_COLS)), 1, SHELVES),
           h: clamp(Math.max(had.h||1, Math.ceil(my/SHELF_ROWS_FIT)), 1, SHELVES)};
-}
-function innerOf(cid, device){
-  const id = cid==null ? hereId() : cid;
-  if(id===ROOT || !proportional()) return null;
-  const o = byId(id); if(!o) return null;
-  const dv = device || dev();
-  /* **The box for the device you are looking at**, and that is the whole rule.
-     It read the *desk* box on both devices for a version, on the argument that
-     a coordinate space should not change shape between them — and a container
-     is deliberately **half the size on a phone** (`toPhoneSize`), so a drawer
-     that looked four cells by two on a phone opened onto thirty-two by
-     sixteen. "A 4×2 drawer gives you an 8×8 and another 8×8 beside it" is the
-     thing being described, and it is only true of the tile you can see.
-
-     The objects inside already store a box per device and `ensureBox()` places
-     each one on the board it is going onto, so the two boards being different
-     shapes costs nothing: they were never one space to begin with. See
-     decision 190.
-
-     The other device's box is the fallback, for a drawer that has only ever
-     been on one board — and it is **converted**, not read across. A container
-     is half the size on a phone (`toPhoneSize`), so a drawer that only has a
-     phone box doubles onto the desk and one that only has a desk box halves
-     onto the phone. Reading it across gives the same drawer two boards four
-     times apart, which is how a drawer made on a phone came to open onto a
-     single shelf however big it was. */
-  const own = o[dv] && o[dv].w && o[dv].h ? o[dv] : null;
-  const other = dv==='phone' ? o.desk : o.phone;
-  const b = own ? own
-    : (other && other.w && other.h)
-      ? (dv==='phone' ? {w:Math.max(1,Math.round(other.w/2)), h:Math.max(1,Math.round(other.h/2))}
-                      : {w:other.w*2, h:other.h*2})
-      : null;
-  if(!b) return null;                        // never placed: fall back to a shelf
-  return {cols: Math.max(2, Math.round(b.w*INNER)),
-          rows: Math.max(2, Math.round(b.h*INNER))};
 }
 /* The geometry of one board. `cid` says which; left out it is the one on the
    screen. The row height is derived from the measured width rather than read
@@ -855,19 +761,6 @@ const gridOf = (device, cid)=>{
   const shelfH = shelfRows(d, cid);
   // the zoom scales the cell and nothing else (decision 274)
   let rowh = m.w ? m.w/(d==='phone' ? VIEW_COLS : GRID.desk.cols) * zoomOf(cid) : CELL[d];
-  /* A board with a stated shape fits the screen both ways (decision 235):
-     on a phone one shelf is the whole width and the whole room; on a Mac the
-     row of boards across (at most three are drawn side by side) and the room
-     of one shelf-row. The smaller cell wins. */
-  if(dimsOf(cid) && m.w){
-    const across = d==='phone' ? shelfW : Math.max(GRID.desk.cols, shelfW*Math.min(3, shelvesOf(cid, d).w));
-    rowh = m.w/across;
-    if(m.room) rowh = Math.min(rowh, m.room/shelfH);
-  }
-  /* A container sizes its own board from its tile; the desk keeps its shelves.
-     How many screenfuls that comes to is `shelvesOf()`'s to say — one function,
-     so the dots in the bar, the pager and the board itself cannot disagree. */
-  const inner = innerOf(cid, d);
   const sh = shelvesOf(cid, d);
   /* The largest box (decision 272): a tile wide, and as tall as the screen
      shows, since a phone scrolls down across the seams. A phone that pages
@@ -878,13 +771,13 @@ const gridOf = (device, cid)=>{
      somewhere you can scroll to and press the plus on. Not on a board that
      cannot grow. */
   const id = cid==null ? hereId() : cid;
-  const pad = padded(d, id) && !inner && !growsNot(id) && formOf(id).form!=='fixed' ? shelfH : 0;
+  const pad = padded(d, id) && !growsNot(id) && formOf(id).form!=='fixed' ? shelfH : 0;
   /* …and to the left and right (Timothy, 2026-09-29): the phone scrolls
      every way, so the slot one step off either side is somewhere you can
      scroll to as well. */
   const padX = pad ? shelfW : 0;
-  return {cols: inner ? inner.cols : shelfW*sh.w,
-          rows: inner ? inner.rows : shelfH*sh.h,
+  return {cols: shelfW*sh.w,
+          rows: shelfH*sh.h,
           shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh, maxW, maxH, pad, padX};
 };
 
@@ -924,17 +817,7 @@ const SHELF_ROWS_GUESS = 14, PHONE_ROWS_GUESS = 15, PHONE_ROWS = 14;
 const phoneCap = ()=> S.look && S.look.rows === 'fit' ? Infinity : PHONE_ROWS;
 /* A tile is eight rows (decision 272); how many rows a screen shows is a
    different question, and `viewRows()` answers it. */
-function shelfRows(device, cid){
-  if(TILE) return TILE;
-  const d=device||dev();
-  const dm = dimsOf(cid);
-  if(dm && dm.h) return dm.h;
-  const m=MEASURE[d];
-  if(!m.room || !m.w) return d==='phone' ? Math.min(PHONE_ROWS_GUESS, phoneCap()) : SHELF_ROWS_GUESS;
-  const cell = m.w / (d==='phone' ? colsOf(cid, d) : GRID.desk.cols);
-  const fit = Math.max(4, Math.floor(m.room / Math.max(1, cell)));
-  return d==='phone' ? Math.min(fit, phoneCap()) : fit;
-}
+function shelfRows(){ return TILE; }
 /* **How many rows the screen shows** (decision 272): on a phone as many
    whole cells as fit, at most fourteen unless *One more row* says every
    row; on a Mac as many as fit. This is what a shelf's height used to be,
@@ -995,7 +878,7 @@ function startOf(id){
      the margin now, so a drawer opened there showed an empty checkerboard
      with everything in it off the side of the screen. The middle of what is
      there, then; the middle of the board when nothing is. */
-  if(!innerOf(id) || id===ROOT){
+  {
     const dv = dev(); let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     S.objects.forEach(k=>{
       if(!k || (k.parent||ROOT)!==id || k.done || inFront(k)) return;
@@ -1073,7 +956,7 @@ function zoomRange(cid, device){
   const base = m.w / (d==='phone' ? VIEW_COLS : GRID.desk.cols);
   const g = gridOf(d, id);
   // with its pad, which a Mac only draws once it is zoomed out
-  const pads = d==='phone' && !flows(d) ? 0 : (innerOf(id, d) || growsNot(id)) ? 0 : 1;
+  const pads = d==='phone' && !flows(d) ? 0 : growsNot(id) ? 0 : 1;
   const W = m.w, H = d==='phone' ? viewRows('phone')*base : (m.room || viewRows('desk')*base);
   const fit = Math.min(W / ((g.cols + 2*pads*g.shelfW)*base), H / ((g.rows + 2*pads*g.shelfH)*base));
   return {min: Math.max(0.12, Math.min(1, fit)), max: ZOOM_MAX};
@@ -1125,7 +1008,6 @@ function lay(d, device, cid){
           y:clamp(b.y||1,1,Math.max(1,g.rows-h+1)), w, h};
 }
 function onBoards(box, g, id){
-  if(id!==ROOT && innerOf(id)) return true;         // a proportional board is all board
   const x0 = Math.floor((box.x-1)/g.shelfW), x1 = Math.floor((box.x+box.w-2)/g.shelfW);
   const y0 = Math.floor((box.y-1)/g.shelfH), y1 = Math.floor((box.y+box.h-2)/g.shelfH);
   for(let y=y0; y<=y1; y++) for(let x=x0; x<=x1; x++) if(!isBoard(id, x, y)) return false;
@@ -1222,14 +1104,11 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   /* Twice: somewhere nothing is standing at all, then somewhere only the
      floating things are (a decoration, a background), which is all a tile has
      ever had to keep clear of. */
-  /* A proportional board's pages are not tiles (decision 195), so once a
-     tile is a cell (283) each page is searched whole from its corner. */
-  const whole = home!==ROOT && !!innerOf(home, dv);
   /* **Not out past the top or the left of what is there** (decision 287),
      while anywhere else will do: a thing put there grows the board that way
      and moves every number on it, which is for a person to choose by putting
      it there, not for a new thing to do by itself. */
-  const lo = whole ? null : cornerOf(home, dv);
+  const lo = cornerOf(home, dv);
   const passes = (clearOnly ? [true] : [true, false]).flatMap(c => lo ? [[c, true], [c, false]] : [[c, false]]);
   /* **The cells taken, once per search** (decision 287). `boxOk()` asks every
      sibling about every candidate, and a search over a board of a few
@@ -1252,11 +1131,11 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   const free = (box, clear) => { const t = taken[clear];
     for(let j=0; j<box.h; j++) for(let i=0; i<box.w; i++) if(t.has((box.x+i)+','+(box.y+j))) return false;
     return true; };
-  for(const [clear, inside] of passes) for(const [sx,sy] of whole ? [[0,0]] : order){
+  for(const [clear, inside] of passes) for(const [sx,sy] of order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
     // the top-left cell is in this tile; the box may run on across the seam
-    const lastX = whole ? g.cols-w+1 : Math.min(g.shelfW, g.cols-x0-w+1);
-    const lastY = whole ? g.rows-h+1 : Math.min(g.shelfH, g.rows-y0-h+1);
+    const lastX = Math.min(g.shelfW, g.cols-x0-w+1);
+    const lastY = Math.min(g.shelfH, g.rows-y0-h+1);
     for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
       if(inside && (box.x < lo.x || box.y < lo.y)) continue;
@@ -1547,8 +1426,8 @@ function cellW(grid,g){
 }
 
 export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
-  SHELVES, DESK_SHELF_COLS, INNER, FRESH, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
-  ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, FORMS, formOf, tiledBoard, tilesOf, tileRectOf, setForm, setTileDim, fitTiles, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  SHELVES, DESK_SHELF_COLS, FRESH, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
+  ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, FORMS, formOf, tiledBoard, tilesOf, tileRectOf, setForm, setTileDim, fitTiles, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, shelvesToHold, colsOf, gridKeyOf, shelvesOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

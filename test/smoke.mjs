@@ -7,13 +7,6 @@ const URL = process.env.BUREAU_URL || 'http://127.0.0.1:8000/index.html';
 // Somewhere that already has a Chromium playwright didn't download itself:
 //   BUREAU_CHROME=/opt/pw-browsers/chromium node test/smoke.mjs
 const CHROME = process.env.BUREAU_CHROME;
-/* Proportional boards are a setting and off by default (decision 195). The
-   blocks about decisions 188-192 turn it on for themselves and off again the
-   way the switch does, which gives every drawer the screenfuls it needs. */
-const PROP_ON = () => { BUREAU.state.look.proportional = true; BUREAU.render(); };
-const PROP_OFF = () => { const b = document.createElement('button');
-  b.dataset.proportional = ''; b.style.display = 'none';
-  document.querySelector('#frame').appendChild(b); b.click(); b.remove(); };
 
 (async () => {
   const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
@@ -2994,7 +2987,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
   });
 
   /* --- going in, rather than it coming out — decision 103 ---------------- */
-  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const goingIn = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -3149,7 +3141,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(150);
     return out;
   });
-  await page.evaluate(PROP_OFF);
 
   /* --- and coming back out, which is the same camera in reverse ----------
      The knob along the bottom and the chevron at the top both play the dive
@@ -5330,7 +5321,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
   await page.evaluate(() => { const S=BUREAU.state;
     S.view='desk'; S.drawerId=null; S.look.locked=false; BUREAU.render(); });
   await page.waitForTimeout(300);
-  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const desks = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -5391,9 +5381,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     delete many.shelves;
     many.desk = Object.assign({}, many.desk, {w:4, h:4});
     BUREAU.render(); await nap(120);
-    out.andTheSizeIsWhatGrowsTheBoard =
-      BUREAU.innerOf(many.id, 'desk').cols === 16 &&
-      BUREAU.innerOf(many.id, 'desk').rows === 16;
     /* …and a full board refuses rather than putting the thing somewhere you
        are not looking. It is a message, not a silent placement. */
     const tight = BUREAU.create('drawer', {parent:'root', title:'Tight'});
@@ -5422,7 +5409,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render();
     return out;
   });
-  await page.evaluate(PROP_OFF);
 
   /* --- a thing that lasts more than a day. `date` is the day it falls on;
      `span` is the days it occupies, which a calendar has to mark all of and a
@@ -5874,7 +5860,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
   /* --- how fine a board's grid is, per board. A column count is a coordinate
      space, so setting one rescales the boxes on that board — and only on that
      board. See decision 60. */
-  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const perBoardGrid = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {};
@@ -5912,7 +5897,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(250);
     return out;
   });
-  await phone.evaluate(PROP_OFF);
 
   /* --- and nothing new arrives bigger than three cells either way. An object
      used to come out at the full width of the board, which is a first object
@@ -7103,11 +7087,9 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const boardsComeWith = await page.evaluate(async () => {
     const nap = ms => new Promise(r => setTimeout(r, ms));
     const S = BUREAU.state, out = {};
-    out.offByDefault = !S.look.proportional;
     const plain = BUREAU.create('drawer', {parent:'root', title:'Plain'});
-    out.aDrawerIsScreenfuls = BUREAU.innerOf(plain.id, 'desk') === null
-      // eight cells wide once a tile is a cell (decision 283)
-      && BUREAU.shelvesOf(plain.id).w === (BUREAU.TILE === 1 ? 8 : 1);
+    // one tile of eight by fourteen (decision 288)
+    out.aDrawerIsATile = BUREAU.formOf(plain.id).form === 'tiled' && BUREAU.shelvesOf(plain.id).w === 8;
     // a Film is born holding the Short Film board, and not the seed as well
     const film = BUREAU.create('film', {parent:'root', title:'A film'});
     const fk = S.objects.filter(o => o.parent === film.id);
@@ -7165,25 +7147,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const q = saved.find(x => x.title === o.title && x.kind === o.kind);
       return q && o[dv].x - q[dv].x === d0[dv].x - s0[dv].x && o[dv].y - q[dv].y === d0[dv].y - s0[dv].y;
     }));
-    // proportional, when asked for, is decision 188 exactly
-    S.look.proportional = true;
-    out.onItIsTheTileTimesFour = !!BUREAU.innerOf(plain.id, 'desk')
-      && BUREAU.innerOf(plain.id, 'desk').cols === plain.desk.w * 4;
-    // and going back to screenfuls keeps what a big board held
-    const big = BUREAU.create('drawer', {parent:'root', title:'Big'});
-    big.desk = Object.assign({}, big.desk, {w:5, h:5});
-    const far = BUREAU.create('note', {parent:big.id, title:'Far out'});
-    far.desk = {x:13, y:15, w:2, h:2}; far.phone = {x:1, y:1, w:2, h:2};
-    pressIn('proportional', '');
-    /* A container is one screen wide and grows downward since 2026-09-23, so
-       the board keeps its length and what was out to the side comes back onto
-       the column when it is next drawn. */
-    /* …and since decision 219 a board may be wider than one, so what was out
-       to the side keeps a board to be on rather than coming back onto the
-       column. */
-    out.switchingOffKeepsTheLength = !S.look.proportional
-      && BUREAU.shelvesOf(big.id).h >= 2 && BUREAU.shelvesOf(big.id).w >= 1;
-    [plain, film, life, ff, box, busy, big].filter(Boolean).forEach(c => {
+    [plain, film, life, ff, box, busy].filter(Boolean).forEach(c => {
       S.objects.filter(o => o.parent === c.id).forEach(o => BUREAU.del(o.id));
       BUREAU.del(c.id); });
     S.undo = []; S.redo = []; BUREAU.render();
@@ -9701,7 +9665,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
      by now, and which of the two is frontmost is not something to leave to
      chance. See the note in render.md. */
   await page.bringToFront();
-  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const camLife = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -9738,13 +9701,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const d = BUREAU.create('drawer', {parent:'root', title:'Born'});
       const ok = !!(d.desk && d.desk.w && d.phone && d.phone.w);
       BUREAU.del(d.id); S.undo=[]; return ok; })();
-    out.andAPhoneOnlyDrawerStillAnswers = (() => {
-      S.objects.push({id:'legacy', kind:'drawer', parent:'root', title:'Old',
-        tags:[], ord:0, created:'2026-09-01', desk:null, phone:{x:1,y:1,w:3,h:2}});
-      // a container's phone size is half its desk size, so doubling recovers it
-      const g = BUREAU.innerOf('legacy');
-      S.objects = S.objects.filter(o => o.id !== 'legacy');
-      return !!g && g.cols === 24 && g.rows === 16; })();
     out.andAnOldDeskIsRepaired = (() => {
       const d = BUREAU.migrated({v:35, objects:[
         {id:'p', kind:'drawer', attrs:['container'], phone:{x:1,y:1,w:2,h:3}},
@@ -9935,7 +9891,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo = []; S.redo = []; S.sel = []; S.q = ''; BUREAU.render();
     return out;
   });
-  await page.evaluate(PROP_OFF);
 
   /* ---- the camera on a phone — decision 188 ------------------------------
      The one that broke, and the two facts about a phone that broke it: its
@@ -9955,7 +9910,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
      an **animated end state** rather than a layout needs this; nothing else in
      this file did, which is why it had never come up. */
   await phone.bringToFront();
-  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const camPhone = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -10012,13 +9966,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
-  await phone.evaluate(PROP_OFF);
 
   /* --- decision 190: a container's board is only its own, the lock is the
      board you can see, and three drawings that were wrong ----------------
      The phone half, because that is where a drawer bigger than the screen
      has to become pages — and `phone` is already in front from camPhone. */
-  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const ownBoard = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -10042,7 +9994,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
       const sc = document.querySelector('#app .scroll');
       const gr = g.getBoundingClientRect(), sr = sc.getBoundingClientRect();
       return { /* the **space**, which is what four-cells-to-a-cell is about…  */
-               inner:BUREAU.innerOf(id, 'phone'),
                /* …and the **window**, which is what a phone can see of it */
                cols:shownCols(g),
                rows:(getComputedStyle(g).gridTemplateRows||'').split(' ').filter(Boolean).length,
@@ -10108,10 +10059,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo=[]; S.redo=[]; S.look.locked=false; BUREAU.render();
     return out;
   });
-  await phone.evaluate(PROP_OFF);
   await page.bringToFront();
 
-  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const threeDrawings = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -10189,7 +10138,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo=[]; S.redo=[]; BUREAU.render();
     return out;
   });
-  await page.evaluate(PROP_OFF);
 
   /* --- decision 191: full screen means the screen ----------------------
      The expand under the camera used to take the *paper* away and leave the
@@ -10198,7 +10146,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
      — pagination fills an offscreen twin, and a twin measured against the
      letter-shaped sheet breaks a full-screen page for a box it is not, which
      is invisible until you count the pages. */
-  await page.evaluate(PROP_ON);   // this block is about decisions 188-192
   const fullScreen = await page.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -10286,7 +10233,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo=[]; S.redo=[]; BUREAU.renderSheet(); BUREAU.render();
     return out;
   });
-  await page.evaluate(PROP_OFF);
 
   /* --- decision 192: the mouth opens onto the board, the lock is not the
      background, and one hold means one thing ------------------------------
@@ -10296,7 +10242,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
      put a strip of bar above the front you were opening and a strip of rail
      below it, and held the board in from the front's edges by the overshoot
      factor the whole way. */
-  await phone.evaluate(PROP_ON);   // this block is about decisions 188-192
   const openingIn = await phone.evaluate(async () => {
     const nap = n => new Promise(r => setTimeout(r, n));
     const out = {}, S = BUREAU.state;
@@ -10372,7 +10317,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo=[]; S.redo=[]; S.view='desk'; S.drawerId=null; BUREAU.render();
     return out;
   });
-  await phone.evaluate(PROP_OFF);
   await page.bringToFront();
 
   /* --- decision 193: boards, pigeonholes, and the furniture off the dive ---
@@ -11079,8 +11023,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
     /* A board's own width and height (decision 235) is retired by 272:
        every tile is eight by eight, so asking for four does nothing, and the
        sliders are gone from Board settings. */
-    B.setBoardDims('root', 'w', 4); B.render(); await nap(250);
-    out.aBoardHasNoShapeOfItsOwn = B.dimsOf('root') === null && B.colsOf('root', 'phone') === B.TILE && B.shelfRows === B.TILE;
     document.querySelector('.gridbar [data-act="appsettings"], [data-act="appsettings"]').click(); await nap(300);
     document.querySelector('#panel [data-ssec="board"]').click(); await nap(300);
     out.boardSettingsHasNoSliders = !document.querySelector('#panel [data-boarddim]');
@@ -11138,9 +11080,6 @@ const PROP_OFF = () => { const b = document.createElement('button');
       return r ? [Math.round(r.top), Math.round(r.bottom)] : null; };
     const geo = () => JSON.stringify([at('.deskscroll .grid'), at('.toplip'), at('.deskrail')]);
     const plain = geo();
-    B.setBoardDims('root', 'w', 8); B.setBoardDims('root', 'h', 14); B.render(); await nap(450);
-    out.statedIsTheDefault = geo() === plain && !!document.querySelector('.toplip');
-    B.setBoardDims('root', 'fit'); B.render(); await nap(300);
     out.oneMoreRowIsOff = B.migrated({v:47, look:{rows:'fit'}, objects:[]}).look.rows === undefined;
     // 250: a video loops until told not to
     const v = B.create('video', {parent:'root', title:'Clip'});

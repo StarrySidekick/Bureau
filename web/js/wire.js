@@ -7,9 +7,9 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
+  shelvesOf, shelfAt, setShelf, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
@@ -642,7 +642,6 @@ function act(name, el){
     case 'setupclose': closeSetup(); break;
     case 'overclose': closeOverview(); break;
     case 'ovkeep': overAsk(null); break;
-    case 'boarddimfit': setBoardDims(el.dataset.id, 'fit'); render(); refreshPanel(); toast('This board fits the screen'); break;
     /* A full board taken away: what was on it goes to the Void Drawer or is
        deleted, as one move with the Undo on the toast, and then the board
        goes. The board itself has no undo — the desk's rectangle is not an
@@ -1763,23 +1762,6 @@ function wire(){
       if(v && v!=='grid') S.look.surface = v; else delete S.look.surface;
       applyLook(); save(); render(); refreshPanel(); return; }
 
-    /* Proportional boards, on or off (decision 195). Off is the default and
-       is **deleted** rather than stored, like the surface. Going off gives
-       every container the screenfuls it needs to hold what it holds already,
-       so the switch never re-places an arrangement; going on needs nothing,
-       because the tile is already a size. No undo move: `S.look` has no id
-       for a step to point at, and the way back is the same press. */
-    const prp=t.closest('button[data-proportional]');
-    if(prp){
-      if(prp.dataset.proportional) S.look.proportional = true;
-      else if(S.look.proportional){
-        delete S.look.proportional;
-        S.objects.forEach(o=>{ if(!isContainer(o)) return;
-          const sh = shelvesToHold(o, S.objects);
-          if(sh.w>1 || sh.h>1) o.shelves = sh; });
-      }
-      save(); render(); refreshPanel(); return; }
-
     const chk=t.closest('button[data-checks]');
     // an empty value is the way back to the aesthetic's own, and it has to
     // be deleted rather than stored as '' — applyLook() tests the key
@@ -2086,28 +2068,6 @@ function wire(){
       }
       return; }
 
-    /* **How big a drawer is**, which since decision 188 is also how much it
-       holds. It writes the **desk** box, because that is the one a container's
-       board is read off — the phone box is where the tile sits and nothing
-       more. A shrink throws nothing away: anything left outside is re-placed
-       the next time the board is drawn. If the new size will not fit where the
-       drawer currently sits, the position is given up and kept (`keepSize`'s
-       bargain) so `ensureBox()` can find it somewhere it does. */
-    const bsz=t.closest('[data-boardsize]');
-    if(bsz){
-      const [cid,x,y]=bsz.dataset.boardsize.split(':');
-      const o=byId(cid);
-      if(o){
-        /* **The board being edited**, like every other resize. A container's
-           inside is its tile times four on the device you are looking at
-           (decision 190), so this writes the same box the corners would. */
-        const dv = dev();
-        pushSet('Size', cid, dv, o[dv] && {...o[dv]});
-        const want={...(o[dv]||{}), w:+x, h:+y};
-        o[dv] = (want.x && !boxOk(want, o.id, dv, o.parent)) ? {w:+x, h:+y} : want;
-        save(); render(); refreshPanel();
-      }
-      return; }
     /* How much a checklist front shows — a fact about the desk, so it lands in
        S.look and every checklist on every board agrees at the next render. */
     const cf=t.closest('[data-clfit]');
@@ -2457,11 +2417,6 @@ function wire(){
        it. The selection is restored too, or typing in the middle of a word
        jumps to the end on the next letter. `S.q` is **not saved**: a search is
        where you are looking, not something the desk is. */
-    // the number beside a board-size slider follows it as it moves
-    if(e.target.dataset.boarddim!=null){
-      const b = e.target.parentElement.querySelector('[data-boarddimsaid]'); if(b) b.textContent = e.target.value;
-      return;
-    }
     if(e.target.dataset.search!=null){
       const at = e.target.selectionStart;
       S.q = e.target.value;
@@ -2643,13 +2598,6 @@ function wire(){
     }
     /* Light or dark. Not a theme switch: it chooses which of a style's sets of
        sixteen is showing, and `auto` hands the question to the phone. */
-    // a board's shape, on letting go of the slider (decision 235)
-    if(e.target.dataset.boarddim!=null){
-      setBoardDims(e.target.dataset.id, e.target.dataset.boarddim, e.target.value);
-      render(); refreshPanel();
-      toast(`This board — ${colsOf(e.target.dataset.id,dev())} × ${shelfRows(dev(), e.target.dataset.id)}`);
-      return;
-    }
     if(e.target.dataset.darkmode!=null){
       S.look.dark=e.target.value; applyLook(); save(); render(); refreshPanel(); return;
     }

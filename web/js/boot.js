@@ -9,9 +9,9 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   isContainer, faceOf, PRIMARY, SECONDARY, MASTERS, inMaster, isCut, isPrimary, inFamily, barPct, marginOf, marginPlus,
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, dz, ASPECT_KINDS } from './model.js';
-import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
-  isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows, zoomOf, zoomRange, setZoom, startOf, snapZoom, boardHolds, fitAll, fitBoard, MARGIN, formOf, setForm, setTileDim, tilesOf } from './grid.js';
-import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
+import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, colsOf,
+  isBoard, boardsOf, addBoard, removeBoard, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows, zoomOf, zoomRange, setZoom, startOf, snapZoom, boardHolds, fitAll, fitBoard, MARGIN, formOf, setForm, setTileDim, tilesOf } from './grid.js';
+import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast, someKind, furnish, loadTexts } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
@@ -133,7 +133,7 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)
-  newOfKind, tap: tileTap, dz, setBoardDims, dimsOf, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS, setupAnswer, closeSetup,
+  newOfKind, tap: tileTap, dz, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS, setupAnswer, closeSetup,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; }, shapeChoices,
   // every aesthetic there is, so a test can walk them all rather than
@@ -233,9 +233,6 @@ window.BUREAU = {
      after layout — the three seams a performance pass needs to time separately,
      because "the swipe feels slow" is three different costs in a trench coat. */
   step: stepDrawer, viewHTML, sizeGrid,
-  /* A container's board is its own tile times four (decision 188), and a test
-     has to be able to ask the reader rather than re-derive the arithmetic. */
-  innerOf,
   // how wide one shelf is on this board — the thing the per-board grain decides
   shelfW: (cid, dv) => colsOf(cid, dv || 'phone'),
   /* Putting the shelf somewhere by hand, without a phone to tilt: the smoke

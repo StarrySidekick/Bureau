@@ -9,8 +9,8 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN, formOf, tilesOf } from './grid.js';
+  lay, gridOf, cellW, ensureBox, PLACED, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN, formOf, tilesOf } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -737,15 +737,9 @@ function boardDimsField(){ return ''; }
    the room everything else is in, and a desk you can shrink to one shelf is
    the app before this. See decision 141. */
 function shelfCountField(cid){
-  /* **How many boards, and where, is something you do on the board**
-     (decision 219): walk off the edge to an empty slot and press its plus.
-     So this is no longer a picker — it is the shape the boards make, and the
-     door to the map, which can add and take away. A drawer's size-picker below
-     is the proportional mode's, where the tile decides and none of this
-     applies. */
-  /* **A board is as big as what is on it** (decision 287), so there is no
-     map to carve it on: this only says how big that is and how it got so. */
-  if(cid===ROOT || !proportional()){
+  /* **A free board is as big as what is on it** (decision 287), so for one
+     this only says how big that is and how it got so. */
+  {
     const sh = shelvesOf(cid);
     const magic = cid!==ROOT && has(container(cid),'magic');
     /* **Which kind of board** (decision 288): free, tiled or fixed, with the
@@ -775,23 +769,7 @@ function shelfCountField(cid){
         <button class="fchip" data-act="zoomfit" data-id="${cid}" style="margin-left:4px">See all of it</button></div>
     </div>`;
   }
-  const g = gridOf(dev(), cid), now = g.shelves;
-  const box = (byId(cid)||{})[dev()] || {w:2, h:2};
-  return `<div class="field" style="margin-top:12px"><label>How big it is</label>
-      <div class="shelfpick" style="--sw:${BOARD_MAX}">${
-        Array.from({length:BOARD_MAX*BOARD_MAX}, (_,i)=>{
-          const x=i%BOARD_MAX+1, y=((i/BOARD_MAX)|0)+1;
-          return `<button class="shelfopt${x<=box.w&&y<=box.h?' on':''}"
-            data-boardsize="${cid}:${x}:${y}" title="${x} × ${y} cells"></button>`;
-        }).join('')}</div>
-      <div class="mini" style="--k:var(--brass);margin-top:6px">A drawer is as big inside as it is outside: <b>${
-        box.w} × ${box.h}</b> cells out there makes <b>${g.cols} × ${g.rows}</b> in here${
-        now.w*now.h>1 ? `, which is ${now.w} × ${now.h} screenfuls — swipe between them` : ''}. Its own corners do the same thing; this is the way in without a drag.</div>
-    </div>`;
 }
-/* Six, because a board is capped at the desk's own twenty-four columns and
-   four cells to a cell makes six the largest that means anything. */
-const BOARD_MAX = 6;
 const installed = ()=> window.matchMedia('(display-mode: standalone)').matches || !!window.navigator.standalone;
 
 /* ---- settings, in the shape of the questions it asks ------------------
@@ -1309,7 +1287,7 @@ function overCard(cid, x, y, home){
 function overviewHTML(){
   const cid = OVER.cid;
   const sh = shelvesOf(cid), home = homeBoard(cid);
-  const grows = !innerOf(cid) && !(cid!==ROOT && has(container(cid),'magic'));
+  const grows = !(cid!==ROOT && has(container(cid),'magic'));
   const pad = grows ? 1 : 0, W = sh.w + 2*pad, H = sh.h + 2*pad;
   /* The cards are sized to the screen: as big as they can be with every
      slot in view, in the proportions of one board on this device. */
@@ -2341,7 +2319,6 @@ function sizeGrid(){
     /* The scroller's side padding on a phone that scrolls is only ever the
        zoom's centring (below), so it is not taken off the screen's width. */
     const boardW = flows('phone') ? sc.clientWidth - gm
-      : dimsOf(cid) ? sc.clientWidth - (parseFloat(cs.paddingLeft)||0) - (parseFloat(cs.paddingRight)||0) - gm
       : w * VIEW_COLS;
     /* The rows the **screen** shows (decision 272), which since a tile is
        eight is not a tile's height: fourteen on an iPhone, one tile and three
@@ -2394,13 +2371,12 @@ function sizeGrid(){
        default board does now, the top half on the lip and the rest in the
        front, so 8×14 stated and 8×14 by default are the same picture and a
        smaller board still has its name on top. */
-    const short = !!innerOf(cid, 'phone') && drawn*w < room - 1;
     // the window is the screen's rows at no zoom, whatever the zoom draws in it
     /* Tucked away, the window is the whole room, not whole rows of it: with
        nothing above or below to take the leftover, a part row of board is
        better than a strip of nothing at the bottom of the screen. */
     const viewH = flows('phone') ? (tucked() ? room : rows*base) : drawn*w;
-    const over = short ? 0 : Math.max(0, room - viewH);
+    const over = Math.max(0, room - viewH);
     /* With the name on the lip, the top half of the leftover is the lip's
        rather than a reveal under it: the wood above the board is one strip
        either way, and this way the name is in the middle of it (decision
@@ -2414,7 +2390,7 @@ function sizeGrid(){
        by the difference the moment it opened. A short board's scroller gives
        the lip its share instead. */
     const lipTop = lip ? Math.floor(Math.max(0, room - rows*base)/2) : 0;
-    const top = Math.floor(over/2), deep = railMin + (short ? 0 : Math.ceil(over/2));
+    const top = Math.floor(over/2), deep = railMin + Math.ceil(over/2);
     const gap = gapMin + (lip ? 0 : top), lipH = lip ? Math.round(barH + lipTop) : 0;
     if(lip && lipH!==REVEAL.lip){ REVEAL.lip=lipH; }
     if(lip && lip.style.height !== lipH+'px') lip.style.height = lipH+'px';
@@ -2426,7 +2402,7 @@ function sizeGrid(){
        as a string of its own and a string that differs by how it prints is a
        write, and a write is a second layout. `--flowh` is the same number for
        the sticky rim shading in chrome.css. */
-    const flowH = !short && flows('phone') ? viewH : 0;
+    const flowH = flows('phone') ? viewH : 0;
     /* **A board zoomed out smaller than the window sits in the middle of
        it** (decision 274), by the scroller's padding, which `tileTop()` and
        `tileLeft()` read through the grid's own offset. */
@@ -2438,14 +2414,14 @@ function sizeGrid(){
       if(sc.style.paddingTop !== py){ sc.style.paddingTop = py; sc.style.paddingBottom = py; }
     }
     if(flowH && Math.abs(flowH-REVEAL.h)>0.01) REVEAL.h = flowH;
-    const tall = short ? Math.round(room - lipTop)+'px' : flowH ? flowH+'px' : '';
+    const tall = flowH ? flowH+'px' : '';
     const hNow = parseFloat(sc.style.height)||0, hWant = parseFloat(tall)||0;
     if(Math.abs(hNow-hWant)>0.01 || (!tall && sc.style.height)) sc.style.height = tall;
     if(flowH){
       if(Math.abs((parseFloat(sc.style.getPropertyValue('--flowh'))||0)-flowH)>0.01)
         sc.style.setProperty('--flowh', flowH+'px');
     } else if(sc.style.getPropertyValue('--flowh')) sc.style.removeProperty('--flowh');
-    sc.classList.toggle('midboard', short);
+    sc.classList.remove('midboard');
 
   } else if(dev()!=='phone'){
     /* A Mac measures the same two numbers now, because a shelf is the

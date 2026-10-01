@@ -1,7 +1,7 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, byId, isContainer, has, childrenOf, shapeOf, openingOf, deskOf,
   tiltMode, tiltsDesk, tiltsWindows, gravityTilts , dev } from './model.js';
-import { lay, shelvesOf, shelfAt , CELL, proportional, flows, reachable, isBoard, gridOf, shelfOrigin } from './grid.js';
+import { lay, shelvesOf, shelfAt , CELL, flows, reachable, isBoard, gridOf, shelfOrigin } from './grid.js';
 import { objColour, styleNow } from './look.js';
 import { render, renderSoon, previewHTML, goShelf, sideDrawer, goSideDrawer } from './views.js';
 
@@ -219,7 +219,7 @@ function openTile(id, go){
          every layer in the movement has to be given the same rect or the
          window and what is framed in it pull apart. Read after `go()`, because
          that is when the arriving board exists and is laid out. */
-      const inner = boardRect($('#app .main')) || mr;
+      const inner = mr;
       /* A picture of a board, not a second board. Ids go for the reason
          `faceOf()` takes them off a flying front, and so does everything a
          tile is found by — see `anonymise()`. */
@@ -648,7 +648,7 @@ function leaveTile(id, go, scrub){
      Out is the way in played backwards, so the thing framed into the mouth is
      the board that is shrinking back into the drawer — which is this one, not
      the one arriving. Same number, other end. */
-  const inner = (twin && boardRect(m0)) || mr;
+  const inner = mr;
 
   go();
 
@@ -812,22 +812,6 @@ const BLEED = 2;
 const zoomFor = (r, mr, over) => (over===undefined ? OVER : over) * Math.min(7,
   Math.max(2.2, Math.max(mr.width/Math.max(1,r.width), mr.height/Math.max(1,r.height))));
 
-/* The board inside a `.main`, which is what a mouth opens onto. The grid
-   itself and not the scroller: a board shorter than the screen is centred in
-   its carcass (decision 190), so the scroller is the room and the grid is the
-   thing. A layout that is not a grid — a list, a book — has no grid to ask
-   about, and falls back to the room it is in and then to the whole carcass,
-   which is where this started. */
-function boardRect(main){
-  /* Only a proportional board is the front's own shape (decision 188), and
-     only then is it the thing a mouth opens flush onto. With them off
-     (decision 195, the default) a board is a screenful whatever the front
-     is, so the mouth opens onto the carcass the way it did before 192. */
-  if(!main || !proportional()) return null;
-  const g = main.querySelector('.grid') || main.querySelector('.scroll');
-  const r = g && g.getBoundingClientRect();
-  return (r && r.width) ? r : null;
-}
 
 /* **The board, not the whole carcass.** `.main` is the bar, the board and the
    drawer front along the bottom, and framing all three into the drawer's mouth

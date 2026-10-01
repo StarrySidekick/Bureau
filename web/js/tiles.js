@@ -11,8 +11,8 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn } from './model.js';
-import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
-  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
+import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
+  ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
@@ -3475,7 +3475,7 @@ function gridOfContainer(cid){
      go back to the carcass and only the cells things stand on keep the
      paper, cut into the wood the way a carved board was. Read here, before
      the tiles are drawn, because gridTile() takes each box out of FLOW. */
-  const show = boardLocked() && !camHere && !(c.id!==ROOT && innerOf(c.id))
+  const show = boardLocked() && !camHere
     ? showcaseOf(kids, shift, dv, c.id) : null;
   SHELFSHIFT.x = shift.x; SHELFSHIFT.y = shift.y;
   /* Where the middle of this board is, for the shelf's perspective — once,
@@ -3535,9 +3535,7 @@ function gridOfContainer(cid){
      its own columns rather than letting ten columns' worth of screen stretch
      four cells across it. Only ever true on a phone, and only since a
      container's board became its own tile. See decision 188. */
-  const narrow = dv==='phone' && (cols < g.shelfW
-    // a board of a stated shape whose cells were set by its height (235)
-    || (!!dimsOf(c.id) && MEASURE.phone.w > 0 && g.rowh*g.shelfW < MEASURE.phone.w - 1));
+  const narrow = dv==='phone' && cols < g.shelfW;
   /* **The slots with no board on them** (decision 219), in whatever part of
      the rectangle is drawn: the one you are on, on a phone; its column, on a
      phone that scrolls; all of it, on a Mac. Each is the carcass with a plus
@@ -3563,7 +3561,7 @@ function gridOfContainer(cid){
    way the one checkerboard is. */
 function tilePapers(cid, g, shift, cols, rows){
   const cfg = cid===ROOT ? S.deskCfg : byId(cid);
-  if(!cfg || cfg.tilepaper!=='each' || (cid!==ROOT && innerOf(cid))) return '';
+  if(!cfg || cfg.tilepaper!=='each') return '';
   const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
   const nx = Math.max(1, Math.ceil(cols / g.shelfW)), ny = Math.max(1, Math.ceil(rows / g.shelfH));
   let html = '';
@@ -3585,7 +3583,7 @@ function tilePapers(cid, g, shift, cols, rows){
 /* …and no minus either, later the same day: a long hold on the middle of a
    tile takes it away (gestures.js), so this draws nothing. */
 function tileCrosses(cid, g, shift, cols, rows){
-  if(true || boardLocked() || zoomOf(cid) > 0.95 || (cid!==ROOT && innerOf(cid)) || boardsOf(cid).length < 2) return '';
+  if(true || boardLocked() || zoomOf(cid) > 0.95 || boardsOf(cid).length < 2) return '';
   const cfg = cid===ROOT ? S.deskCfg : byId(cid);
   const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
   const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
@@ -3615,7 +3613,7 @@ function seeded(str){
    `shelfW × shelfH` cells of the drawn window, and `shift` is where that
    window starts in board cells. */
 function vacancies(cid, dv, g, shift, cols, rows, cam){
-  if(cam || (cid!==ROOT && innerOf(cid))) return {all:false, html:''};
+  if(cam) return {all:false, html:''};
   const x0 = Math.floor(shift.x / g.shelfW), y0 = Math.floor(shift.y / g.shelfH);
   const nx = Math.max(1, Math.ceil(cols / g.shelfW)), ny = Math.max(1, Math.ceil(rows / g.shelfH));
   let html = '', none = 0;
@@ -3685,7 +3683,7 @@ const sidesOf = (cid, x, y, want) =>
   [[0,-1,'t'],[1,0,'r'],[0,1,'b'],[-1,0,'l']]
     .filter(([dx,dy])=> isBoard(cid, x+dx, y+dy) === want).map(([,,k])=>k);
 function carveEdges(cid, g, shift, cols, rows){
-  if(g.shelfW!==1 || (cid!==ROOT && innerOf(cid))) return '';
+  if(g.shelfW!==1) return '';
   let html = '';
   for(let j=0; j<rows; j++) for(let i=0; i<cols; i++){
     const x = shift.x+i, y = shift.y+j;

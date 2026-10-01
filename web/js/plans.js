@@ -38,8 +38,8 @@
    A plan is an arrangement; it is not an asset store. */
 import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.js';
 import { uid, ROOT, clamp } from './util.js';
-import { GRID, INNER, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
-         oneShelf, proportional, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
+import { GRID, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
+         oneShelf, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
          addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, shelvesOf, TILE, SPAN, PAGES_MAX } from './grid.js';
 import { rescaleOneBoard } from './persist.js';
 import { randomLook } from './look.js';
@@ -157,21 +157,6 @@ function planFrom(cid, nm){
     rail: c.rail ? JSON.parse(JSON.stringify(c.rail)) : undefined,
     objects
   };
-  /* **Its boards, when it has more than one** (decision 219): which cells of
-     the rectangle are boards, the one it opens on, and how big a board was
-     on each device, so the boxes can be read back out board by board on a
-     screen that measures differently. */
-  const bs = boardsOf(cid);
-  /* Not once a tile is a cell (decision 283): every board is many cells, and
-     a flow saved as several boards is put down around the tile you are on
-     rather than where you asked. A saved board is one board; its boxes say
-     how big it has to be. */
-  if(TILE > 1 && bs.length > 1 && !(cid!==ROOT && proportional())){
-    p.boards = bs.map(b=>({x:b.x, y:b.y}));
-    p.start = nearestBoard(cid, startOf(cid));
-    p.dims = {desk:{w:colsOf(cid,'desk'), h:shelfRows('desk', cid)},
-              phone:{w:colsOf(cid,'phone'), h:shelfRows('phone', cid)}};
-  }
   plans().push(p);
   return p;
 }
@@ -212,46 +197,12 @@ function stampPlan(planId, intoId, at){
       mx = Math.max(mx, b.x + b.w - 1); my = Math.max(my, b.y + b.h - 1); cells += b.w*b.h; });
     return {mx, my, cells};
   };
-  /* A board of boards (decision 219) needs nothing of the kind: a flow that
-     is several boards makes those boards below, and one that is one board
-     fits on one. The screenful of room it used to be given beside it is a
-     board you walk off the edge and add now, when you want it. */
-  (() => {
-    const c = home===ROOT ? null : byId(home);
-    if(!c || !proportional()) return;
-    /* **Both boards, each against its own extent.** A container's inside is
-       read off the box for the device being drawn (decision 190), so growing
-       the desk box alone left the phone board the size it was and every phone
-       box in the plan failed `boxOk()` there — the same re-flow this whole
-       block exists to prevent, happening on one device only and therefore
-       invisible from the other. */
-    ['desk','phone'].forEach(dv => {
-      let mx = 0, my = 0;
-      p.objects.forEach(o => {
-        if((o.parent||PLAN_ROOT)!==PLAN_ROOT) return;
-        const b = o[dv]; if(!b || !b.x) return;
-        mx = Math.max(mx, b.x + b.w - 1);
-        my = Math.max(my, b.y + b.h - 1);
-      });
-      if(!mx && !my) return;
-      const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};
-      const w = Math.max(box.w, Math.ceil(mx/INNER));
-      const h = Math.max(box.h, Math.ceil(my/INNER));
-      if(w===box.w && h===box.h) return;
-      const want = Object.assign({}, box, {w, h});
-      /* If it no longer fits where it sits, it gives the place up and keeps
-         the size — `ensureBox()`'s bargain, and the only honest way to grow a
-         tile on a board somebody else has arranged. */
-      c[dv] = (want.x && !boxOk(want, c.id, dv, c.parent)) ? {w, h} : want;
-    });
-  })();
   /* **Several boards** (decision 219), put down around the one you are on —
      or, in a container that is empty, which is what a flow made into its own
      drawer always is, round its only board. Worked out before the copies go
      into `S.objects`, because making a board to the left moves everything
      already there, and these are not there yet. */
-  const multi = Array.isArray(p.boards) && p.boards.length>1 && p.dims
-    && !(home!==ROOT && proportional());
+  const multi = Array.isArray(p.boards) && p.boards.length>1 && p.dims;
   let spots = null, startSpot = null, blk = null;
   if(multi){
     /* **Each board it was written on is a block of tiles here** (decision
@@ -344,7 +295,7 @@ function stampPlan(planId, intoId, at){
      tile is grown right and down, before anything is placed, to the block of
      tiles its boxes reach. Right and down only, so nothing already counted
      from the corner moves. */
-  if(!multi && home!==ROOT && !proportional() && growsDown(home)
+  if(!multi && home!==ROOT && growsDown(home)
      && !S.objects.some(o=>o.parent===home)){
     let mx = 0, my = 0;
     made.filter(o=>o.parent===home).forEach(o=>['desk','phone'].forEach(dv=>{
@@ -354,7 +305,7 @@ function stampPlan(planId, intoId, at){
     }));
     /* a tile is a cell since decision 283, so the block is the boxes' own
        reach, no bigger than the most a board may span */
-    const tw = Math.min(TILE===1 ? SPAN : 8, Math.ceil(mx/TILE)), th = Math.min(TILE===1 ? SPAN : 12, Math.ceil(my/TILE)), cells = [];
+    const tw = Math.min(SPAN, Math.ceil(mx/TILE)), th = Math.min(SPAN, Math.ceil(my/TILE)), cells = [];
     for(let j=0; j<th; j++) for(let i=0; i<tw; i++) cells.push({x:i, y:j});
     if(cells.length > 1) ensureBoards(home, cells, {x:0, y:0});
   }
@@ -464,29 +415,21 @@ function growFor(top, dv, home){
      than the flow is given columns of tiles beside it, every row of them, and
      one wide enough is given rows below, as many as the flow is tall, every
      column of them; `clearOffset()` then finds the room they make. */
-  if(!proportional()){
-    const bs = top.map(o=>o[dv]).filter(b=>b && b.w && b.x);
-    if(!bs.length) return boardsOf(home).length < PAGES_MAX && growDown(home);
-    const wide = Math.max(...bs.map(b=>b.x+b.w-1)) - Math.min(...bs.map(b=>b.x)) + 1;
-    const tall = Math.max(...bs.map(b=>b.y+(b.h||1)-1)) - Math.min(...bs.map(b=>b.y)) + 1;
-    const g = gridOf(dv, home), sh = shelvesOf(home, dv);
-    const add = (x, y) => boardsOf(home).length < PAGES_MAX && !!addBoard(home, x, y);
-    let grew = false;
-    if(wide > g.cols){
-      const more = Math.ceil((wide - g.cols) / g.shelfW);
-      for(let i=0; i<more; i++) for(let y=0; y<sh.h; y++) grew = add(sh.w+i, y) || grew;
-    } else {
-      const more = Math.ceil(tall / g.shelfH);
-      for(let j=0; j<more; j++) for(let x=0; x<sh.w; x++) grew = add(x, sh.h+j) || grew;
-    }
-    return grew;
+  const bs = top.map(o=>o[dv]).filter(b=>b && b.w && b.x);
+  if(!bs.length) return boardsOf(home).length < PAGES_MAX && growDown(home);
+  const wide = Math.max(...bs.map(b=>b.x+b.w-1)) - Math.min(...bs.map(b=>b.x)) + 1;
+  const tall = Math.max(...bs.map(b=>b.y+(b.h||1)-1)) - Math.min(...bs.map(b=>b.y)) + 1;
+  const g = gridOf(dv, home), sh = shelvesOf(home, dv);
+  const add = (x, y) => boardsOf(home).length < PAGES_MAX && !!addBoard(home, x, y);
+  let grew = false;
+  if(wide > g.cols){
+    const more = Math.ceil((wide - g.cols) / g.shelfW);
+    for(let i=0; i<more; i++) for(let y=0; y<sh.h; y++) grew = add(sh.w+i, y) || grew;
+  } else {
+    const more = Math.ceil(tall / g.shelfH);
+    for(let j=0; j<more; j++) for(let x=0; x<sh.w; x++) grew = add(x, sh.h+j) || grew;
   }
-  const bs = top.map(o=>o[dv]).filter(b=>b && b.w);
-  const tall = bs.length ? Math.max(...bs.map(b=>(b.y||1)+b.h-1)) - Math.min(...bs.map(b=>b.y||1)) + 1 : 4;
-  const box = (c[dv] && c[dv].w) ? c[dv] : {w:2, h:2};
-  const want = Object.assign({}, box, {h: box.h + Math.ceil(tall/INNER)});
-  c[dv] = (want.x && !boxOk(want, c.id, dv, c.parent)) ? {w:want.w, h:want.h} : want;
-  return true;
+  return grew;
 }
 
 /* A plan is the same shape whichever way it was made, so a *type* that opens
