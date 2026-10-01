@@ -1032,6 +1032,8 @@ const SPECS = [
     PIPE('idea',     '@bdin', '@bdsome', [6,3,3,1]),
     PIPE('question', '@bdin', '@bdask',  [6,4,3,1]),
     PIPE('',         '@bdin', '@bdkeep', [6,5,3,1]),
+    // every board has a way out (decision 194): the notes app it all came from
+    LINK('Apple Notes', 'https://www.icloud.com/notes', [6,6,3,1], 9),
     LIST('Do', 'bddo', [1,7,4,3], 6),
     LIST('Someday', 'bdsome', [5,7,4,3], 12),
     LIST('Questions', 'bdask', [1,10,4,3], 9),
