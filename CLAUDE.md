@@ -372,7 +372,7 @@ the pipe tied to it that carries its kind (`pipeFor()`), or waits; Sort sends
 what waits. A pipe leads to the drawer it is tied to (`pipeTo()`), a drop on
 it files there (`data-pipe`), a tap goes there. The Brain Dump flow is an
 inbox and four pipes (`from`/`into` on a flow; migration 55).
-**v2.76–2.79** (decision 287): **a board is as big as what is on it.** Nothing is
+**v2.76–2.80** (decision 287): **a board is as big as what is on it.** Nothing is
 carved: `fitBoard()` makes it the rectangle round its things plus `MARGIN`
 (8) empty cells each side, at least `FRESH`, every render and at boot
 (`fitAll()`). The right and bottom follow what is there both ways; **the
@@ -381,7 +381,7 @@ stacks and the scroll together when something is put within the margin
 there, and `freeSpot()` keeps new things out of that margin. **Locked, it is
 a showcase**: wood, with the checkerboard only under things and walls round
 them (`showcaseOf()`, `.showcase`), taking back decision 192's half that
-the lock is not the surface. Migration 55 drops the carved lists.
+the lock is not the surface. Migration 56 drops the carved lists.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

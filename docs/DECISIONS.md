@@ -12060,7 +12060,7 @@ STOCKTAKE's capture path. Third in the build order.
 - Guarded by `inboxPipes` in the smoke test, and in `test/safari.mjs` by the
   Brain Dump typed into through its real input and the tag beside the mouth.
 
-## 287. A board is as big as what is on it (v2.76–2.79, 2026-10-01)
+## 287. A board is as big as what is on it (v2.76–2.80, 2026-10-01)
 
 Timothy: "now that we have this smooth scrolling system in place, we really
 don't need to have like a background that expands and contracts… the objects
@@ -12129,7 +12129,7 @@ presentational… we don't need this one-by-one schema."
   rule that the lock is not the surface**: Timothy asked for the locked
   board to be presentational, so the switch you flick does change what you
   look at, on purpose, now.
-- **Migration 55** drops every stored list of carved cells; the first render
+- **Migration 56** drops every stored list of carved cells; the first render
   of each board fits it.
 - Not touched: magic drawers (they pack what they collect into the room they
   have) and proportional boards.
