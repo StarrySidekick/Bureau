@@ -1,6 +1,6 @@
 # Boards: one shape system for the desk and every container
 
-Scope, 2026-10-01. Not built. Timothy asked for a board system flexible enough
+Scope, 2026-10-01, revised the same day with Timothy's answers. Not built. Timothy asked for a board system flexible enough
 that the desk and each container can have the shape it wants, without the
 next change breaking the last one.
 
@@ -32,106 +32,121 @@ answers differently depending on which function asks. The fix is not another
 layer. It is **one function that says what shape a board is**, and deleting
 the generations nobody uses.
 
-## The idea: a board is a minimum, a maximum and a margin
+## Timothy's three kinds (2026-10-01, second pass)
 
-Every mode Timothy described is the same calculation with different numbers.
-`fitBoard()` already does it: take the rectangle round what is on the board,
-add a margin, clamp it between a floor and a ceiling. Today those numbers are
-constants (`FRESH`, `SPAN`, `MARGIN`). Make them per board:
+| Kind | Shape | Grows | Code |
+| --- | --- | --- | --- |
+| **Tiled** | a tile of w×h | by adding another w×h tile beside it | `board:{mode:'tiled', w, h}` |
+| **Fixed** | one w×h tile | never | `board:{mode:'tiled', w, h, lock:true}` |
+| **Free** | whatever the things on it span | as things are put down | `board:{mode:'free'}` |
 
-```js
-// on S.deskCfg for the desk, on the object for a container
-board: {mode:'grow'}                       // the expanse
-board: {mode:'fixed', w:8, h:14}           // a set size, expanded by hand
-board: {mode:'fixed', w:8, h:14, more:'rows'}  // set, adds rows when full
-```
+Fixed is Tiled with expansion switched off, so the code has two modes and a
+flag, and the interface shows three. A fresh Tiled board and a Fixed board
+of the same size are the same thing until someone adds a tile.
 
-```js
-// grid.js: the one reader
-function shapeOf(id) → {min:{w,h}, max:{w,h}, margin:{w,h}, growsLeft}
-//   grow:   min FRESH,  max SPAN,  margin MARGIN, growsLeft true
-//   fixed:  min = max = {w,h},     margin 0,      growsLeft false
-//   rows:   min {w,h}, max {w, SPAN}, margin {0, 0}, growsLeft false
-```
+Plus a new object, working name **Mat**: a board-shaped underlay you put down
+on a Free board, which things sit on and are dragged around inside without
+the board growing. See below.
 
-`fitBoard()` becomes `clamp(content + margin, shape.min, shape.max)`. Nothing
-else in the app asks what mode a board is in; it asks `shapeOf()`, the same
-way appearance asks `shapeOf()` for a tile and never a type's name.
+Answers to the first four questions:
+1. Each container **type** gets a default kind of board (table below), and
+   existing containers take their type's default.
+2. *When full* is a setting (Tiled only: add a tile, or refuse).
+3. Cells are always square and always the same size: the desk's cell, on
+   every board. A small board is centred in wood; it is never stretched.
+4. Phone first. The Mac keeps its own layouts and is worked out later.
 
-**Why "growsLeft" matters.** A box is counted in cells from the top-left
-corner. Growing left or up means every number on the board changes
-(`shiftCells()`, which also rewrites the undo stacks). That is the most
-fragile thing in the board code. Only the expanse needs it. A fixed board
-never shifts, and a board that adds rows adds them at the bottom, where
-nothing already counted moves.
+## How each kind behaves
 
-## What each mode does
+**Tiled.** The board is a grid of tiles, each `w × h` cells, stored as the
+rectangle of tiles and which ones exist (`shelves`/`boards`, which already
+exist from decision 219, with the tile size per board instead of `TILE`).
+A tile is added by holding the wood one step off the edge (the gesture from
+decision 276). When a thing will not fit and *When full* says add, a tile is
+added below the last one. Things may cross a seam between tiles.
 
-**Grow** (the desk's default). Exactly decision 287: content plus eight
-cells each side, at least 8×14, pad of empty cells drawn round it on a phone.
+**Fixed.** One tile, no slots drawn around it, no adding. A thing that will
+not fit is refused with a toast ("Kitchen is full") and stays where it came
+from. The size changes only from Board settings, and never below what is on it.
 
-**Fixed** (a new container's default). The board is `w × h`, drawn as a
-checkerboard inside the carcass's wood, centred when smaller than the screen
-and scrolled when bigger. Nothing is placed outside it: `boxOk()` already
-refuses a box off the columns or rows, so this costs nothing new.
-- *Full*: `freeSpot()` finds no room. The thing is refused with a toast,
-  "Kitchen is full", and stays where it was (or in the holding space).
-- *Expand*: Board settings gets **Width** and **Height** steppers. Shrinking
-  stops at the edge of what is on it; there is no silent eviction.
-- *Range*: 2 to 24 each way (the old `DIM_MIN`/`DIM_MAX_H`), wider than the
-  screen allowed, since the phone scrolls both ways now.
+**Free.** The board is the rectangle around what is on it, with **no stored
+padding**. Put a thing down past an edge and that is now the edge. The phone
+still draws empty space around it to scroll into and drop on, but that space
+is a view, not part of the board.
 
-**Fixed, adds rows** (a setting on a fixed board, "When full: add rows").
-The old container behaviour from before 287: when full it grows `GROW_ROWS`
-at the bottom. `growDown()` already does this.
+## The Mat
 
-## Cell size on a fixed board
+A Mat is a Free board's answer to "give me a defined area". It is an object
+with a size, drawn as a checkerboard, that lies **under** other things the
+way a Background does (decision 216; `boxOk()` already lets things sit on a
+background). Because it occupies its whole rectangle, the Free board already
+counts that area as board, so dragging things around on it grows nothing.
 
-Recommended: **the same cell as everywhere else**, so an object is the same
-size in a drawer as on the desk, and the board is centred in wood. A 5×5
-drawer then reads as a small box, which is what it is. The pinch zoom
-(`zoomOf()`) is still there to blow it up. The alternative, stretching the
-cells to fill the screen (what decision 235 did), makes the same note a
-different size in every drawer.
+Proposed rules:
+- What is on a Mat is whatever lies wholly inside its rectangle. Moving the
+  Mat moves those things with it; resizing it never cuts one off.
+- Things stay children of the board, not of the Mat. A Mat is not a
+  container, so nothing needs opening and nothing is filed.
+- Optionally it **holds its edge**: a drag inside it is clamped to it, so it
+  behaves like a Fixed board inside the Free one.
 
-## The phone and the Mac
+## Each type's default board
 
-Each object stores a box per device (`desk`, `phone`). On a fixed board that
-is two arrangements of one small board, and it doubles every bug surface.
-Recommended for fixed boards: **one layout**, the phone's, which the Mac reads
-too. The expanse can keep two for now. This is the one change with real reach
-(190 references to per-device boxes), so it is its own phase and can be
-skipped.
+| Type | Default |
+| --- | --- |
+| Desk | Free |
+| Drawer, Workflow, Trip, World | Tiled 8×14 |
+| Project and life aspect types (multi-board flows) | Tiled, tile size from the flow |
+| Collage | Free |
+| Inbox | Fixed 8×14 |
+| Garbage bin | Fixed (it tumbles; gravity wants walls) |
+| Sorting drawer, Tag, Calendar, Checklist, List, Timeline, Book types | none: they pack, list or lay out by date, so the board kind does not apply |
+
+A type states this as `board` in `KINDS`; an object's own `board` overrides
+it. Existing containers are migrated to their type's default, sized to hold
+what is in them, with their contents moved to the top-left (one shift at
+load, never again).
+
+## The one thing that keeps it from breaking: no renumbering
+
+A box is counted in cells from the board's top-left corner. Today, when the
+desk grows left or up, every box on it is renumbered, along with the saved
+positions in the undo stacks (`shiftCells()`). That is the most fragile code
+in the board system.
+
+- **Tiled and Fixed** grow only right and down (tiles are added there), so
+  nothing is ever renumbered. If adding a tile to the left or above is
+  wanted, it costs one renumbering per added tile, the decision-219 way.
+- **Free** should stop having a corner. Positions become plain integers that
+  may be zero or negative, and the board's edges are computed from what is
+  on it each render. Putting a thing above everything else then changes
+  nothing else's number. The cost: 27 places test a box with `!b.x`, which
+  reads 0 as "not placed yet", and need to ask `b.x == null` instead.
 
 ## The order to build it
 
 Each phase ends with `test/safari.mjs` and the smoke suite passing.
 
-1. **Clear the dead generations.** No behaviour changes. Delete `dimsOf()`,
-   the `if(TILE)` else-branches, `boardList()`/the carved list, the
-   proportional path (`innerOf()`, `INNER`, `shelvesToHold()`, the setting),
-   and `CAMERA`'s inert code. `shelvesOf()` becomes the rectangle. This is
-   most of the "it won't break later": fewer paths means fewer places a new
-   rule has to be taught.
-2. **`shapeOf()` and the `board` field.** `fitBoard()` reads it. Migration:
-   the desk becomes `grow`; existing containers stay `grow` too, so nothing
-   moves on Timothy's phone. New containers are born `fixed` 8×14.
-3. **Drawing a fixed board.** Wood round the checkerboard, no pad of empty
-   slots, centred, the "full" toast, the refusal on a drop.
-4. **Board settings.** Size: Grows / Set size. Width and height steppers.
-   When full: Stop / Add rows. Same panel on the desk and in a container.
-   A setup card question for new containers: "How big is the board inside?"
-5. **Flows.** A flow states its board (`board:{mode:'fixed', w, h}`) in place
-   of `dims`/`boards`/`start`. The recent flows are ported; the rest are
-   left to the redesign.
-6. **One layout on fixed boards** (optional, last).
+1. **Clear the dead generations.** No behaviour change. Delete `dimsOf()`,
+   the dead `if(TILE)` branches, the proportional path (`innerOf()`,
+   `INNER`, `shelvesToHold()`), and `CAMERA`'s inert code.
+2. **`board` on kinds and objects, and one reader**, `boardOf(id)`. Tile
+   size per board replaces the global `TILE`. Migration to each type's default.
+3. **Tiled and Fixed**: drawing in wood, the add-a-tile hold, *When full*,
+   the full toast.
+4. **Free without a corner**: unbounded coordinates, `!b.x` audit, retire
+   `shiftCells()` for Free boards.
+5. **Board settings**: kind, width, height, when full; same panel on the
+   desk and in a container. A setup-card question for new containers.
+6. **The Mat.**
+7. **Flows** state their `board`; port the recent ones.
 
-## Decisions for Timothy
+## Still open
 
-1. **Existing containers**: leave them growing (nothing moves), or convert
-   each to a fixed board the size of what is in it now?
-2. **Full fixed board**: refuse with a toast (recommended), or default to
-   adding rows?
-3. **Cell size**: same everywhere and centred (recommended), or stretched to
-   fill the screen?
-4. **One layout on fixed boards**: do it, or keep the phone/Mac split?
+1. Tiled: can a tile be added left of or above the first one, or only right
+   and down?
+2. Mat: does moving it carry what is on it? Does a drag inside it stay
+   inside it?
+3. Mat name: Mat, Tray, Pad, or something else.
+4. Free on the phone: how much empty space is drawn around it to drop into
+   (one screen each way, as now)?
