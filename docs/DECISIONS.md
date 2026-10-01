@@ -12134,7 +12134,7 @@ presentational… we don't need this one-by-one schema."
 - Not touched: magic drawers (they pack what they collect into the room they
   have) and proportional boards.
 
-## 288. Free, tiled and fixed boards, and the Board (v2.81, 2026-10-01)
+## 288. Free, tiled and fixed boards, and the Board (v2.81–2.82, 2026-10-01)
 
 Timothy: the growing expanse is right for the desk, but a container should be
 able to be a set size you place into, expandable or not, and either should be
@@ -12193,6 +12193,13 @@ scope is `docs/BOARDS.md`.
 - **The Mac is not worked out** (Timothy: "for now we will work out mac
   later"). Tiles count in cells and both devices read the same tiles, so a
   Mac draws the phone's board.
+- **v2.82, from the smoke suite**: only a board that was free is moved up to
+  its corner when it is first tiled, so a new container keeps what is put on
+  it where it was put; a box past the tiles is given every tile from the
+  corner out to it, so a board is never an island; and a size drawn with the
+  Magic Selector (`fitSpot(…, keep)`) lays a tile before it is made smaller,
+  while a thing made at its type's size still steps down so it lands on the
+  screen.
 - Guarded in `test/safari.mjs` as `theDeskIsFree`, `aNewDrawerIsOneTile`,
   `holdingTheWoodAddsATile`, `aFixedBoardSaysNo` and `aBoardCarriesWhatIsOnIt`.
 - Not done, from the scope: deleting the dead generations (`dimsOf()`'s

@@ -841,14 +841,14 @@ function placeAtPending(o){
     const [w,h] = said || born || sizeOfKind(o.kind, dv, o.parent);
     /* The step-down `fits()` already agreed to, as ensureBox() does, or a
        full board got the thing at full size on top of what was there. */
-    if(!(o[dv] && o[dv].x)) o[dv] = fitSpot(w,h,dv,o.parent) || anySpot(w,h,dv,o.parent);
+    if(!(o[dv] && o[dv].x)) o[dv] = fitSpot(w,h,dv,o.parent,undefined,!!said) || anySpot(w,h,dv,o.parent);
     return;
   }
   // a sketched box wins over the kind's own size
   const [kw,kh]=sizeOfKind(o.kind, dv, pending.cell.parent);
   const w=pending.cell.w||kw, h=pending.cell.h||kh;
   const g=gridOf(undefined, pending.cell.parent), box={x:clamp(pending.cell.x,1,g.cols-w+1), y:Math.max(1,pending.cell.y), w, h};
-  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : (fitSpot(w,h,dv,o.parent) || anySpot(w,h,dv,o.parent));
+  o[dv] = boxOk(box, o.id, dv, o.parent) ? box : (fitSpot(w,h,dv,o.parent,undefined,!!pending.cell.w) || anySpot(w,h,dv,o.parent));
   // The other device has no box yet. Leaving it null means ensureBox() picks
   // one the first time that layout is opened, rather than inheriting a
   // coordinate that means nothing over there.
