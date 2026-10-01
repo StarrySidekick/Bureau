@@ -1918,6 +1918,41 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 }
 .jartile > .rollup{position:absolute;right:6px;bottom:5px;margin:0;z-index:6}
 
+/* ---- a copper pipe: the mouth of one, set into the board — decision 286 --
+   Seen from above: a flange (a ring of copper lit from the top left, with a
+   rolled lip), and the bore inside it going dark into the wood. All of it is
+   gradients, so it is the same pipe at every size and in every aesthetic;
+   copper is copper. Wider, a brass tag beside it carries the words. A pipe
+   tied to nothing is a little dull, which is the only thing it says about it. */
+.drawer.otile.pipetile{
+  background:none;border:0;box-shadow:none;padding:0;overflow:visible;
+  display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:6%;
+  --cu:#B87333;--cuhi:#F0B183;--culo:#6E3A17;
+}
+@media (hover:hover){.drawer.otile.pipetile:hover{box-shadow:none;filter:brightness(1.06)}}
+.pipetile .pipemouth{
+  position:relative;flex:none;height:88%;aspect-ratio:1;margin-left:2%;border-radius:50%;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 55%, rgba(0,0,0,.35) 56% 58%, transparent 60%),
+    conic-gradient(from 200deg, var(--culo), var(--cu) 18%, var(--cuhi) 34%, var(--cu) 48%, var(--culo) 70%, #4a2610 84%, var(--culo));
+  box-shadow:0 2px 3px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,220,180,.25);
+}
+.pipetile .pipebore{
+  position:absolute;inset:22%;border-radius:50%;
+  background:radial-gradient(circle at 58% 62%, #000 0 45%, #1b0e06 70%, #3a1f0d 100%);
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.7), 0 0 0 2px rgba(110,58,23,.85);
+}
+.pipetile.pipeloose .pipemouth{filter:saturate(.45) brightness(.85)}
+.pipetile .pipetag{
+  flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;
+  height:72%;padding:0 7px;border-radius:3px;
+  background:linear-gradient(180deg,#E3C77E,#C9A24E 60%,#B08A3A);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45), 0 1px 2px rgba(0,0,0,.35);
+  color:#3B2A0C;font-size:11px;line-height:1.15;overflow:hidden;
+}
+.pipetile .pipetag b,.pipetile .pipetag u{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}
+.pipetile .pipetag u{opacity:.75;font-size:10px}
+
 /* ---- the garbage bin: a wire wastebasket — decision 285 -----------------
    Three layers in one trapezoid: the dark inside of the basket, the heap of
    paper, and the wire drawn over both, so the paper is in it rather than on
@@ -3776,7 +3811,7 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
   background:var(--wood)}
 .grid.vacant .noboard{background:transparent}
-/* ---- a locked board shows what is on it — decision 286 -----------------
+/* ---- a locked board shows what is on it — decision 287 -----------------
    The board's own paper goes to the carcass's wood, said twice like the
    surface rule above so an aesthetic's own background cannot outrank it, and
    each thing stands on a piece of the checkerboard cut to its box, lined up

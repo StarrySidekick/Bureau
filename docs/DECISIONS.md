@@ -12011,7 +12011,56 @@ twenty moves of undo, and that is the wrong bargain for a desk you live in.
   paste guard had put its two new items inside Lisbon, which the rollup block
   counts; they sit beside it now.
 
-## 286. A board is as big as what is on it (v2.76–2.77, 2026-10-01)
+## 286. The inbox and its copper pipes (v2.74, 2026-10-01)
+
+Timothy, approving `docs/USES.md`: *"brain dump inbox (just call it inbox)"*
+and *"do copper pipes instead of pneumatic tubes"*. The self-sorting brain
+dump had been named the biggest idea in his notes since 2026-09-23 and was
+STOCKTAKE's capture path. Third in the build order.
+
+- **An inbox is a setting, not a type's name.** A container whose typing
+  makes `smart` (whatever the line reads as, the notepad's answer since
+  decision 258) is an inbox: `isInbox()`. The Inbox type is a list
+  (`face:'list'`) with its line on the front (`addbox:'show'`, now read per
+  type as well as per object in `showsAddBox()`), and *Typing in it makes →
+  Whatever it reads as* in Edit Behavior makes any drawer one.
+- **A line becomes what it reads as and leaves by a pipe.** `inboxTake()` runs
+  `guessKind()`, asks `pipeFor()` for the pipe that carries exactly that kind,
+  then one that carries anything, and makes the thing there or in the inbox.
+  It is **undated** unless the line asked for a day (`!today`), because a
+  brain dump is not a list of things due this morning. The toast says where
+  it went ("A task, down the pipe to Do"), since the inbox chose. One undo.
+- **Sort** on the inbox's ring (`sortInbox()`) sends everything already waiting
+  down whichever pipe carries it, as one move: what was written before the
+  pipes were laid, or dropped in by hand.
+- **A copper pipe is the mouth of a pipe set into the board** (`pipe`, shape
+  `pipe`, a Doodad beside the spool). It leads to the drawer its `into` names,
+  else one tied to it with string that holds things and is not an inbox
+  (`pipeTo()`); it belongs to an inbox tied to it or named by `from`
+  (`pipesOf()`). **One kind per pipe** (`takes`) or, empty, anything the
+  others do not: two kinds into one drawer are two pipes, which is what a
+  plumber would lay, and it keeps the editor to one select.
+- **A drop on a pipe files into the drawer at its other end.** The tile keeps
+  its own id in `data-row` (a tile's `data-drawer` is read as the tile's own
+  id by the hold menu, selection and the keyboard, so it could not point
+  elsewhere) and names its drawer in `data-pipe`; the three drop sites in
+  gestures.js read `INTO_AT`/`intoAt()`. A tap on a pipe goes there; an untied
+  pipe says to tie it.
+- **Drawn as copper**: a conic-gradient flange lit from the top left and a
+  dark bore; wider, a brass tag beside it saying what it carries and where.
+  An untied pipe is dulled. All gradients, so it is the same pipe in every
+  aesthetic. The tile is a row (`flex-direction`), which WebKit showed the base
+  tile's column had been collapsing the tag into a gold line under the mouth.
+- **The Brain Dump flow is an inbox and four pipes**: tasks to Do, ideas to
+  Someday, questions to Questions, anything else to Keep. On a flow's board the
+  pipes name their inbox and drawer by `from`/`into` refs, not string, because
+  eight strings across one board is a tangle; `from` is resolved and re-pointed
+  like `into` in stockplans.js and plans.js. **Migration 55** replaces the
+  stored Brain Dump with the new one; boards already put down are left alone.
+- Guarded by `inboxPipes` in the smoke test, and in `test/safari.mjs` by the
+  Brain Dump typed into through its real input and the tag beside the mouth.
+
+## 287. A board is as big as what is on it (v2.76–2.79, 2026-10-01)
 
 Timothy: "now that we have this smooth scrolling system in place, we really
 don't need to have like a background that expands and contracts… the objects
@@ -12051,6 +12100,15 @@ presentational… we don't need this one-by-one schema."
   an empty checkerboard with everything off the side of the screen. Found by
   the garbage bin's own WebKit check, whose heap fell outside the pen; guarded
   as `andOpensOnItsThings` in `test/safari.mjs`.
+- **A free-spot search reads the cells taken once** (`freeSpotIn()`): every
+  candidate used to call `boxOk()`, which rebuilt the container's children
+  and laid out each sibling, so a board placing many things at once was
+  quadratic several times over. The garbage bin made that real: two hundred
+  deleted things took ninety seconds to open before this decision and over
+  two minutes with its larger boards, and hung the smoke suite. The taken
+  cells are two sets built once per search, with `boxOk()` still asked about
+  the few candidates they leave; the same bin opens in about thirteen seconds
+  the first time and a third of a second after.
 - **A new thing is not put out past the left or the top by itself.**
   `freeSpotIn()` looks inside the corner of what is there first
   (`cornerOf()`), then anywhere. Growing the board that way is for a person

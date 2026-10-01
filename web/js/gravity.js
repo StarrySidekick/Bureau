@@ -178,7 +178,7 @@ function pen(g){
   if(dev()==='phone'){
     const vr = viewRows('phone'), above = Math.max(0, Math.floor((vr - g.shelfH)/2));
     const row = Math.max(0, shelfAt(W.cid).y*g.shelfH + (g.pad||0) - above);
-    /* …and the screen across as well (decision 286): a board as big as what
+    /* …and the screen across as well (decision 287): a board as big as what
        is on it is often wider than the screen, and a pen the whole width
        poured things off the side of it. */
     const vc = Math.min(VIEW_COLS, drawCols(g)), aside = Math.max(0, Math.floor((vc - g.shelfW)/2));

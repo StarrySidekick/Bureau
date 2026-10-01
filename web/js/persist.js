@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.78';
+const APP_VERSION = '2.79';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1373,13 +1373,7 @@ const MIGRATIONS = [
       if(c.start) c.start = {x:(c.start.x||0)*T + 2, y:(c.start.y||0)*T + 2};
     });
   }},
-  /* ---- a board as big as what is on it (decision 286) -------------------
-     Nothing is carved any more, so every board's list of carved cells goes
-     and it is its whole rectangle. `fitBoard()` then sizes each board to what
-     is on it the first time it is drawn; nothing moves on the screen. */
-  {v:55, up(d){
-    if(d.deskCfg) delete d.deskCfg.boards;
-    (d.objects || []).forEach(o=>{ if(o && o.boards) delete o.boards; });
+const APP_VERSION = '2.79';
   }},
 ];
 function migrate(d){

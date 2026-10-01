@@ -78,7 +78,7 @@ function watchViewport(){
 }
 
 const restored = load();
-// every board as big as what is on it before anything is drawn (decision 286)
+// every board as big as what is on it before anything is drawn (decision 287)
 fitAll();
 const hash = (location.hash||'').replace('#','');
 if(hash==='desk') S.view = hash;
@@ -273,7 +273,7 @@ window.BUREAU = {
   shelfShift, goShelf, goShelfTo,
   // the boards a board is made of, and making or taking one (decision 219)
   isBoard, boardsOf, addBoard, removeBoard,
-  // a board as big as what is on it (decision 286)
+  // a board as big as what is on it (decision 287)
   fitBoard, MARGIN,
   // is there room for one of these here — the question "it won't fit" answers
   roomFor: (w,h,parent)=> roomFor(w,h,S.device,parent||'root'),

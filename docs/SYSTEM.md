@@ -567,6 +567,22 @@ in a heap you sift through.
 - **Hold the bin: Empty** (`emptyBin()`), which removes everything in it for
   good and still undoes. The bin itself cannot be deleted.
 
+### 7a″. The inbox and its copper pipes
+
+**An inbox** (decision 286) is any container whose typing makes *whatever it
+reads as* (`genKind:'smart'`, `isInbox()`); the Inbox type is a list with its
+line showing. A line written into it becomes what `guessKind()` reads it as,
+undated unless it asked for a day, and leaves by the pipe that carries that
+kind (`pipeFor()`), or waits in the inbox. **Sort**, on its ring, sends what is
+waiting (`sortInbox()`).
+
+**A copper pipe** (`pipe`, shape `pipe`) leads to the drawer its `into` names,
+else a drawer tied to it with string that is not an inbox (`pipeTo()`). It
+belongs to an inbox tied to it, or named by `from` on a flow's board
+(`pipesOf()`). It carries one kind (`takes`) or, empty, anything the inbox's
+other pipes do not. A drop on its tile files into the drawer at its other end
+(`data-pipe`, `INTO_AT` in gestures.js), and a tap goes there.
+
 ### 7b. The cavity
 
 The board is **set into** the carcass, and on a phone tilting looks into that

@@ -103,8 +103,8 @@ tool that is tapped then aimed, and a source that is drawn from.
    fixed three paste bugs; its §5 is the flat-pack's specification.
 2. **Garbage bin.** Done, v2.72, decision 285: Delete puts things in a wire
    wastebasket whose board tumbles; Put Back, Delete for Good and Empty.
-3. **Inbox with copper pipes.** The capture path, named the biggest idea since
-   2026-09-23.
+3. **Inbox with copper pipes.** Done, v2.74, decision 286: an Inbox type, the
+   copper pipe, Sort, and the Brain Dump flow rebuilt as an inbox and four pipes.
 4. **Stamp and the lens.** Two tools; the lens retires the tag-as-container.
 5. **String as redstone**, then **Automaton, gauge, graph paper** on top of it,
    then the **financial dashboard** as a flow of them.

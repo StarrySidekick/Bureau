@@ -110,6 +110,8 @@ function planCopy(o, map, parent, from){
   if(o.tracks) c.tracks = map[o.tracks] || null;
   // where a spawner files what it makes is an id too (decision 197)
   if(o.into) c.into = map[o.into] || null;
+  // …and the inbox a copper pipe drains (decision 286)
+  if(o.from) c.from = map[o.from] || null;
   return c;
 }
 
@@ -292,6 +294,7 @@ function stampPlan(planId, intoId, at){
     // twice must read the copy beside it and not the first one
     if(o.tracks) c.tracks = map[o.tracks] || null;
     if(o.into) c.into = map[o.into] || null;
+    if(o.from) c.from = map[o.from] || null;
     repointRules(c, v => v===PLAN_ROOT ? home : map[v]);
     /* **A drawer that came out of a plan rolls its own look, like any other.**
        `create()` gives every container its own knob, edge, grain and panelling

@@ -385,7 +385,7 @@ function removeBoard(cid, x, y){
   if(keep.length===w*h) delete o.boards; else o.boards = keep.map(b=>b.x+','+b.y);
   return true;
 }
-/* ---- a board as big as what is on it — decision 286 --------------------
+/* ---- a board as big as what is on it — decision 287 --------------------
    Timothy, 2026-10-01: with the smooth scroll there is no need for a board
    you carve out and fill back in; "the objects themselves are the grid".
    So a board is never shaped by hand. It is the rectangle round everything
@@ -451,7 +451,7 @@ function cornerOf(id, dv){
   });
   return x===Infinity ? null : {x, y};
 }
-/* Every board at once, at load: the one time a desk from before decision 286
+/* Every board at once, at load: the one time a desk from before decision 287
    moves its numbers, before anything is drawn or held. */
 function fitAll(){
   fitBoard(ROOT);
@@ -774,7 +774,7 @@ function startOf(id){
   if(o && o.start && isBoard(id, o.start.x, o.start.y)) return {x:o.start.x, y:o.start.y};
   if(id===ROOT){ const mid = {x:(sh.w-1)>>1, y:(sh.h-1)>>1};
     if(isBoard(id, mid.x, mid.y)) return mid; }
-  /* **A board opens on what is on it** (decision 286): its top-left cell is
+  /* **A board opens on what is on it** (decision 287): its top-left cell is
      the margin now, so a drawer opened there showed an empty checkerboard
      with everything in it off the side of the screen. The middle of what is
      there, then; the middle of the board when nothing is. */
@@ -1008,13 +1008,13 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   /* A proportional board's pages are not tiles (decision 195), so once a
      tile is a cell (283) each page is searched whole from its corner. */
   const whole = home!==ROOT && !!innerOf(home, dv);
-  /* **Not out past the top or the left of what is there** (decision 286),
+  /* **Not out past the top or the left of what is there** (decision 287),
      while anywhere else will do: a thing put there grows the board that way
      and moves every number on it, which is for a person to choose by putting
      it there, not for a new thing to do by itself. */
   const lo = whole ? null : cornerOf(home, dv);
   const passes = (clearOnly ? [true] : [true, false]).flatMap(c => lo ? [[c, true], [c, false]] : [[c, false]]);
-  /* **The cells taken, once per search** (decision 286). `boxOk()` asks every
+  /* **The cells taken, once per search** (decision 287). `boxOk()` asks every
      sibling about every candidate, and a search over a board of a few
      thousand cells did that a few thousand times for each thing placed: a
      garbage bin of two hundred things took minutes to open. The same rule

@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, inBin, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+  placeOf, cfgOf, isHeld, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -1030,10 +1030,49 @@ function quickAdd(text, kind, drawerId){
    caller that aimed at a particular day. */
 function spawnInto(c, text, patch){
   if(!c) return null;
+  if(isInbox(c)) return inboxTake(c, text, patch);
   const home = homeFor(c.id);
   const o = quickAdd(text, genKindOf(c), home);
   if(o && patch) Object.assign(o, patch);
   return o;
+}
+
+/* ---- the inbox — decision 286 --------------------------------------------
+   A line written into an inbox becomes what it reads as and leaves by the
+   pipe that carries that kind, or stays in the inbox when none does. Nothing
+   it makes is dated unless the line asked for a day (!today): a brain dump
+   is not a list of things due this morning. It says where the thing went,
+   because the inbox chose and the toast is how you know. */
+function inboxTake(c, text, patch){
+  const raw = String(text||'').trim(); if(!raw) return null;
+  const g = guessKind(raw);
+  const dest = pipeFor(c, g.kind);
+  const o = quickAdd(g.text, g.kind, dest ? dest.id : c.id);
+  if(!o) return null;
+  if(!/!(today|tomorrow|week)\b/i.test(raw) && !(patch && 'due' in patch)) o.due = null;
+  if(patch) Object.assign(o, patch);
+  pushUndo('Written in', [{add:o.id}]);
+  const what = K(o.kind).nm.toLowerCase();
+  toast(dest ? `A ${what}, down the pipe to ${dest.title||'its drawer'}` : `A ${what}, in the inbox`, true);
+  return o;
+}
+/* Everything already waiting in an inbox, sent down whichever pipe carries
+   it: what was written before the pipes were laid, or dropped in by hand.
+   One move, however many it sends. */
+function sortInbox(id){
+  const c = byId(id); if(!isInbox(c)) return 0;
+  const sets = [];
+  let sent = 0;
+  S.objects.filter(o => o.parent===c.id && !isContainer(o)).forEach(o=>{
+    const dest = pipeFor(c, o.kind); if(!dest) return;
+    sets.push([o.id,'parent',o.parent], [o.id,'desk',o.desk], [o.id,'phone',o.phone]);
+    o.parent = dest.id; keepSize(o); sent++;
+  });
+  const left = S.objects.filter(o => o.parent===c.id).length;
+  if(!sent){ toast(left ? 'No pipe carries what is left here' : 'The inbox is empty'); return 0; }
+  pushSets('Sorted the inbox', sets);
+  toast(`Sent ${sent} down the pipes${left ? ` · ${left} left here` : ''}`, true);
+  return sent;
 }
 
 /* ---- controls: a switch on the board for one of the desk's own settings --
@@ -1581,7 +1620,7 @@ function dealTop(id){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, undo, redo,
+export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

@@ -743,7 +743,7 @@ function shelfCountField(cid){
      door to the map, which can add and take away. A drawer's size-picker below
      is the proportional mode's, where the tile decides and none of this
      applies. */
-  /* **A board is as big as what is on it** (decision 286), so there is no
+  /* **A board is as big as what is on it** (decision 287), so there is no
      map to carve it on: this only says how big that is and how it got so. */
   if(cid===ROOT || !proportional()){
     const sh = shelvesOf(cid);
@@ -1903,7 +1903,7 @@ function render(){
      nothing and sizeGrid's re-render picks it up. See centreDesk(). */
   const trimmed = trimDesk();
   const centred = centreDesk() || trimmed;
-  /* The board as big as what is on it (decision 286), before anything is
+  /* The board as big as what is on it (decision 287), before anything is
      drawn on it. A shift of its left or top edge moved every box under the
      kept scroll, so the scroll moves with it below. */
   const fitId = (S.view==='drawer' && S.drawerId) || ROOT;

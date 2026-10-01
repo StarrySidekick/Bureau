@@ -91,7 +91,7 @@ await page.mouse.move(drag.x, drag.y - 2 * drag.cell, { steps: 8 }); await nap(8
 const follows = await page.evaluate(() => {
   const b = document.querySelector('#drawergrid .drawer[data-drawer="d_in"]').getBoundingClientRect(); return b.y + b.height / 2; });
 await page.mouse.up(); await nap(300);
-// a board fits itself to what is on it (decision 286), so every number may
+// a board fits itself to what is on it (decision 287), so every number may
 // have moved by the same amount: measured against a neighbour
 const [after, refAfter] = await page.evaluate(r => [BUREAU.state.objects.find(o => o.id === 'd_in').phone,
   BUREAU.state.objects.find(o => o.id === r).phone], drag.ref);
@@ -128,7 +128,7 @@ out.rigidSwipeMovesOneTile = await page.evaluate(async () => {
   return Math.abs(moved - step) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
 });
 
-// ---- a board is as big as what is on it (decision 286) -----------------
+// ---- a board is as big as what is on it (decision 287) -----------------
 /* No carving: the desk is everything on it with a margin of empty cells
    round it. A thing put out in the margin grows the board past it, and the
    view holds still while the numbers under it move. Locked, the empty cells
@@ -203,7 +203,7 @@ out.aDrawerOpens = await page.evaluate(async () => {
     && document.querySelectorAll('#drawergrid > .drawer').length > 0;
 });
 // …and it opens on what is in it, not on the empty margin at its corner
-// (decision 286): something in it is on the screen when it arrives
+// (decision 287): something in it is on the screen when it arrives
 out.andOpensOnItsThings = await page.evaluate(() => {
   const sc = document.querySelector('#app .deskscroll').getBoundingClientRect();
   return [...document.querySelectorAll('#drawergrid > .drawer')].some(e => { const r = e.getBoundingClientRect();
@@ -232,6 +232,31 @@ out.theBinHeapsUp = await page.evaluate(async () => {
   return tiles.length === 5 && tiles.every(e => e.getBoundingClientRect().top - g.top > g.height / 2 - 60);
 });
 await shot('07-bin-open');
+
+// ---- the inbox and its copper pipes (decision 286): the Brain Dump flow put
+// down, four lines typed into its real input, each down its own pipe, and
+// a pipe's brass tag laid out beside its mouth rather than under it.
+const bdInbox = await page.evaluate(async () => {
+  const P = await import('./js/plans.js'), S = BUREAU.state;
+  const d = BUREAU.create('wf_braindump', {parent:'root', title:'Brain dump', noSeed:true}); delete d.setup;
+  P.stampPlan(P.plans().find(x => x.stock === 'braindump').id, d.id);
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await new Promise(r => setTimeout(r, 400));
+  return document.querySelector('[data-contadd]')?.dataset.contadd;
+});
+for (const t of ['Renew the passport', 'What if the bus stop had a library?', 'Is the lease up in March?', 'The light at six was green and gold']) {
+  const f = page.locator(`[data-contadd="${bdInbox}"]`); await f.click(); await f.fill(t); await f.press('Enter'); await nap(250);
+}
+out.theInboxSendsEachDownItsPipe = await page.evaluate(() => {
+  const S = BUREAU.state, at = t => { const o = S.objects.find(x => x.title === t); return o && (S.objects.find(x => x.id === o.parent) || {}).title; };
+  return at('Renew the passport') === 'Do' && at('What if the bus stop had a library?') === 'Someday'
+    && at('Is the lease up in March?') === 'Questions' && at('The light at six was green and gold') === 'Keep';
+});
+out.aPipeTagSitsBesideItsMouth = await page.evaluate(() => {
+  const t = document.querySelector('.pipetile.pipewide'); if (!t) return false;
+  const m = t.querySelector('.pipemouth').getBoundingClientRect(), g = t.querySelector('.pipetag').getBoundingClientRect();
+  return g.left >= m.right - 1 && g.height > m.height * 0.5;
+});
+await shot('08-brain-dump');
 
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));

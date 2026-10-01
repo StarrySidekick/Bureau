@@ -567,7 +567,7 @@ const BUILTIN_KINDS = {
      /* **The tools and the counter are doodads too** (decision 240): one
         place for the small things that do something when pressed. */
      family:['button','m_counter','metronome','hourglass','candle','bell','clock','die','deck',
-             'tglass','tblock','tlock','tgear','tswipe','spool','coin','anything'],
+             'tglass','tblock','tlock','tgear','tswipe','spool','pipe','coin','anything'],
      famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
   /* **The Button** (decision 243): the Control, the Spawner and the old
@@ -583,6 +583,26 @@ const BUILTIN_KINDS = {
      reads as (`smart`, `guessKind()` in mutations.js) or the one type it is
      set to, and puts it beside itself, into the drawer it is set to, or into
      whatever it is tied to with string. Four by one: a line is what it is. */
+  /* **The Inbox** (decision 286): the brain dump. A list with a line to write
+     on, where nothing has to be decided first: each line becomes what it
+     reads as (`guessKind()`), and if a copper pipe tied to the inbox carries
+     that kind it goes straight down the pipe; otherwise it waits here. Sort,
+     on its ring, sends what is already waiting. `smart` on a container is
+     what makes it an inbox (isInbox()), not its name. */
+  inbox:    {face:'list', nm:'Inbox', ic:'inbox', c:5,
+     ds:'Write anything. It becomes what it reads as, and copper pipes tied to it carry each kind to its drawer',
+     attrs:['container','spawn'], spawnBy:'type', genKind:'smart', addbox:'show', clhead:'1', layout:'list',
+     size:[4,5], phoneSize:[4,5], body:'' },
+  /* **A copper pipe** (decision 286): the end of a pipe, set into the board.
+     Tie it with string to a drawer and it leads there: drop a thing on it
+     and it comes out in that drawer, tap it and you go there. Tied to an
+     inbox as well, it carries one kind of thing out of it (`takes`), or
+     anything the inbox's other pipes do not. Square, it is the mouth;
+     wider, the mouth and a tag saying what it carries and where. */
+  pipe:     {shape:'pipe', nm:'Copper pipe', ic:'arrowR', c:8,
+     ds:'Tie it to a drawer with string: what goes in comes out there',
+     attrs:['relates'], takes:'', onclick:'none', size:[1,1], phoneSize:[1,1],
+     range:[[1,4],[1,1]], body:'' },
   notepad:  {shape:'notepad', nm:'Notepad', ic:'feather', c:10,
      ds:'Write a line and press return: it becomes a note, a task, a thought, whatever it reads as',
      attrs:['spawn'], spawnBy:'type', genKind:'smart', onclick:'none', size:[4,1], phoneSize:[4,1], body:'' },
@@ -783,7 +803,7 @@ const BUILTIN_KINDS = {
      family that names a type, and these must not take a Note away from the
      Note's own family or a Character away from the Fragment. */
   m_list:    {cat:true, master:true, lead:'list', nm:'List', ic:'list', c:4,
-     ds:'A list of anything, or of things to check off', family:['list','checklist'], famSub:'Which list?', attrs:[], body:'' },
+     ds:'A list of anything, or of things to check off', family:['list','checklist','inbox'], famSub:'Which list?', attrs:[], body:'' },
   m_calendar:{cat:true, master:true, lead:'calendar', nm:'Calendar', ic:'calendar', c:7,
      ds:'Things laid out along time', family:['calendar','timeline','appt'], famSub:'Which?', attrs:[], body:'' },
   m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
@@ -2377,6 +2397,34 @@ function isGone(o){
   return false;
 }
 const inBin = o => !!o && o.id!==BIN && binOf(o);
+/* ---- the inbox and its pipes — decision 286 ------------------------------
+   A pipe leads to the drawer its `into` names, else a drawer it is tied to
+   with string, either end, that holds things and is not itself an inbox (the
+   inbox is the pipe's other end, not where it goes). An inbox's pipes are
+   the pipes tied to it. One kind per pipe, or anything: two kinds into one
+   drawer are two pipes, which is what you would see in a plumbing job. */
+const isPipe = o => shapeOf(o)==='pipe';
+const isInbox = o => !!o && isContainer(o) && makesSmart(o);
+const PIPE_KINDS = ['task','idea','question','problem','thought','quote','note'];
+const takesOf = p => { const t = p && (p.takes!=null ? p.takes : K(p.kind).takes); return t || ''; };
+function pipeTo(p){
+  if(!p) return null;
+  const ok = d => !!d && d.id!==p.id && d.id!==BIN && isContainer(d) && !has(d,'magic') && !isGone(d) && !isInbox(d);
+  const d = p.into && byId(p.into);
+  if(ok(d)) return d;
+  return (p.rel||[]).map(byId).find(ok) || S.objects.find(x=>ok(x) && (x.rel||[]).includes(p.id)) || null;
+}
+const tiedTo = (a, b) => (a.rel||[]).includes(b.id) || (b.rel||[]).includes(a.id);
+/* …tied with string, or, on a flow's board, named by `from`, which is how a
+   board of five pipes is laid out without five strings across it */
+const pipesOf = c => !c ? [] : S.objects.filter(p => isPipe(p) && !isGone(p) && (p.from===c.id || tiedTo(p, c)));
+/* Where a thing of this kind leaves the inbox: the pipe that carries exactly
+   it first, then one that carries anything; null if it stays. */
+function pipeFor(c, kind){
+  const ps = pipesOf(c).filter(p => pipeTo(p));
+  const p = ps.find(p => takesOf(p)===kind) || ps.find(p => !takesOf(p));
+  return p ? pipeTo(p) : null;
+}
 const binOf = o => { let p = o && o.parent, n = 0;
   while(p && p!==ROOT && n++ < 32){ if(p===BIN) return true; const up = upOf(p); p = up && up.parent; }
   return false; };
@@ -2919,7 +2967,7 @@ const boardLocked = ()=> S.look.locked !== false;
    face. `addbox:'show'` puts the box back; inside the drawer it is there
    either way. */
 const showsAddBox = (c, box)=>
-  takesTyping(c) && c.addbox==='show' && !(box && box.h<=1);
+  takesTyping(c) && (c.addbox || K(c.kind).addbox)==='show' && !(box && box.h<=1);
 
 /* ---- how much it matters, 0 to 5 --------------------------------------
    Priority was three words — low, mid, high — which is a shape you outgrow the
@@ -3594,7 +3642,7 @@ export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, co
   SHAPES_KEPT, shapeName, shapeChoices,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  placeOf, isHeld, isGone, inBin, inFront, heldObjects, heldCount,
+  placeOf, isHeld, isGone, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo, pipesOf, pipeFor, inFront, heldObjects, heldCount,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
   GRAVITIES, gravityMode, gravityOn, gravityTilts, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,

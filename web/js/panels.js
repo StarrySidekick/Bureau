@@ -18,7 +18,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
-import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin } from './model.js';
+import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo } from './model.js';
 import { paintTarget, hasArt } from './paint.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS, BACKS } from './active.js';
@@ -1684,12 +1684,14 @@ function objectPanelBody(id, sec){
   /* "New things in it" (undated) was cut from the editor in the Workshop
      (decision 218); a flow still sets it, and `create()` still reads it. */
   if(!isRoot && cont && takesTyping(d)){
-    out.push(prow('Typing in it makes', psel(id,'genKind', objectKinds, genKindOf(d))));
+    /* Whatever it reads as is what makes a drawer an inbox (decision 286):
+       each line becomes its own kind and leaves by the pipe that carries it */
+    out.push(prow('Typing in it makes', psel(id,'genKind', [[SMART,'Whatever it reads as (an inbox)'], ...objectKinds], genKindOf(d))));
     /* On the front by default since the front scrolls (2026-09-23); inside
        the drawer the box is there either way. See decisions 77 and 79. */
     out.push(prow('The add box', psel(id,'addbox',
       [['','Inside it only'],['show','On its front too']],
-      d.addbox==='show'?'show':''),
+      (d.addbox || K(d.kind).addbox)==='show'?'show':''),
       'or tie a notepad to it with string'));
   }
   /* What the Magic Selector puts down on this board (decision 199). A sorting
@@ -1727,6 +1729,16 @@ function objectPanelBody(id, sec){
       tied ? 'untie the string to put it beside itself' : 'or tie it to a drawer with the spool'));
     out.push(prow('It makes', psel(id,'genKind', [[SMART,'Whatever it reads as'], [ANY,'One of anything'], ...objectKinds], genKindOf(d))
       + psel(id,'genDir',[['down','Down'],['up','Up'],['left','Left'],['right','Right'],['random','Anywhere']], d.genDir||'down')));
+  }
+  /* A copper pipe (decision 286): what it carries out of an inbox, and where
+     it leads, which is a string and not a list, so the row only says it. */
+  if(!isRoot && isPipe(d)){
+    const to = pipeTo(d);
+    out.push(prow('It carries', psel(id,'takes',
+      [['','Anything the other pipes do not'], ...PIPE_KINDS.map(k=>[k, K(k).nm+'s'])], takesOf(d)),
+      'out of the inbox it is tied to'));
+    out.push(prow('It leads to', `<b>${esc(to ? (to.title||'Untitled') : 'Nowhere yet')}</b>`,
+      to ? 'by its string; tie it elsewhere to change it' : 'tie it to a drawer with the spool'));
   }
   /* Which of the desk's own settings this switch is for. The list is the
      CONTROLS table and nothing else knows it, so adding a switchable setting
@@ -2908,6 +2920,8 @@ function openCtx(x,y,id){
      back where it came from, and the bin itself is emptied rather than
      deleted. Put back leads, because it is why you opened the bin. */
   if(!many && o.parent===BIN) items.push(it(`putback:${id}`, 'undo', 'Put Back'));
+  // an inbox sends what is waiting in it down its pipes (decision 286)
+  if(!many && isInbox(o)) items.push(it(`sortinbox:${id}`, 'sort', 'Sort'));
   if(!many){
     /* Open, View, Read, Write, Next one and Complete were cut in the Workshop
        (decision 218): a tap already opens, reads, plays or ticks a thing, so

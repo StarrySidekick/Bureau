@@ -138,7 +138,7 @@ function build(spec){
   Object.entries(spec.sref||{}).forEach(([ref, name])=>{
     const o = objects.find(x=>x.id===refs[ref]); if(o) o.sref = name; });
   objects.forEach(o=>{
-    ['tracks','into'].forEach(k=>{
+    ['tracks','into','from'].forEach(k=>{
       if(typeof o[k]==='string' && o[k][0]==='@') o[k] = refs[o[k].slice(1)] || null; });
   });
   return {
@@ -219,6 +219,9 @@ function fillRows(top){
 /* Shorthands for the things that recur, so a rule reads as the sentence the
    builder would have written. */
 const LABEL = (t, b, c)=>({k:'label', t, b, set:{c}});
+/* A copper pipe (decision 286) out of an inbox, carrying one kind (or, with
+   no kind, anything the others do not) into a drawer, both said by ref. */
+const PIPE = (kind, from, into, b)=>({k:'pipe', t:'', b, set:{takes:kind, from, into}});
 const MAKES = (t, kind, b, c, into)=>({k:'generator', t, b, set:into ? {genKind:kind, c, into} : {genKind:kind, c}});
 /* A drawer that is a list with its name on it: where a spawner on the same
    board files what it makes (decision 197). It was a sorting drawer collecting
@@ -1019,19 +1022,22 @@ const SPECS = [
 
   // "Allows you to easily add anything to a bucket and helps you sort it."
   {key:'braindump', rail:{left:['glass','block','coin'], right:['lock','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump', on:[
+    /* **An inbox and its pipes** (decision 286): write anything into the
+       inbox; a task goes down the first pipe to Do, an idea to Someday, a
+       question to Questions, and anything else to Keep. What is waiting in
+       the inbox goes the same way when it is told to Sort. */
     LABEL('Brain dump', [1,1,8,1], 5),
-    MAKES('Get it out of your head…', 'note', [1,2,8,1], 5, '@bdjar'),
-    {k:'jar', t:'The bucket', ref:'bdjar', b:[1,3,4,5], set:{c:5}},
-    LIST('Do', 'bddo', [5,3,4,3], 6),
-    LIST('Someday', 'bdsome', [5,6,4,2], 12),
-    LIST('Keep', 'bdkeep', [1,8,4,3], 11),
-    {k:'hourglass', t:'Ten minutes', b:[5,8,2,3], set:{c:12, mins:10}},
-    {k:'deck', t:'Sort it', b:[7,8,2,3], set:{c:10}, kids:CARDS([
-      'Two minutes or less? Do it now', 'Does it have a day? Give it one', 'Is it someone else’s? Send it',
-      'Will you care in a month?', 'Is it a project in disguise?', 'Bin it'
-    ])},
-    {k:'note', t:'The rule', b:[1,11,4,1], set:{c:5}, body:'Empty the bucket once a day: do it, date it, file it or bin it.'},
-    LINK('Apple Notes', 'https://www.icloud.com/notes', [5,11,4,1], 9)
+    {k:'inbox', t:'Inbox', ref:'bdin', b:[1,2,5,5], set:{c:5}},
+    PIPE('task',     '@bdin', '@bddo',   [6,2,3,1]),
+    PIPE('idea',     '@bdin', '@bdsome', [6,3,3,1]),
+    PIPE('question', '@bdin', '@bdask',  [6,4,3,1]),
+    PIPE('',         '@bdin', '@bdkeep', [6,5,3,1]),
+    // every board has a way out (decision 194): the notes app it all came from
+    LINK('Apple Notes', 'https://www.icloud.com/notes', [6,6,3,1], 9),
+    LIST('Do', 'bddo', [1,7,4,3], 6),
+    LIST('Someday', 'bdsome', [5,7,4,3], 12),
+    LIST('Questions', 'bdask', [1,10,4,3], 9),
+    LIST('Keep', 'bdkeep', [5,10,4,3], 11)
   ]},
 
   // "Helps me prioritize all my projects and focus."

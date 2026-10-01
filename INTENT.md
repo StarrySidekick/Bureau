@@ -293,7 +293,7 @@ Timothy: with the smooth scroll in place there is no need for a board that is
 carved out cell by cell; the checkerboard can be an expanse with a limit, and
 where you put a thing is where it goes. Locked, the board turns to the
 carcass so it looks presentational, and you can still look around. Built as
-decision 286 (v2.75).
+decision 287 (v2.75).
 
 ## Deliberately not next
 

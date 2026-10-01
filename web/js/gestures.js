@@ -438,6 +438,10 @@ function clearAim(g){
 // Somewhere this object may legally end up: not itself, not inside itself, and
 // not a magic drawer — those collect by rule and hold nothing, so filing into
 // one would take the object out of the drawer it actually lives in.
+/* What a drop on this tile files into: a drawer is itself, and a copper pipe
+   (decision 286) is the drawer at its other end, which `data-pipe` names. */
+const INTO_AT = '.grid .drawer[data-drawer], .grid .drawer[data-pipe]';
+const intoAt = el => el.dataset.drawer || el.dataset.pipe;
 const canFile = (dragId, intoId) => !!intoId && intoId!==dragId
   && !has(byId(intoId),'magic') && !isAncestor(dragId, byId(intoId));
 // The same, minus the magic rule: a magic calendar can still date something it
@@ -458,9 +462,9 @@ function aimPluck(g, px, py){
   const under=document.elementFromPoint(px, py);
   if(g.chip) g.chip.style.visibility='';
   if(!under) return;
-  const over=under.closest('.grid .drawer[data-drawer]');
-  if(over && canFile(g.id, over.dataset.drawer)){
-    g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
+  const over=under.closest(INTO_AT);
+  if(over && canFile(g.id, intoAt(over))){
+    g.dropEl=over; g.dropOn=intoAt(over); over.classList.add('dropinto');
     return;
   }
   const grid=under.closest('.grid');
@@ -502,9 +506,9 @@ function aimHeld(g, px, py){
   const under=document.elementFromPoint(px, py);
   if(g.ghost) g.ghost.style.visibility='';
   if(!under) return;
-  const over=under.closest('.grid .drawer[data-drawer]');
-  if(over && canFile(g.id, over.dataset.drawer)){
-    g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
+  const over=under.closest(INTO_AT);
+  if(over && canFile(g.id, intoAt(over))){
+    g.dropEl=over; g.dropOn=intoAt(over); over.classList.add('dropinto');
     return;
   }
   const grid=under.closest('.grid');
@@ -594,9 +598,9 @@ function aimDrop(g, px, py){
     const gk=tgt && gatherKind(d, tgt);
     if(gk){ g.gatherEl=objEl; g.gatherOn=tgt.id; g.gatherKind=gk; objEl.classList.add('dropgather'); return; }
   }
-  const over=under.closest('.grid .drawer[data-drawer]');
-  if(over && !g.group && canFile(g.id, over.dataset.drawer)){
-    g.dropEl=over; g.dropOn=over.dataset.drawer; over.classList.add('dropinto');
+  const over=under.closest(INTO_AT);
+  if(over && !g.group && canFile(g.id, intoAt(over))){
+    g.dropEl=over; g.dropOn=intoAt(over); over.classList.add('dropinto');
   }
 }
 
@@ -997,13 +1001,13 @@ function onDown(e){
        walks, and a locked board holds nothing. */
     const ti=Math.floor((cx-1)/g.shelfW), tj=Math.floor((cy-1)/g.shelfH);
     const hold = e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE;
-    /* …and since decision 286 nothing is carved: a board is as big as what
+    /* …and since decision 287 nothing is carved: a board is as big as what
        is on it, and the wood past its edge is only the edge. */
     if(!isBoard(home, ti, tj)){ G=null; return; }
     /* The middle cell of a tile, held on past the Magic Selector, takes the
        tile away: only the middle, so a hold anywhere else stays a sketch, and
        the tile darkens while you decide. Things on it ask where they go. */
-    // never since decision 286: a cell is not filled back in by hand
+    // never since decision 287: a cell is not filled back in by hand
     const centre = false;
     holdTimer=setTimeout(()=>{
       holdTimer=null;
