@@ -442,10 +442,16 @@ function shiftCells(id, sx, sy){
     if(!k || (k.parent||ROOT)!==id) return;
     k.desk = mv(k.desk); k.phone = mv(k.phone);
   });
-  [S.undo, S.redo].forEach(stack=>(stack||[]).forEach(m=>(m.steps||[]).forEach(s=>{
+  /* A box on the stacks belongs to the board its object will be on when the
+     box is put back: the parent the same move restores, if it restores one
+     (a filing undone goes back to this board while it is in a drawer now),
+     else where it is. */
+  [S.undo, S.redo].forEach(stack=>(stack||[]).forEach(m=>(m.steps||[]).forEach((s, n, steps)=>{
     if(s.set && (s.set.k==='desk' || s.set.k==='phone')){
+      const p = steps.find(t=>t.set && t.set.id===s.set.id && t.set.k==='parent');
       const k = byId(s.set.id);
-      if(k && (k.parent||ROOT)===id) s.set.v = mv(s.set.v);
+      const home = p ? (p.set.v||ROOT) : k && (k.parent||ROOT);
+      if(home===id) s.set.v = mv(s.set.v);
     } else if(s.del && s.del.o && (s.del.o.parent||ROOT)===id){
       s.del.o.desk = mv(s.del.o.desk); s.del.o.phone = mv(s.del.o.phone);
     }
