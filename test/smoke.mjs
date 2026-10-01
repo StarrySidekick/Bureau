@@ -5849,7 +5849,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
        eight, and a full board rightly makes a thing smaller rather than not
        at all (`fitSpot()`), which is not what this asks. */
     const room = BUREAU.create('drawer', { parent:'root', title:'Room' });
-    if (BUREAU.TILE === 1) room.shelves = {w:16, h:42};   // the same room in cells (283)
+    /* …and since decision 284 a board is as big as what is on it, so it is
+       made roomy by two things at opposite corners of that room */
+    if (BUREAU.TILE === 1) [[1,1],[16,42]].forEach(([x,y]) => {
+      const k = BUREAU.create('note', { parent:room.id, title:'corner' });
+      k.phone = {x, y, w:1, h:1}; k.desk = {x, y, w:1, h:1}; });
     else [[1,0],[0,1],[1,1],[0,2],[1,2]].forEach(([x,y]) => BUREAU.addBoard(room.id, x, y));
     S.view='drawer'; S.drawerId=room.id; BUREAU.render(); await nap(200);
     const made = ['note','task','drawer','checklist','image','moodboard','timeline']

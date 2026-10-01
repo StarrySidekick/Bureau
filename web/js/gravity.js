@@ -1,6 +1,6 @@
 import { $, clamp, ROOT } from './util.js';
 import { S, dev, gravityMode, gravityOn, gravityTilts } from './model.js';
-import { gridOf, drawCols, drawRows, shelfAt, flows, viewRows } from './grid.js';
+import { gridOf, drawCols, drawRows, shelfAt, flows, viewRows, VIEW_COLS } from './grid.js';
 import { still, tiltDown, applyTilt } from './motion.js';
 
 /* ============================================================
@@ -75,7 +75,7 @@ const SETTLE_MS = 420;      // how long the tiles take to walk back to their cel
 const W = {
   mode:'off', key:'', grid:null, cid:null,
   bodies:[], by:new Map(), walls:[], sweep:[],
-  cell:0, w:0, h:0, y0:0,       // the pen, in the grid's own pixels
+  cell:0, w:0, h:0, y0:0, x0:0, // the pen, in the grid's own pixels
   gx:0, gy:1, dx:0, dy:1,       // where down is, and the reading it is eased from
   raf:0, last:0, acc:0, quiet:0, gen:0,
   grab:null
@@ -178,25 +178,30 @@ function pen(g){
   if(dev()==='phone'){
     const vr = viewRows('phone'), above = Math.max(0, Math.floor((vr - g.shelfH)/2));
     const row = Math.max(0, shelfAt(W.cid).y*g.shelfH + (g.pad||0) - above);
-    return {w: drawCols(g)*g.rowh, h: vr*g.rowh, y0: row*g.rowh};
+    /* …and the screen across as well (decision 284): a board as big as what
+       is on it is often wider than the screen, and a pen the whole width
+       poured things off the side of it. */
+    const vc = Math.min(VIEW_COLS, drawCols(g)), aside = Math.max(0, Math.floor((vc - g.shelfW)/2));
+    const col = clamp(shelfAt(W.cid).x*g.shelfW + (g.padX||0) - aside, 0, drawCols(g) - vc);
+    return {w: vc*g.rowh, h: vr*g.rowh, y0: row*g.rowh, x0: col*g.rowh};
   }
   /* …and a Mac's is the rows its window shows, centred on the tile you are
      on (decision 274): a tile of five is a strip, and a strip is not a pen. */
   const vr = Math.min(viewRows('desk'), drawRows(g)), above = Math.max(0, Math.floor((vr - g.shelfH)/2));
   const row = Math.max(0, Math.min(drawRows(g) - vr, shelfAt(W.cid).y*g.shelfH + (g.pad||0) - above));
-  return {w: drawCols(g)*g.rowh, h: vr*g.rowh, y0: row*g.rowh};
+  return {w: drawCols(g)*g.rowh, h: vr*g.rowh, y0: row*g.rowh, x0: 0};
 }
 /* The board is the back panel of a slot and the slot has four sides, which is
    the same shape decision 116 gave the cavity — so a thrown drawer comes back
    rather than leaving by the top. They are boxes like everything else, six
    hundred pixels thick, because a wall you can travel through in one step is
    not a wall. */
-function walls(w, h, y0){
-  const T = WALL/2, mid = y0 + h/2;
-  return [wall(w/2, y0+h+T, w/2+WALL, T),   // the floor
-          wall(w/2, y0-T,   w/2+WALL, T),   // …and the lid
-          wall(-T,  mid, T, h/2+WALL),
-          wall(w+T, mid, T, h/2+WALL)];
+function walls(w, h, y0, x0){
+  const T = WALL/2, mid = y0 + h/2, cx = x0 + w/2;
+  return [wall(cx, y0+h+T, w/2+WALL, T),   // the floor
+          wall(cx, y0-T,   w/2+WALL, T),   // …and the lid
+          wall(x0-T,  mid, T, h/2+WALL),
+          wall(x0+w+T, mid, T, h/2+WALL)];
 }
 
 /* ---- binding the pile to what is on the screen -------------------------
@@ -233,8 +238,8 @@ function sync(){
     }
     p.y0 = Math.max(0, top); p.h = bot - p.y0;
   }
-  W.w = p.w; W.h = p.h; W.y0 = p.y0;
-  W.walls = walls(W.w, W.h, W.y0);
+  W.w = p.w; W.h = p.h; W.y0 = p.y0; W.x0 = p.x0 || 0;
+  W.walls = walls(W.w, W.h, W.y0, W.x0);
 
   const seen = new Set();
   m.els.forEach((el, i)=>{
@@ -244,7 +249,7 @@ function sync(){
     const hx = r.left - m.gr.left + hw, hy = r.top - m.gr.top + hh;
     // on a Mac the other two shelf-rows are drawn as well, and they stay on
     // the grid: what let go is the shelf you are looking at
-    if(hy < W.y0 || hy > W.y0 + W.h) return;
+    if(hy < W.y0 || hy > W.y0 + W.h || hx < W.x0 || hx > W.x0 + W.w) return;
     seen.add(id);
     const had = W.by.get(id);
     if(had){
@@ -499,7 +504,7 @@ function step(dt){
        a solver that has gone wrong loses a body inside the board rather than
        somewhere off the desk with no way back. */
     const rad = b.hw + b.hh;
-    b.x = clamp(b.x, -rad, W.w + rad);
+    b.x = clamp(b.x, W.x0 - rad, W.x0 + W.w + rad);
     b.y = clamp(b.y, W.y0 - rad, W.y0 + W.h + rad);
     if(!isFinite(b.x) || !isFinite(b.y)){ b.x=b.hx; b.y=b.hy; b.vx=b.vy=0; }
     if(Math.hypot(b.vx, b.vy) > SLEEP_V || Math.abs(b.w) > SLEEP_W) quiet = false;
@@ -668,7 +673,7 @@ const bodyOf = id => W.by.get(id) || null;
    phone to lean. The numbers are the board's own pixels. */
 const report = ()=> ({
   mode: W.mode, bodies: W.bodies.length, running: !!W.raf,
-  board: {w:W.w, h:W.h, y0:W.y0}, g: {x:W.gx, y:W.gy},
+  board: {w:W.w, h:W.h, y0:W.y0, x0:W.x0}, g: {x:W.gx, y:W.gy},
   at: W.bodies.map(b=>({id:b.id, x:+b.x.toFixed(1), y:+b.y.toFixed(1),
                         a:+b.a.toFixed(3), hw:b.hw, hh:b.hh,
                         v:+Math.hypot(b.vx,b.vy).toFixed(1),
