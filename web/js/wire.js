@@ -1274,7 +1274,7 @@ function coinToss(board, el){
 function tileHere(cid, x, y, walk){
   const got = addBoard(cid, x, y);
   // a tiled board grows by tiles (decision 288); only an old carved one carved
-  const tl = formOf(cid).form!=='free' || TILE!==1;
+  const tl = formOf(cid).form!=='free';
   if(!got){ toast(tl ? 'No room for another tile that way' : 'No room to carve that way'); return false; }
   if(overviewOn()){ save(); render(); refreshOverview(); toast(tl ? 'A new tile' : 'Carved'); return true; }
   /* Held where it is, you are looking at it, so you stay (the view kept still
@@ -1291,11 +1291,11 @@ function tileAway(cid, x, y){
   /* the one you arrive on stays, as it always has */
   const cfg = cid===ROOT ? S.deskCfg : byId(cid);
   const home = cfg && cfg.start && isBoard(cid, cfg.start.x, cfg.start.y) ? cfg.start : startOf(cid);
-  if(home && home.x===x && home.y===y){ toast(TILE===1 ? 'The cell you arrive on stays' : 'The tile you arrive on stays'); return; }
+  if(home && home.x===x && home.y===y){ toast(formOf(cid).form!=='free' ? 'The tile you arrive on stays' : 'The cell you arrive on stays'); return; }
   /* A board with things on it asks where they go first (decision 234). */
   const on = onBoard(cid, x, y);
   if(on.length){ overAsk({cid, x, y, n:on.length}); return; }
-  const tl = formOf(cid).form!=='free' || TILE!==1;
+  const tl = formOf(cid).form!=='free';
   if(!removeBoard(cid, x, y)){ toast(tl ? 'The last tile stays' : 'The last cell stays'); return; }
   save(); render(); refreshPanel(); refreshOverview();
   toast(tl ? 'Tile taken away' : 'Filled in');

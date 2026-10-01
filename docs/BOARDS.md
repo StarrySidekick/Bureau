@@ -1,6 +1,6 @@
 # Boards: one shape system for the desk and every container
 
-Scope, 2026-10-01, revised the same day with Timothy's answers. **Built as decision 288 (v2.81)**, except deleting the dead generations and flows stating their board, which are still to do. Free turned out to be decision 287 unchanged: Timothy's free board is the growing expanse with smooth scroll and zoom, so the corner-free coordinates below were not needed. The Mat is called a **Board**. Timothy asked for a board system flexible enough
+Scope, 2026-10-01, revised the same day with Timothy's answers. **Built as decision 288 (v2.81)**, with the dead generations deleted as decision 289 (v2.83); flows stating their board is still to do. Free turned out to be decision 287 unchanged: Timothy's free board is the growing expanse with smooth scroll and zoom, so the corner-free coordinates below were not needed. The Mat is called a **Board**. Timothy asked for a board system flexible enough
 that the desk and each container can have the shape it wants, without the
 next change breaking the last one.
 

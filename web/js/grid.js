@@ -1025,7 +1025,11 @@ const overlaps = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y 
 /* Every check below is scoped to one container's grid. Collisions only matter
    between siblings — two objects in different drawers can share coordinates,
    because they are in different coordinate spaces. */
-const hasBox = (o,dv)=> !!(o && o[dv] && o[dv].w);
+/* Placed means a position as well as a size: since `keepSize()` a box may
+   carry a size and no place, and `lay()` reads a missing place as the corner,
+   so a thing waiting to be placed blocked the very cell it could go in
+   (found by decision 288's fixed boards, which have no margin to hide it). */
+const hasBox = (o,dv)=> !!(o && o[dv] && o[dv].w && o[dv].x);
 function boxOk(box, id, device, parentId, clear){
   const g=gridOf(device, parentId||ROOT), dv=device||dev();
   if(box.x<1 || box.y<1 || box.w<1 || box.h<1) return false;

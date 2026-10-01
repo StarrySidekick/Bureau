@@ -12205,3 +12205,35 @@ scope is `docs/BOARDS.md`.
 - Not done, from the scope: deleting the dead generations (`dimsOf()`'s
   retired path, the `if(TILE)` branches, the proportional mode, `CAMERA`), and
   flows stating their `form`.
+
+## 289. The dead board generations are gone (v2.83, 2026-10-01)
+
+`docs/BOARDS.md`'s first step: with one reader for what shape a board is
+(decision 288), the earlier answers that still branched are deleted, so a new
+rule about boards has fewer paths to be taught.
+
+- **The proportional mode** (decisions 188, 190, 195: a container's inside its
+  front times four) is gone: `proportional()`, `innerOf()`, `INNER`, the
+  switch's handler, the drawer-size picker in Board settings, the mouth that
+  opened flush onto a proportional board (`boardRect()` in motion.js), a
+  flow growing a container's front, and the "short board" centring in
+  `sizeGrid()`. Nothing in the interface turned it on any more. A desk that
+  stored `S.look.proportional` keeps the key and ignores it; the migrations
+  that read it still do, and `shelvesToHold()` stays for them.
+- **A board's stated shape** (decision 235, retired by 272) is gone:
+  `dimsOf()`, `setBoardDims()`, the `boarddim` sliders and `boarddimfit`.
+  `bw`/`bh` mean a tile's size now (288).
+- **A tile larger than a cell** (decisions 272, 274): every `if(TILE)` branch
+  and its other side, the shelf dots in the bar, `onThisShelf()`'s windowing,
+  `centreDesk()`'s move to the middle tile, and `trimDesk()`'s trim, all of
+  which already did nothing. `colsOf()` and `shelfRows()` answer `TILE`.
+- **Found on the way, and fixed**: a thing with a size and no place yet
+  (`keepSize()`) counted as placed and, read at the corner, blocked cell 1,1,
+  so a full fixed board stacked things rather than using its last cell
+  (`hasBox()` in grid.js now asks for a position too).
+- **The smoke suite** loses what tested the proportional mode as such (four
+  cells to a cell, a drawer one screen of its front, the flush mouth, the
+  switch) and keeps each block's other assertions; a drawer is now asserted
+  to be one 8×14 tile (`everyDrawerIsOneTile`, `aDrawerStartsAtOneTile`), and
+  "a full board refuses" is asked of a fixed one.
+- Still there: `CAMERA=false` and decisions 187–192's camera code, inert.

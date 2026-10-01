@@ -390,6 +390,9 @@ default, more tiles of the same size laid by holding the wood beside it
 not fit; an inbox and the bin are fixed. Board settings → Kind of board. And
 the **Board** object (`mat`), a checkerboard underlay that carries what lies
 on it (`carriesOf()`, `travelWith()`). Scope in `docs/BOARDS.md`.
+**v2.83** (decision 289): the proportional mode, a board's stated shape
+(235) and every dead `if(TILE)` branch are deleted; `colsOf()`/`shelfRows()`
+answer `TILE`. Read decisions 188–195 as history.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

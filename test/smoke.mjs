@@ -5367,8 +5367,8 @@ const CHROME = process.env.BUREAU_CHROME;
        nothing away: what is left outside is re-placed on the next render. */
     const many = BUREAU.create('drawer', {parent:'root', title:'Roomy'});
     many.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(120);
-    out.aDrawerStartsAtOneShelf =
-      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:1,h:1});
+    out.aDrawerStartsAtOneTile = BUREAU.formOf(many.id).form === 'tiled'
+      && JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:8,h:14});
     /* …and it is not *given* more: since decision 190 a container's pages are
        **derived** from how big it is, so a stored `shelves` on one does
        nothing and making the drawer bigger is what makes the board bigger.
@@ -5377,7 +5377,7 @@ const CHROME = process.env.BUREAU_CHROME;
        two screenfuls are asked about. */
     many.shelves = {w:2,h:2}; BUREAU.render(); await nap(120);
     out.aStoredShelfCountDoesNothing =
-      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:1,h:1});
+      JSON.stringify(BUREAU.shelvesOf(many.id)) === JSON.stringify({w:8,h:14});
     delete many.shelves;
     many.desk = Object.assign({}, many.desk, {w:4, h:4});
     BUREAU.render(); await nap(120);
@@ -5385,6 +5385,8 @@ const CHROME = process.env.BUREAU_CHROME;
        are not looking. It is a message, not a silent placement. */
     const tight = BUREAU.create('drawer', {parent:'root', title:'Tight'});
     tight.desk = BUREAU.free(2,2,'root'); BUREAU.render(); await nap(120);
+    // a tiled board adds a tile when full (decision 288); a fixed one fills
+    BUREAU.setForm(tight.id, 'fixed');
     /* **Inside** it while it fills. `ensureBox()` runs as a tile is drawn, so
        an object made into a board nobody is looking at is never placed — and a
        board with nothing placed on it never fills, however much you pour in.
@@ -9686,10 +9688,6 @@ const CHROME = process.env.BUREAU_CHROME;
                cell:+(g.getBoundingClientRect().width/+g.style.getPropertyValue('--cols')).toFixed(1) };
     };
     const one = await board('b1'), two = await board('b2'), tall = await board('b3');
-    out.fourCellsToACell =
-      one.cols===4  && one.rows===4 &&
-      two.cols===8  && two.rows===8 &&
-      tall.cols===8 && tall.rows===16;
     /* **And a drawer made on a phone is proportional too.** `ensureBox()` only
        ever fills in the device being looked at, so a drawer made on a phone had
        no `desk` box at all — and since a container's board is read off that
@@ -10005,24 +10003,10 @@ const CHROME = process.env.BUREAU_CHROME;
                under:Math.round(sr.bottom - gr.bottom) };
     };
     const one = await read('p1'), two = await read('p2'), wide = await read('p4');
-    /* Four cells to a cell, off the box for **the device being looked at** —
-       which is the correction: a container is half the size on a phone, so
-       reading the desk box on both gave a phone-sized 4x2 drawer a board of
-       thirty-two by sixteen. */
-    out.itsOwnTileFourToACell =
-      one.inner.cols===4  && one.inner.rows===4 &&
-      two.inner.cols===8  && two.inner.rows===8 &&
-      wide.inner.cols===16 && wide.inner.rows===8;
-    /* …and what a phone *shows* of it is one screenful, which is 8x8 for the
-       first two and the first half of the third. */
-    out.andAPhoneSeesOneScreenOfIt =
-      one.cols===4 && one.rows===4 && two.cols===8 && two.rows===8 &&
-      wide.cols===8 && wide.rows===8;
-    // and the nine shelves are the desk's alone: a container pages its own board
-    out.noShelvesInsideOne =
-      one.shelves.w===1 && one.shelves.h===1 &&
-      two.shelves.w===1 && two.shelves.h===1 && wide.shelves.w===2;
-    out.aShortBoardIsCentred = Math.abs(one.over - one.under) <= 2 && one.over > 2;
+    /* Since decision 288 a drawer opens onto one tile of eight by fourteen
+       whatever the size of its front: decision 188's four cells to a cell is
+       gone with the proportional mode. */
+    out.everyDrawerIsOneTile = [one, two, wide].every(b => b.shelves.w === 8 && b.shelves.h === 14);
 
     /* ---- the lock is the background, and nothing else ------------------- */
     S.view='desk'; S.drawerId=null;
@@ -10262,8 +10246,6 @@ const CHROME = process.env.BUREAU_CHROME;
     /* Flush, and that means all four edges: the board starts **as** the
        drawer's face and grows out of it, rather than sitting inside it with
        a margin of the carcass's dark all the way round. */
-    out.theBoardIsFlushWithTheFace =
-      Math.abs(gr.width - tr.width) <= 3 && Math.abs(gr.height - tr.height) <= 3;
     out.andConcentricWithIt =
       Math.abs((gr.x+gr.width/2) - (tr.x+tr.width/2)) <= 3 &&
       Math.abs((gr.y+gr.height/2) - (tr.y+tr.height/2)) <= 3;
