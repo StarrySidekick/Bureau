@@ -3544,12 +3544,11 @@ function gridOfContainer(cid){
   const vacant = holes.all;
   const papers = vacant ? '' : show ? show.papers : tilePapers(c.id, g, shift, cols, rows);
   const crosses = vacant ? '' : tileCrosses(c.id, g, shift, cols, rows);
-  const carved = vacant || camHere ? '' : show ? show.walls : carveEdges(c.id, g, shift, cols, rows);
   const zk = zoomOf(c.id);
   return `<div class="grid g-${dv}${zk!==1?' zoomed':''}${narrow?' narrowboard':''}${vacant?' vacant':''}${
       dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${show?' showcase':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"${zk!==1 ? ` data-zk="${zk.toFixed(4)}"` : ''}
-       style="${boardVars}${zk!==1 ? `--zk:${zk.toFixed(4)};--rowb:${(g.rowh/zk).toFixed(3)}px;` : ''}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${papers}${vacant?'':tiles+carved+lights+strings}${holes.html}${crosses}
+       style="${boardVars}${zk!==1 ? `--zk:${zk.toFixed(4)};--rowb:${(g.rowh/zk).toFixed(3)}px;` : ''}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${papers}${vacant?'':tiles+lights+strings}${holes.html}${crosses}
   </div>`;
 }
 
@@ -3623,8 +3622,7 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
     none++;
     // no plus (2026-09-30): holding the slot makes the tile (gestures.js)
     // and the rim of the cut on any side that meets the board (decision 283)
-    const rim = g.shelfW===1 ? sidesOf(cid, x, y, true).map(k=>' e'+k).join('') : '';
-    html += `<div class="noboard${rim}" style="grid-column:${i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${
+    html += `<div class="noboard" style="grid-column:${i*g.shelfW+1}/span ${Math.min(g.shelfW, cols-i*g.shelfW)};grid-row:${
       j*g.shelfH+1}/span ${Math.min(g.shelfH, rows-j*g.shelfH)}"></div>`;
   }
   return {all: none===nx*ny, html};
@@ -3659,40 +3657,9 @@ function showcaseOf(kids, shift, dv, cid){
       papers += `<i class="tilepaper" aria-hidden="true" style="--board-1:${a};--board-2:${b};grid-column:${i+1};grid-row:${j+1}"></i>`;
     });
   }
-  let walls = '';
-  cover.forEach(k=>{
-    const [i, j] = k.split(',').map(Number);
-    const e = [[0,-1,'t'],[1,0,'r'],[0,1,'b'],[-1,0,'l']]
-      .filter(([dx,dy])=>!cover.has((i+dx)+','+(j+dy))).map(([,,s])=>s);
-    if(e.length) walls += `<i class="carve${e.map(s=>' c'+s).join('')}" aria-hidden="true" style="grid-column:${i+1};grid-row:${j+1}"></i>`;
-  });
-  return {papers, walls};
+  return {papers};
 }
 
-/* ---- carved out of the carcass — decision 283 --------------------------
-   A tile is one cell, and a board is the cells cut out of the wood. The cut
-   is drawn at its edges: a board cell that meets wood is shaded on that side
-   (`.carve`, one element per edge cell, **over** the things on it, so a thing
-   against the edge sits under the lip rather than on top of the wood), the walls
-   above and to the left throwing their shadow in and the walls below and to
-   the right catching the light; and a wood cell that meets the board carries
-   the cut's rim on that side (`e-*` on `.noboard`). Only the edges, so a
-   board of any size costs its perimeter, not its area. `t r b l` are the four
-   sides, in CSS's order. */
-const sidesOf = (cid, x, y, want) =>
-  [[0,-1,'t'],[1,0,'r'],[0,1,'b'],[-1,0,'l']]
-    .filter(([dx,dy])=> isBoard(cid, x+dx, y+dy) === want).map(([,,k])=>k);
-function carveEdges(cid, g, shift, cols, rows){
-  if(g.shelfW!==1) return '';
-  let html = '';
-  for(let j=0; j<rows; j++) for(let i=0; i<cols; i++){
-    const x = shift.x+i, y = shift.y+j;
-    if(!isBoard(cid, x, y)) continue;
-    const e = sidesOf(cid, x, y, false);
-    if(e.length) html += `<i class="carve${e.map(k=>' c'+k).join('')}" aria-hidden="true" style="grid-column:${i+1};grid-row:${j+1}"></i>`;
-  }
-  return html;
-}
 
 /* The two presses the thread is waiting for. The first is remembered and
    marked; the second ties them — `relate()`, which is what the Related row

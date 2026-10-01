@@ -393,6 +393,8 @@ on it (`carriesOf()`, `travelWith()`). Scope in `docs/BOARDS.md`.
 **v2.83** (decision 289): the proportional mode, a board's stated shape
 (235) and every dead `if(TILE)` branch are deleted; `colsOf()`/`shelfRows()`
 answer `TILE`. Read decisions 188–195 as history.
+**v2.84** (decision 290): no carved walls round a board; the checkerboard
+meets the wood.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

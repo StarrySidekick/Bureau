@@ -3793,7 +3793,7 @@ html[data-surface="plain"] .drawer.otile.bgtile.fill-board{background-image:none
    into its box from its centre, `translate` taking up the difference: the
    same picture in every engine, container units and all. A pinboard's tiles
    hang from their pin, so theirs is taken up from there. */
-.grid.zoomed > *:not(.tilepaper):not(.showpaper):not(.carve):not(.lights):not(.strings):not(.noboard):not(.tileminus):not(.tilegrow):not(.tilegoing){
+.grid.zoomed > *:not(.tilepaper):not(.showpaper):not(.lights):not(.strings):not(.noboard):not(.tileminus):not(.tilegrow):not(.tilegoing){
   --rowh:var(--rowb);
   width:calc(100% / var(--zk,1));height:calc(100% / var(--zk,1));
   min-width:0;min-height:0;max-width:none;max-height:none;
@@ -3827,7 +3827,7 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
    surface rule above so an aesthetic's own background cannot outrank it, and
    each thing stands on a piece of the checkerboard cut to its box, lined up
    with the squares the unlocked board draws (`--px`/`--py`, half a period
-   for an odd column or row). The walls are `.carve`, drawn below. */
+   for an odd column or row). */
 .grid.showcase::before,
 html[data-style] .grid.showcase::before{
   background-image:none;background-color:var(--wood);opacity:1}
@@ -3839,31 +3839,8 @@ html[data-style] .grid.showcase::before{
 html[data-surface="plain"] .grid > .showpaper{background-image:none}
 html[data-surface="wood"] .grid > .showpaper{display:none}
 
-/* ---- carved out of the carcass — decision 283 ----------------------------
-   A board is cells cut out of the wood, so its edge is a cut: the wood stands
-   proud and the board is sunk into it. The light is from the top left, as it
-   is on every knob and front in the app, so the wall above and the wall to
-   the left throw their shadow onto the board, and the walls below and to the
-   right face the light and show as a lit line. The wood carries the rim of
-   the cut. Each side is its own custom property so a corner cell adds the
-   two it has; drawn only on the edge cells (`carveEdges()` in tiles.js). */
-.grid > .carve{pointer-events:none;display:block;z-index:2;
-  --wall:max(3px, calc(var(--rowh,48px) * .085));
-  --wlit:color-mix(in srgb, var(--wood) 62%, #e9c894);
-  --wdim:color-mix(in srgb, var(--wood) 78%, #000);
-  box-shadow:var(--ct,0 0 transparent),var(--cl,0 0 transparent),var(--cr,0 0 transparent),var(--cb,0 0 transparent)}
-/* each wall is a band of the wood it is cut from, then the shadow it throws */
-.grid > .carve.ct{--ct:inset 0 var(--wall) 0 var(--wdim), inset 0 calc(var(--wall) + 12px) 12px -10px rgba(0,0,0,.55)}
-.grid > .carve.cl{--cl:inset var(--wall) 0 0 color-mix(in srgb, var(--wood) 88%, #000), inset calc(var(--wall) + 10px) 0 10px -9px rgba(0,0,0,.4)}
-.grid > .carve.cr{--cr:inset calc(var(--wall) * -.8) 0 0 color-mix(in srgb, var(--wood) 74%, #e9c894)}
-.grid > .carve.cb{--cb:inset 0 calc(var(--wall) * -.8) 0 var(--wlit)}
-.noboard{box-shadow:var(--et,0 0 transparent),var(--el,0 0 transparent),var(--er,0 0 transparent),var(--eb,0 0 transparent)}
-/* the arris above and to the left of the board catches the light; the one
-   below and to the right is turned away from it */
-.noboard.eb{--eb:inset 0 -1px 0 color-mix(in srgb, var(--wood) 55%, #fff)}
-.noboard.er{--er:inset -1px 0 0 color-mix(in srgb, var(--wood) 65%, #fff)}
-.noboard.et{--et:inset 0 1px 0 color-mix(in srgb, var(--wood) 55%, #000)}
-.noboard.el{--el:inset 1px 0 0 color-mix(in srgb, var(--wood) 60%, #000)}
+/* The carved walls round a board (decision 283) are gone (decision 290):
+   the checkerboard simply meets the wood. */
 .addboard,.tiledrop{width:64px;height:64px;padding:0;cursor:pointer;pointer-events:auto;
   display:grid;place-items:center;border:0;background:none;border-radius:50%;
   color:color-mix(in srgb,#fff 30%,transparent);transition:color .15s}

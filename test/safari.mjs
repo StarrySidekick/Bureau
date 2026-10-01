@@ -164,7 +164,7 @@ await shot('03-grown');
 out.lockedIsAShowcase = await page.evaluate(async () => {
   BUREAU.state.look.locked = true; BUREAU.render(); await new Promise(r => setTimeout(r, 200));
   const g = document.querySelector('#drawergrid');
-  return g.classList.contains('showcase') && !!g.querySelector('.showpaper') && !!g.querySelector('.carve')
+  return g.classList.contains('showcase') && !!g.querySelector('.showpaper') && !g.querySelector('.carve')
     && getComputedStyle(g, '::before').backgroundImage === 'none';
 });
 await shot('04-showcase');

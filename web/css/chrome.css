@@ -5136,7 +5136,11 @@ input,textarea,select,[contenteditable],
    viewport instead: the last thing in the column, as tall as the viewport and
    pulled up by its own height so it adds nothing to the scroll. */
 .is-phone.flowscroll .scroll.deskscroll::after{position:sticky;display:block;
-  top:0;bottom:0;height:var(--flowh,100%);margin-top:calc(-1 * var(--flowh,0px))}
+  top:0;bottom:0;height:var(--flowh,100%);margin-top:calc(-1 * var(--flowh,0px));
+  /* the whole screen wide, or a board narrower than it (a fixed one,
+     decision 288), centred by the scroller's padding, showed the rim as a
+     strip the board's width (`--padx` is that padding, set in sizeGrid()) */
+  width:calc(100% + 2 * var(--padx, 0px));margin-left:calc(-1 * var(--padx, 0px))}
 /* A board shorter than the screen does not scroll and is centred instead, so
    it has no viewport to stick a rim to — and a rim a screen tall would be a
    second child pushing it off the middle (decision 272: every phone board is

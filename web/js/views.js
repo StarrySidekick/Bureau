@@ -2365,8 +2365,11 @@ function sizeGrid(){
       const zx = Math.max(0, Math.floor((boardW - drawCols(g, 'phone')*w)/2));
       const zy = Math.max(0, Math.floor((flowH - drawRows(g, 'phone')*w)/2));
       const px = zx ? zx+'px' : '', py = zy ? zy+'px' : '';
-      if(sc.style.paddingLeft !== px){ sc.style.paddingLeft = px; sc.style.paddingRight = px; }
+      if(sc.style.paddingLeft !== px){ sc.style.paddingLeft = px; sc.style.paddingRight = px;
+        sc.style.setProperty('--padx', px || '0px'); }
       if(sc.style.paddingTop !== py){ sc.style.paddingTop = py; sc.style.paddingBottom = py; }
+      // a board shorter than the screen has no viewport to stick the rim to
+      sc.classList.toggle('midboard', !!zy);
     }
     if(flowH && Math.abs(flowH-REVEAL.h)>0.01) REVEAL.h = flowH;
     const tall = flowH ? flowH+'px' : '';
@@ -2376,7 +2379,6 @@ function sizeGrid(){
       if(Math.abs((parseFloat(sc.style.getPropertyValue('--flowh'))||0)-flowH)>0.01)
         sc.style.setProperty('--flowh', flowH+'px');
     } else if(sc.style.getPropertyValue('--flowh')) sc.style.removeProperty('--flowh');
-    sc.classList.remove('midboard');
 
   } else if(dev()!=='phone'){
     /* A Mac measures the same two numbers now, because a shelf is the

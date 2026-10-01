@@ -10624,8 +10624,8 @@ const CHROME = process.env.BUREAU_CHROME;
       out.aHeldSlotMakesOne = B.boardsOf('root').length === sh0.w * sh0.h && !B.isBoard('root', W, 0)
         && !document.querySelector('#drawergrid.vacant');
       // …and the edge is still the cut: wooden walls on the board's edge cells
-      out.theCutIsDrawn = !!document.querySelector('#drawergrid .carve.ct')
-        && !!document.querySelector('#drawergrid .noboard.el, #drawergrid .noboard.er');
+      // no carved walls since decision 290: the checkerboard meets the wood
+      out.theCutIsDrawn = !document.querySelector('#drawergrid .carve');
       const t = S.objects.find(o=>o.id==='d_today'), was = {...t.phone};
       const left = B.create('note', {parent:'root', title:'Out left'});
       left.phone = {x:1, y:t.phone.y, w:1, h:1}; left.desk = null;

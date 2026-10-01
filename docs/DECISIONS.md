@@ -12237,3 +12237,23 @@ rule about boards has fewer paths to be taught.
   to be one 8×14 tile (`everyDrawerIsOneTile`, `aDrawerStartsAtOneTile`), and
   "a full board refuses" is asked of a fixed one.
 - Still there: `CAMERA=false` and decisions 187–192's camera code, inert.
+
+## 290. No carved walls round a board (v2.84, 2026-10-01)
+
+Timothy: the carved border on the edge of the board, from when a board was
+cut out of the carcass a cell at a time (decision 283), "is no longer
+necessary". So the checkerboard simply meets the wood.
+
+- `carveEdges()`, `sidesOf()` and the `.carve` walls are gone, and so are the
+  rims on the wood beside a board (`.noboard.e*`). A locked board's showcase
+  (decision 287) keeps its paper under each thing and loses the walls round
+  it.
+- **The rim shading on a board narrower than the screen** (a fixed one,
+  288) showed as a strip the board's width, because the scroller centres a
+  narrow board with padding. The sticky shading is widened by that padding
+  (`--padx`, set beside it in `sizeGrid()`), and a board shorter than the
+  screen gets `.midboard` again, which hides the shading it has no viewport
+  to stick to. Decision 289 had dropped that switch with the proportional
+  mode, its only setter.
+- `theCutIsDrawn` in the smoke suite and the showcase check in
+  `test/safari.mjs` now assert there are no walls.
