@@ -8123,7 +8123,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     const nap = n => new Promise(r => setTimeout(r, n));
     const S = BUREAU.state, out = {}, was = S.look.style;
     BUREAU.setStyle('starry'); await nap(400);
-    const tile = document.querySelector('.grid .drawer.dtile');
+    // a drawer: the garbage bin (decision 285) is a wire basket, not a drawing
+    const tile = document.querySelector('.grid .drawer.dtile:not(.bintile)');
     const obj  = document.querySelector('.grid .drawer.otile');
     const cs = getComputedStyle(tile), os = getComputedStyle(obj);
     /* 1. **No ground.** A thing on this desk is its outline and nothing else —
