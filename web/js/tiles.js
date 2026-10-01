@@ -1129,6 +1129,7 @@ function gridTile(o, arr, parentId){
    sensible answer without being told. */
 const depthOf = o =>
     isDecor(o) || isBackdrop(o) ? 0  /* a cut-out, or a cloth, with no box to have sides */
+  : faceOf(o)==='bin' ? 0         // …or a wire basket (decision 285)
   : isContainer(o)  ? 1           // furniture, standing on the shelf
   : shapeOf(o)==='spine' ? 0.9    // a book is nearly as deep as the drawer beside it
   : has(o,'media')  ? 0.55        // a framed thing has a frame's thickness

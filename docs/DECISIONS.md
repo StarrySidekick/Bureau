@@ -11946,7 +11946,7 @@ Claude can build boards for him reliably. It is `docs/GRAMMAR.md`.
 - Guarded in the smoke test's paste block (`pasteOk`): a `pj_novel` key is a
   novel, and `"due": null` is undated.
 
-## 285. The garbage bin (v2.72, 2026-10-01)
+## 285. The garbage bin (v2.72–2.73, 2026-10-01)
 
 Timothy, approving `docs/USES.md`: *"garbage bin. deleted objects go to a
 gravity applied container where you can sift through things you threw away."*
@@ -12001,3 +12001,12 @@ twenty moves of undo, and that is the wrong bargain for a desk you live in.
 - Guarded by `garbageBin` in the smoke test, `undoWorks` now reads "in the
   bin" for gone, and `test/safari.mjs` checks the basket is drawn and the heap
   falls into the lower half of the board in WebKit.
+- **v2.73** is the first full smoke run's findings. A bin has **depth 0**
+  (`depthOf()`, through `faceOf()`), like a decoration: a basket has no box
+  sides, so it gets no flank or face layers, which also took it out of the
+  depth block's every-flank-is-drawn check. Six smoke assertions read
+  "deleted" as "no longer in `S.objects`" and now read "in the bin"; two
+  places in *boards you add* clear the bin a delete made, because the blocks
+  after them were written against the placements without it. And v2.71's
+  paste guard had put its two new items inside Lisbon, which the rollup block
+  counts; they sit beside it now.

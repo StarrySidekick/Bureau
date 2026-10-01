@@ -630,10 +630,11 @@ const PROP_OFF = () => { const b = document.createElement('button');
   const pasteOk = await page.evaluate(() => {
     BUREAU.paste(JSON.stringify([
       { type: 'drawer', title: 'Lisbon', children: [
-        { type: 'task', title: 'Book the flight', due: '2026-09-02' }, 'Milk',
-        // an exact key with an underscore is that type, not a note (GRAMMAR.md),
-        // and "due": null is undated rather than today
-        { type: 'pj_novel', title: 'The Tide Book' }, { type: 'task', title: 'Someday', due: null } ] }
+        { type: 'task', title: 'Book the flight', due: '2026-09-02' }, 'Milk' ] },
+      // an exact key with an underscore is that type, not a note (GRAMMAR.md),
+      // and "due": null is undated rather than today. Beside Lisbon, not in
+      // it: the rollup block counts Lisbon's two.
+      { type: 'pj_novel', title: 'The Tide Book' }, { type: 'task', title: 'Someday', due: null }
     ]));
     const d = BUREAU.state.objects.find(o => o.title === 'Lisbon');
     const t = BUREAU.state.objects.find(o => o.title === 'Book the flight');
@@ -4731,7 +4732,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(150);
     window.__fling = fling.id;
     const thrown = await carry(62, 'all', 8, 8, () => 3, `#app .grid .drawer[data-row="${fling.id}"]`);
-    out.aHardFlickThrowsIt = !alive(thrown);
+    // thrown off the desk is a delete, which files it in the bin (decision 285)
+    out.aHardFlickThrowsIt = (S.objects.find(o => o.id === thrown) || {}).parent === '__bin';
     out.andTheTileFliesOff = !!document.querySelector('#fx .fxtoss');
     /* The picture must not answer to the id of the thing that has just been
        deleted, or the drag's own lookups find it — decision 51 from the other
@@ -5706,7 +5708,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     out.rightIsToday = right.act && /due/.test(right.colour) && !!b.due;
     const n = S.objects.length;
     const left = await swipe(c.id, -120);
-    out.leftIsDelete = left.act && /del/.test(left.colour) && S.objects.length === n-1;
+    // a delete files it in the bin now (decision 285)
+    out.leftIsDelete = left.act && /del/.test(left.colour) && (S.objects.find(o => o.id === c.id) || {}).parent === '__bin';
     out.andTheStripIsTidiedUp = !document.querySelector('#rowact');
 
     // a hold, then a move, reorders — and it writes `ord`, not a box
@@ -6386,7 +6389,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render(); await nap(150);
     S.sel = [n.id]; S.undo = []; BUREAU.render(); await nap(120);
     press('Backspace'); await nap(180);
-    out.deleteKeyDeletes = !BUREAU.state.objects.some(o => o.id === n.id);
+    out.deleteKeyDeletes = (BUREAU.state.objects.find(o => o.id === n.id) || {}).parent === '__bin';
     BUREAU.undo(); await nap(150);
     out.andUndoBringsItBack = BUREAU.state.objects.some(o => o.id === n.id);
     const back = BUREAU.state.objects.find(o => o.id === n.id);
@@ -10630,7 +10633,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
       lone.shelves = {w:1, h:1};
       out.lastNeverGoes = B.removeBoard('root', 8, 0) && B.boardsOf(lone.id).length === 1
         && !B.removeBoard(lone.id, 0, 0);
-      B.del(lone.id); B.render(); await nap(150);
+      B.del(lone.id);
+      /* That delete made the garbage bin (decision 285), which would take the
+         spot every placement after it here was written against; this block is
+         about boards, so the bin and what is in it go. */
+      S.objects = S.objects.filter(o => o.id !== '__bin' && o.parent !== '__bin');
+      B.render(); await nap(150);
       out.noRoomOnASlot = !B.boxOk({x:9, y:1, w:1, h:1}, null, 'phone', 'root');
       const pl = S.plans.find(p=>p.stock==='projectmgmt'), nv = S.plans.find(p=>p.stock==='novel');
       out.flowsCarryBoards = !!(pl && pl.boards && pl.boards.length===3 && nv && nv.boards.length===2);
@@ -10747,7 +10755,10 @@ const PROP_OFF = () => { const b = document.createElement('button');
     await fresh.mouse.move(rowAt.x, rowAt.y); await fresh.mouse.down();
     for(let i=1; i<=15; i++){ await fresh.mouse.move(rowAt.x - 12*i, rowAt.y); await fresh.waitForTimeout(16); }
     await fresh.mouse.up(); await fresh.waitForTimeout(400);
-    boardsYouAdd.aRowStillSwipes = await fresh.evaluate(id => !BUREAU.state.objects.find(o=>o.id===id), rowAt.id);
+    boardsYouAdd.aRowStillSwipes = await fresh.evaluate(id => (BUREAU.state.objects.find(o=>o.id===id) || {}).parent === '__bin', rowAt.id);
+    // …and the bin that swipe made goes too, for the block after (decision 285)
+    await fresh.evaluate(() => { const S = BUREAU.state;
+      S.objects = S.objects.filter(o => o.id !== '__bin' && o.parent !== '__bin'); BUREAU.render(); });
   } else boardsYouAdd.aRowStillSwipes = 'no row';
   await fresh.screenshot({ path: 'test/shots/219-line.png' });
 
