@@ -3727,7 +3727,7 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
   background:var(--wood)}
 .grid.vacant .noboard{background:transparent}
-/* ---- a locked board shows what is on it — decision 284 -----------------
+/* ---- a locked board shows what is on it — decision 285 -----------------
    The board's own paper goes to the carcass's wood, said twice like the
    surface rule above so an aesthetic's own background cannot outrank it, and
    each thing stands on a piece of the checkerboard cut to its box, lined up

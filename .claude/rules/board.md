@@ -5,7 +5,7 @@ paths:
 ---
 # The board
 
-**Read this first of all (decision 284): a board is as big as what is on
+**Read this first of all (decision 285): a board is as big as what is on
 it.** Nothing is carved; `fitBoard()` sizes the board being drawn at every
 render (and `fitAll()` at boot) to its things plus `MARGIN` empty cells each
 side (at least `FRESH`). The right and bottom follow both ways; the top and

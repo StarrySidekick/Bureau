@@ -1,7 +1,7 @@
 import { D, uid, clamp, ROOT } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
 import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold } from './grid.js';
-import { toast, create, pushUndo } from './mutations.js';
+import { toast, create, makeCompound, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.74';
+const APP_VERSION = '2.75';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1373,7 +1373,7 @@ const MIGRATIONS = [
       if(c.start) c.start = {x:(c.start.x||0)*T + 2, y:(c.start.y||0)*T + 2};
     });
   }},
-  /* ---- a board as big as what is on it (decision 284) -------------------
+  /* ---- a board as big as what is on it (decision 285) -------------------
      Nothing is carved any more, so every board's list of carved cells goes
      and it is its whole rectangle. `fitBoard()` then sizes each board to what
      is on it the first time it is drawn; nothing moves on the screen. */
@@ -1672,6 +1672,9 @@ function importImage(file){
 // "Magic drawer", "magic_drawer", "MAGICDRAWER" — all the same type.
 function kindFromName(n){
   if(!n) return 'note';
+  // an exact key first: squeezing out everything but letters made "pj_novel"
+  // and "cp_quick" into words no key answers to, and they arrived as notes
+  if(KINDS[n]) return n;
   const t=String(n).toLowerCase().replace(/[^a-z]/g,'');
   if(KINDS[t]) return t;
   const byName=KEYS.find(k=>K(k).nm.toLowerCase().replace(/[^a-z]/g,'')===t);
@@ -1739,10 +1742,20 @@ function addSpec(spec, parentId, tally){
     return box;
   }
   const asked=kindFromName(spec.type||spec.kind);
+  /* A compound is its parts, grouped and tied (decision 254), which only
+     makeCompound() knows how to make. Its own undo move is taken back off the
+     stack so the paste stays one move. */
+  if(K(asked).parts){
+    const made = makeCompound(asked, {parent:parentId}) || [];
+    if(made.length){ S.undo.pop(); tally.objects+=made.length; tally.made.push(...made.map(x=>x.id)); }
+    return made[0] || null;
+  }
   const kids=Array.isArray(spec.children)?spec.children:[];
   // something with children has to be able to hold them
   const kind = (kids.length && !kindHas(asked,'container')) ? 'drawer' : asked;
-  const o=create(kind,{parent:parentId, title:String(spec.title||spec.name||'Untitled')});
+  // `"due": null` says undated, where leaving it out takes the type's default
+  const o=create(kind,Object.assign({parent:parentId, title:String(spec.title||spec.name||'Untitled')},
+    'due' in spec ? {due:spec.due||null} : {}));
   if(spec.tags) o.tags=[].concat(spec.tags).map(String);
   SPEC_FIELDS.forEach(f=>{ if(spec[f]!=null) o[f]=spec[f]; });
   // a Link keeps its address where the Link reads it

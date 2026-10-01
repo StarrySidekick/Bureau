@@ -360,7 +360,7 @@ carved out of the carcass a cell at a time (hold the wood beside it; a long
 hold on an empty cell fills it back); a fresh desk or container is 8×14
 (`FRESH`); migration 54 re-cuts old boards cell by cell, moving nothing; the
 cut is drawn as wooden walls and shadow (`carveEdges()`, `.carve`).
-**v2.71** (decision 284): **a board is as big as what is on it.** Nothing is
+**v2.72–2.75** (decision 285): **a board is as big as what is on it.** Nothing is
 carved: `fitBoard()` makes it the rectangle round its things plus `MARGIN`
 (8) empty cells each side, at least `FRESH`, every render and at boot
 (`fitAll()`). The right and bottom follow what is there both ways; **the
@@ -380,6 +380,11 @@ at, and what is worth taking from Bear, Things 3 and Notion.
 missing for Timothy to live in it, and the case for a freeze.
 `docs/FUNCTIONS.md` is the fifteen functions a paper system serves and Bureau's
 answer to each — scoped, not built, and the source of the current plan.
+`docs/USES.md` (2026-10-01) is what Timothy approved Bureau being for, the
+objects that need, and the order to build them. **`docs/GRAMMAR.md` is how to
+build in Bureau** (a paste, a flow and its `fill`, the whole vocabulary):
+read it before writing any board for him, and rerun `node scripts/grammar.mjs`
+after changing a type, a field or a flow.
 
 Read `docs/SYSTEM.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately

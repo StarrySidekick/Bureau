@@ -91,7 +91,7 @@ await page.mouse.move(drag.x, drag.y - 2 * drag.cell, { steps: 8 }); await nap(8
 const follows = await page.evaluate(() => {
   const b = document.querySelector('#drawergrid .drawer[data-drawer="d_in"]').getBoundingClientRect(); return b.y + b.height / 2; });
 await page.mouse.up(); await nap(300);
-// a board fits itself to what is on it (decision 284), so every number may
+// a board fits itself to what is on it (decision 285), so every number may
 // have moved by the same amount: measured against a neighbour
 const [after, refAfter] = await page.evaluate(r => [BUREAU.state.objects.find(o => o.id === 'd_in').phone,
   BUREAU.state.objects.find(o => o.id === r).phone], drag.ref);
@@ -128,7 +128,7 @@ out.rigidSwipeMovesOneTile = await page.evaluate(async () => {
   return Math.abs(moved - step) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
 });
 
-// ---- a board is as big as what is on it (decision 284) -----------------
+// ---- a board is as big as what is on it (decision 285) -----------------
 /* No carving: the desk is everything on it with a margin of empty cells
    round it. A thing put out in the margin grows the board past it, and the
    view holds still while the numbers under it move. Locked, the empty cells

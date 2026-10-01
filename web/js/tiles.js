@@ -3415,7 +3415,7 @@ function gridOfContainer(cid){
     kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o, dv, c.id);
       return b.x>shift.x && b.x<=shift.x+drawCols(g, dv) && b.y>shift.y && b.y<=shift.y+tall; });
   }
-  /* **Locked, the board is what is on it** (decision 284): the empty cells
+  /* **Locked, the board is what is on it** (decision 285): the empty cells
      go back to the carcass and only the cells things stand on keep the
      paper, cut into the wood the way a carved board was. Read here, before
      the tiles are drawn, because gridTile() takes each box out of FLOW. */
@@ -3576,7 +3576,7 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
   return {all: none===nx*ny, html};
 }
 
-/* ---- a locked board shows what is on it — decision 284 -----------------
+/* ---- a locked board shows what is on it — decision 285 -----------------
    One paper per thing, its box on the board, the checkerboard lined up with
    the grid's own (the squares are two cells across, so an odd column starts
    half a period in); and the same walls a carved board had, round the cells
