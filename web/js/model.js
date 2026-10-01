@@ -370,7 +370,7 @@ const BUILTIN_KINDS = {
      through it. One press in from Decoration rather than a tile of its own in
      a list that is already long. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
-     family:['plant','ornament','painting','window','background'], famSub:'What is standing there?', body:'' },
+     family:['plant','ornament','painting','window','background','mat'], famSub:'What is standing there?', body:'' },
   /* **Decoration's subtypes** (decision 218, from the Workshop): a Plant, a
      Physical Object, the Painting and the Window. The first two are the
      photographed ornaments split by the `plant` mark on each in decor.js, and
@@ -389,6 +389,12 @@ const BUILTIN_KINDS = {
      `newOfKind()` resolves it through `someKind()` before anything is made,
      so no object is ever of this kind. */
   anything:{nm:'Random', ic:'sparkle', c:10, ds:'One of anything, picked when it is made', attrs:['text'], size:[4,3], makesAny:true, body:'' },
+  /* A **Board** (decision 288): a board laid down on a free one, for the
+     part of an expanse that wants edges. It lies under things as a
+     background does, so they stand on it and the board under it already
+     counts its cells, and moving it carries whatever lies wholly on it
+     (`carries`). In the code it is `mat`, since `board` is taken. */
+  mat:     {nm:'Board', ic:'grid', c:12, ds:'A board on the board: things go on it and move with it', attrs:['backdrop'], size:[8,8], phoneSize:[6,6], onclick:'none', fill:'board', carries:true, body:'' },
   background:{nm:'Background', ic:'layers', c:12, ds:'A color, a check or a weave laid under other things', attrs:['backdrop'], size:[8,6], phoneSize:[4,4], onclick:'none', fill:'solid', variants:'fills', body:'' },
   /* Sound and moving pictures are things you put on a desk, not a corner of
      film-making — so they are majors, and pressing one plays it rather than
@@ -410,7 +416,7 @@ const BUILTIN_KINDS = {
      small — not a separate wall of thumbnails that had to be kept in step with
      what the drawer actually holds. So it is a *face* any container can wear,
      and this is the type that wears it by default. See decision 134. */
-  moodboard:{face:'collage', nm:'Collage', ic:'image', c:13, ds:'Pictures, arranged — the board inside it, seen from outside', size:[8,8], attrs:['container'], layout:'grid', body:'' },
+  moodboard:{form:'free', face:'collage', nm:'Collage', ic:'image', c:13, ds:'Pictures, arranged — the board inside it, seen from outside', size:[8,8], attrs:['container'], layout:'grid', body:'' },
   /* **A jar is a drawer you can see into**, and that is the only difference.
      Every other container in Bureau answers "what is in you" by being opened;
      a jar answers it standing shut, which is the whole reason a kitchen has
@@ -1103,6 +1109,7 @@ const WORKSHOP_SIZES = {
   plant:{size:[2,3], range:[[1,4],[1,6]], phone:null},
   ornament:{size:[2,2], range:[[1,4],[1,6]], phone:null},
   background:{size:[4,4], range:[[1,8],[1,14]], phone:null},
+  mat:{size:[8,8], range:[[2,24],[2,24]], phone:null},
   anything:{size:[2,2], range:[[1,8],[1,14]], phone:null},
   button:{size:[1,1], range:[[1,8],[1,2]], phone:null},
   notepad:{size:[4,1], range:[[2,8],[1,4]], phone:null},
@@ -2044,7 +2051,10 @@ const isBackdrop = o => has(o,'backdrop');
 const FILLS = { solid:{nm:'Solid'}, check:{nm:'Checkerboard'}, gingham:{nm:'Gingham'},
   stripe:{nm:'Stripes'}, dots:{nm:'Polka dots'}, linen:{nm:'Linen'}, felt:{nm:'Felt'}, cork:{nm:'Cork'} };
 const FILL_KEYS = Object.keys(FILLS);
-const fillOf = o => { const f = (o && o.fill) || K(o && o.kind).fill; return FILLS[f] ? f : 'solid'; };
+const fillOf = o => { const f = (o && o.fill) || K(o && o.kind).fill; return FILLS[f] || f==='board' ? f : 'solid'; };
+/* What moves with a thing when it is dragged: whatever lies wholly on a
+   Board (decision 288). Ask this, never the type. */
+const carriesOf = o => !!o && !!K(o.kind).carries;
 /* …and the other two. Audio and Video were real types with a mark, a size and a
    place in the picker, and the file input was `accept="image/*"` — so they
    existed in order to tell you they were not implemented, which is a promise
@@ -2822,7 +2832,22 @@ function travelWith(o){
   if(!o) return null;
   if(S.sel && S.sel.length>1 && S.sel.includes(o.id)) return S.sel.slice();
   const mates = groupMates(o);
-  return mates.length>1 ? mates.map(x=>x.id) : null;
+  const ids = mates.length>1 ? mates.map(x=>x.id) : [o.id];
+  /* A Board brings what lies wholly on it (decision 288), and a thing
+     grouped with it brings its own group. */
+  if(carriesOf(o)) carriedBy(o).forEach(k=>{ if(!ids.includes(k.id)) ids.push(k.id); });
+  return ids.length>1 ? ids : null;
+}
+/* Everything lying wholly on a Board, on the layout being edited. */
+function carriedBy(o){
+  const dv = dev(), m = o && o[dv];
+  if(!m || !m.x || !m.w) return [];
+  return S.objects.filter(k=>{
+    if(!k || k.id===o.id || (k.parent||ROOT)!==(o.parent||ROOT) || k.done || inFront(k)) return false;
+    const b = k[dv];
+    return !!(b && b.x && b.w) && b.x>=m.x && b.y>=m.y
+      && b.x+b.w<=m.x+m.w && b.y+(b.h||1)<=m.y+(m.h||1);
+  });
 }
 /* One group out of a list of ids, and only the ones that share a parent with
    the first — see above. Returns the id it wrote, so the caller can say so. */
@@ -3642,7 +3667,7 @@ export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, co
   SHAPES_KEPT, shapeName, shapeChoices,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  placeOf, isHeld, isGone, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo, pipesOf, pipeFor, inFront, heldObjects, heldCount,
+  placeOf, carriesOf, isHeld, isGone, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo, pipesOf, pipeFor, inFront, heldObjects, heldCount,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
   GRAVITIES, gravityMode, gravityOn, gravityTilts, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,

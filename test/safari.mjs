@@ -258,6 +258,58 @@ out.aPipeTagSitsBesideItsMouth = await page.evaluate(() => {
 });
 await shot('08-brain-dump');
 
+// ---- three kinds of board (decision 288): the desk is free, a new drawer
+// is one tile of 8×14, holding the wood beside it lays a second tile, a
+// fixed board refuses what will not fit, and a Board carries what is on it.
+out.theDeskIsFree = await page.evaluate(() => BUREAU.formOf('root').form === 'free');
+const tiled = await page.evaluate(async () => {
+  const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const d = BUREAU.create('drawer', {parent:'root', title:'Kitchen'}); delete d.setup;
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await new Promise(r => setTimeout(r, 400));
+  const f = BUREAU.formOf(d.id), g = document.querySelector('#drawergrid');
+  return {id: d.id, form: f.form, w: f.w, h: f.h, tiles: BUREAU.tilesOf(d.id).length,
+    cols: +g.style.getPropertyValue('--cols'), wood: document.querySelectorAll('#drawergrid > .noboard').length};
+});
+out.aNewDrawerIsOneTile = tiled.form === 'tiled' && tiled.w === 8 && tiled.h === 14 && tiled.tiles === 1;
+await shot('09-tiled-drawer');
+// scroll to the foot of the tile and hold the wood under it
+const woodNow = await page.evaluate(async () => {
+  const sc = document.querySelector('#app .deskscroll'); sc.scrollTop = sc.scrollHeight;
+  await new Promise(r => setTimeout(r, 400));
+  const g = document.querySelector('#drawergrid'), cell = parseFloat(g.style.getPropertyValue('--rowh'));
+  const v = sc.getBoundingClientRect();
+  const t = [...g.querySelectorAll('.noboard')].map(e => e.getBoundingClientRect())
+    .find(b => b.left >= v.left + cell * 3 && b.right <= v.right && b.top >= (v.top + v.bottom) / 2 && b.bottom <= v.bottom + 1);
+  if (!t) return null;
+  const x = (Math.max(t.left, v.left) + Math.min(t.right, v.right)) / 2, y = (t.top + t.bottom) / 2;
+  return {x, y};
+});
+if (woodNow) {
+  await page.mouse.move(woodNow.x, woodNow.y); await page.mouse.down(); await nap(900); await page.mouse.up(); await nap(500);
+}
+out.holdingTheWoodAddsATile = await page.evaluate(id => BUREAU.tilesOf(id).length === 2, tiled.id);
+await shot('10-tiled-two');
+out.aFixedBoardSaysNo = await page.evaluate(async id => {
+  BUREAU.setForm(id, 'fixed'); BUREAU.setTileDim(id, 'w', 2); BUREAU.setTileDim(id, 'h', 2);
+  BUREAU.render(); await new Promise(r => setTimeout(r, 300));
+  const f = BUREAU.formOf(id);
+  return f.form === 'fixed' && f.w === 2 && f.h === 2 && !(await import('./js/grid.js')).freeSpot(4, 4, 'phone', id);
+}, tiled.id);
+await page.evaluate(async id => { BUREAU.setTileDim(id, 'w', 6); BUREAU.setTileDim(id, 'h', 6);
+  BUREAU.render(); await new Promise(r => setTimeout(r, 300)); }, tiled.id);
+await shot('11-fixed-drawer');
+out.aBoardCarriesWhatIsOnIt = await page.evaluate(async () => {
+  const S = BUREAU.state; S.view = 'desk'; S.drawerId = null;
+  const m = BUREAU.create('mat', {parent:'root', title:'Board'});
+  const n = BUREAU.create('thought', {parent:'root', title:'On the board'});
+  BUREAU.render(); await new Promise(r => setTimeout(r, 300));
+  const b = m.phone; n.phone = {x: b.x + 1, y: b.y + 1, w: 2, h: 2};
+  BUREAU.render(); await new Promise(r => setTimeout(r, 300));
+  const t = BUREAU.travelWith(m) || [];
+  return t.includes(n.id) && !!document.querySelector('.bgtile.fill-board');
+});
+await shot('12-a-board');
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

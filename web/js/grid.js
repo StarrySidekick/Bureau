@@ -1,6 +1,6 @@
 import { wordOf } from './words.js';
-import { clamp, ROOT } from './util.js';
-import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront } from './model.js';
+import { clamp, ROOT, BIN } from './util.js';
+import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront, isInbox } from './model.js';
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -184,7 +184,145 @@ function gridKeyOf(cid){
    is a box, and they are rarely the same shape. */
 /* Two to twelve across and two to twenty-four down (Timothy, 2026-09-28): a
    phone is tall, and a list board wants the length. */
-const DIM_MIN = 2, DIM_MAX = 12, DIM_MAX_H = 24;
+const DIM_MIN = 2, DIM_MAX = 24, DIM_MAX_H = 24;
+/* ---- three kinds of board — decision 288 ------------------------------
+   Timothy, 2026-10-01: the desk is a place to spread out and a container is
+   often a place made small on purpose, so a board says which it is (`form`
+   on its config, else its type's, else the default below):
+
+   - **free**: what decision 287 built. The board is the rectangle round what
+     is on it plus a margin, scrolls and zooms, and grows as things go down.
+   - **tiled**: a tile of `bw` × `bh` cells, and more tiles of the same size
+     added beside it (`tiles`, a list of "tx,ty"). When a thing will not fit,
+     `full` says whether a tile is added below (`add`) or it is refused.
+   - **fixed**: one tile, never more. A tiled board that cannot grow.
+
+   Nothing else asks which kind a board is: `boardRect()`, `boardList()`,
+   `addBoard()`, `removeBoard()`, `growDown()` and `fitBoard()` read this and
+   the rest of the app reads them. A tiled board never moves a number on its
+   own: tiles are only ever added to the left or above by a hold, and that is
+   the one time its boxes shift. */
+const FORMS = ['free', 'tiled', 'fixed'];
+const dimOk = (v, mx) => Number.isInteger(+v) && +v>=DIM_MIN && +v<=mx ? +v : null;
+/* What a container is born as when neither it nor its type says (Timothy:
+   "the grid type that makes sense for them"): an inbox and the bin are a
+   fixed box, a sorting drawer pages in tiles, everything else is tiled. */
+function formDefault(o){
+  if(!o) return 'free';
+  if(o.id===BIN || isInbox(o)) return 'fixed';
+  const k = K(o.kind);
+  return FORMS.includes(k.form) ? k.form : 'tiled';
+}
+function formOf(cid){
+  const id = cid==null ? hereId() : cid;
+  const c = boardCfg(id);
+  const o = id===ROOT ? null : byId(id);
+  if(!c || (id!==ROOT && !o)) return {form:'free', w:FRESH.w, h:FRESH.h, full:'add'};
+  const form = FORMS.includes(c.form) ? c.form : id===ROOT ? 'free' : formDefault(o);
+  const k = o ? K(o.kind) : {};
+  return {form,
+    w: dimOk(c.bw, DIM_MAX) || dimOk(k.bw, DIM_MAX) || FRESH.w,
+    h: dimOk(c.bh, DIM_MAX_H) || dimOk(k.bh, DIM_MAX_H) || FRESH.h,
+    full: form==='fixed' ? 'stop' : c.full==='stop' ? 'stop' : 'add'};
+}
+const tiledBoard = cid => formOf(cid).form!=='free';
+/* The tiles of a tiled board, as {x,y} in tiles. A fixed board is one. */
+function tilesOf(id){
+  const f = formOf(id), c = boardCfg(id);
+  if(f.form==='fixed') return [{x:0, y:0}];
+  const list = c && Array.isArray(c.tiles) && c.tiles.length ? c.tiles : ['0,0'];
+  return list.map(k=>{ const [x,y] = String(k).split(',').map(Number); return {x:x|0, y:y|0}; })
+    .filter(t=>t.x>=0 && t.y>=0);
+}
+/* The cells one tile covers, 0-based, inclusive. */
+function tileRectOf(id, cx, cy){
+  const f = formOf(id), tx = Math.floor(cx/f.w), ty = Math.floor(cy/f.h);
+  return {tx, ty, x0:tx*f.w, y0:ty*f.h, x1:tx*f.w+f.w-1, y1:ty*f.h+f.h-1};
+}
+/* What is on a board, either device, as boxes: what a tile holds and what a
+   tiled board has to cover. */
+function boxesOn(id){
+  const out = [];
+  S.objects.forEach(k=>{
+    if(!k || (k.parent||ROOT)!==id || k.done || inFront(k)) return;
+    ['desk','phone'].forEach(dv=>{ const b = k[dv]; if(b && b.x && b.w) out.push(b); });
+  });
+  return out;
+}
+/* **A board turned tiled is made to hold what is on it**, once: what is on
+   it moves up to the corner (a free board kept a margin there) and as many
+   tiles as it takes are laid under it. Later, only tiles are added: a box
+   that has come to lie past them (a tile made narrower, a paste) gets the
+   tiles it is on, and on a fixed board the board grows to it, because the
+   alternative is a thing nobody can see. Answers the shift, like fitBoard. */
+function fitTiles(id){
+  const c = boardCfg(id); if(!c) return null;
+  let sx = 0, sy = 0;
+  if(!Array.isArray(c.tiles)){
+    const bs = boxesOn(id);
+    if(bs.length){
+      sx = 1 - Math.min(...bs.map(b=>b.x)); sy = 1 - Math.min(...bs.map(b=>b.y));
+      if(sx || sy) shiftCells(id, sx, sy);
+    }
+    c.tiles = ['0,0'];
+    delete c.shelves;
+    PLACED.n++;
+  }
+  const f = formOf(id), bs = boxesOn(id);
+  if(f.form==='fixed'){
+    const w = Math.max(f.w, ...bs.map(b=>b.x+b.w-1)), h = Math.max(f.h, ...bs.map(b=>b.y+(b.h||1)-1));
+    if(w!==f.w || h!==f.h){ c.bw = Math.min(DIM_MAX, w); c.bh = Math.min(DIM_MAX_H, h); PLACED.n++; }
+  } else {
+    const have = new Set(c.tiles);
+    bs.forEach(b=>{
+      for(let ty=Math.floor((b.y-1)/f.h); ty<=Math.floor((b.y+(b.h||1)-2)/f.h); ty++)
+        for(let tx=Math.floor((b.x-1)/f.w); tx<=Math.floor((b.x+b.w-2)/f.w); tx++)
+          if(tx>=0 && ty>=0 && !have.has(tx+','+ty)){ have.add(tx+','+ty); c.tiles.push(tx+','+ty); PLACED.n++; }
+    });
+  }
+  return sx || sy ? {x:sx, y:sy} : null;
+}
+/* Turning a board into another kind. To free, the tiles go and fitBoard()
+   sizes it from what is on it; to tiled or fixed, fitTiles() does the rest
+   on the next render. */
+function setForm(cid, form){
+  const id = cid==null ? hereId() : cid;
+  const c = boardCfg(id); if(!c || !FORMS.includes(form)) return false;
+  const was = formOf(id).form;
+  if(was===form) return false;
+  c.form = form;
+  if(form==='free'){ delete c.tiles; }
+  else if(was==='free'){ delete c.tiles; delete c.shelves; }
+  else if(form==='fixed'){
+    // a tiled board fixed keeps everything: its one tile becomes the lot
+    const ts = tilesOf(id), f = formOf(id);
+    if(ts.length > 1){
+      c.bw = Math.min(DIM_MAX, (Math.max(...ts.map(t=>t.x))+1)*f.w);
+      c.bh = Math.min(DIM_MAX_H, (Math.max(...ts.map(t=>t.y))+1)*f.h);
+    }
+    c.tiles = ['0,0'];
+  }
+  PLACED.n++;
+  return true;
+}
+/* A tile's width or height. Never smaller than what is on a fixed board; on
+   a tiled one, things past the new edge get the tiles they are on. */
+function setTileDim(cid, part, v){
+  const id = cid==null ? hereId() : cid;
+  const c = boardCfg(id); if(!c) return false;
+  const f = formOf(id), mx = part==='w' ? DIM_MAX : DIM_MAX_H;
+  let n = clamp(Math.round(+v), DIM_MIN, mx);
+  if(f.form==='fixed'){
+    const bs = boxesOn(id);
+    const need = bs.length ? Math.max(...bs.map(b=>part==='w' ? b.x+b.w-1 : b.y+(b.h||1)-1)) : DIM_MIN;
+    n = Math.max(n, need);
+  }
+  if(n===(part==='w' ? f.w : f.h)) return false;
+  if(part==='w') c.bw = n; else c.bh = n;
+  if(f.form==='tiled') fitTiles(id);
+  PLACED.n++;
+  return true;
+}
 /* **Retired by decision 272**: every tile is eight by eight, so no board
    states a shape of its own. Kept, answering null, so every reader of it
    takes the plain path; migration 50 takes `bw`/`bh` off. */
@@ -249,6 +387,10 @@ const SPAN = 200;  // cells since decision 283; it was 40 tiles of five
    config (it is not an object), everything else's on the object. */
 const boardCfg = id => id===ROOT ? (S.deskCfg || (S.deskCfg = {layout:'grid', sort:null})) : byId(id);
 function boardRect(id){
+  if(tiledBoard(id)){
+    const f = formOf(id), ts = tilesOf(id);
+    return {w:(Math.max(...ts.map(t=>t.x))+1)*f.w, h:(Math.max(...ts.map(t=>t.y))+1)*f.h};
+  }
   const o = boardCfg(id), s = o && o.shelves;
   // a board that has never been given a shape is the fresh one (decision 283)
   if(!s) return TILE===1 ? {w:FRESH.w, h:FRESH.h} : {w:1, h:1};
@@ -259,7 +401,22 @@ function boardRect(id){
    compact way to store a full rectangle. Cached against the list itself,
    because `boxOk()` asks inside every loop of `freeSpot()`. */
 const BOARDSETS = new WeakMap();
+const TILESETS = new Map();
 function boardList(id){
+  /* A tiled board's cells are its tiles', derived and cached against the
+     list and the tile's size, which are all they depend on. */
+  if(tiledBoard(id)){
+    const f = formOf(id), ts = tilesOf(id);
+    const key = id+'|'+f.form+'|'+f.w+'|'+f.h+'|'+ts.map(t=>t.x+','+t.y).join(';');
+    let got = TILESETS.get(id);
+    if(!got || got.key!==key){
+      const r = boardRect(id), cells = new Set();
+      ts.forEach(t=>{ for(let y=0; y<f.h; y++) for(let x=0; x<f.w; x++) cells.add((t.x*f.w+x)+','+(t.y*f.h+y)); });
+      got = {key, set: cells.size===r.w*r.h ? null : cells};
+      TILESETS.set(id, got);
+    }
+    return got.set;
+  }
   const o = boardCfg(id), r = boardRect(id);
   const list = o && Array.isArray(o.boards) ? o.boards : null;
   if(!list) return null;
@@ -296,7 +453,7 @@ function reachable(cid, x, y){
   const id = cid==null ? hereId() : cid;
   if(isBoard(id, x, y)) return true;
   if(id!==ROOT && innerOf(id)) return false;       // a proportional board is its tile
-  if(growsNot(id)) return false;
+  if(growsNot(id) || formOf(id).form==='fixed') return false;
   return isBoard(id, x-1, y) || isBoard(id, x+1, y) || isBoard(id, x, y-1) || isBoard(id, x, y+1);
 }
 /* One step for each device: how many cells a board is on it. */
@@ -311,6 +468,7 @@ function addBoard(cid, x, y){
   const id = cid==null ? hereId() : cid;
   const o = boardCfg(id); if(!o) return null;
   if(isBoard(id, x, y)) return {x, y};
+  if(tiledBoard(id)) return addTile(id, x, y);
   const r = boardRect(id);
   const sx = x<0 ? -x : 0, sy = y<0 ? -y : 0;
   const w = Math.max(r.w + sx, x + sx + 1), h = Math.max(r.h + sy, y + sy + 1);
@@ -341,6 +499,7 @@ function shiftBoard(id, sx, sy){
 /* Is anything on this board, on either device? A board is taken away only
    when it is empty, and it has to be empty on both. */
 function boardHolds(id, x, y){
+  if(tiledBoard(id)) return tileHolds(id, x, y);
   return S.objects.some(k=>{
     if(!k || (k.parent||ROOT)!==id) return false;
     return ['desk','phone'].some(dv=>{
@@ -359,6 +518,14 @@ const covers = (b, st, x, y) =>
 /* Everything on a board, on either device, by id — what taking it away would
    take with it (decision 234). The same test `boardHolds()` makes. */
 function onBoard(id, x, y){
+  if(tiledBoard(id)){
+    const t = tileRectOf(id, x, y);
+    return S.objects.filter(k=>{
+      if(!k || (k.parent||ROOT)!==id) return false;
+      return ['desk','phone'].some(dv=>{ const b = k[dv]; if(!b || !b.x || !b.w) return false;
+        return b.x-1<=t.x1 && b.x+b.w-2>=t.x0 && b.y-1<=t.y1 && b.y+(b.h||1)-2>=t.y0; });
+    }).map(k=>k.id);
+  }
   return S.objects.filter(k=>{
     if(!k || (k.parent||ROOT)!==id) return false;
     return ['desk','phone'].some(dv=>{
@@ -374,6 +541,7 @@ function onBoard(id, x, y){
 function removeBoard(cid, x, y){
   const id = cid==null ? hereId() : cid;
   const o = boardCfg(id); if(!o || !isBoard(id, x, y)) return false;
+  if(tiledBoard(id)) return removeTile(id, x, y);
   const all = boardsOf(id);
   if(all.length<=1 || boardHolds(id, x, y)) return false;
   let keep = all.filter(b=>b.x!==x || b.y!==y);
@@ -383,6 +551,39 @@ function removeBoard(cid, x, y){
   const w = maxX-minX+1, h = maxY-minY+1;
   o.shelves = {w, h};
   if(keep.length===w*h) delete o.boards; else o.boards = keep.map(b=>b.x+','+b.y);
+  return true;
+}
+/* **A tile added** where a cell of wood was held (decision 288): the whole
+   tile that cell falls in. To the right or below it is one more entry in the
+   list; to the left or above, every tile and every box moves over by a
+   tile, the one time a tiled board's numbers change. Answers the held cell's
+   new address, as addBoard() always has. */
+function addTile(id, x, y){
+  const f = formOf(id), o = boardCfg(id);
+  if(f.form==='fixed') return null;
+  const tx = Math.floor(x/f.w), ty = Math.floor(y/f.h);
+  let ts = tilesOf(id);
+  const sx = tx<0 ? -tx : 0, sy = ty<0 ? -ty : 0;
+  const r = boardRect(id);
+  if(r.w + sx*f.w > SPAN || r.h + sy*f.h > SPAN || (tx+1)*f.w > SPAN || (ty+1)*f.h > SPAN) return null;
+  if(sx || sy){ shiftCells(id, sx*f.w, sy*f.h); ts = ts.map(t=>({x:t.x+sx, y:t.y+sy})); }
+  ts.push({x:tx+sx, y:ty+sy});
+  o.tiles = ts.map(t=>t.x+','+t.y);
+  return {x:x+sx*f.w, y:y+sy*f.h};
+}
+/* Does anything lie on this tile, either device? */
+function tileHolds(id, x, y){
+  const t = tileRectOf(id, x, y);
+  return boxesOn(id).some(b=> b.x-1<=t.x1 && b.x+b.w-2>=t.x0 && b.y-1<=t.y1 && b.y+(b.h||1)-2>=t.y0);
+}
+function removeTile(id, x, y){
+  const o = boardCfg(id), t = tileRectOf(id, x, y);
+  let ts = tilesOf(id);
+  if(ts.length<=1 || tileHolds(id, x, y)) return false;
+  ts = ts.filter(k=>k.x!==t.tx || k.y!==t.ty);
+  const mx = Math.min(...ts.map(k=>k.x)), my = Math.min(...ts.map(k=>k.y));
+  if(mx || my){ const f = formOf(id); shiftCells(id, -mx*f.w, -my*f.h); ts = ts.map(k=>({x:k.x-mx, y:k.y-my})); }
+  o.tiles = ts.map(k=>k.x+','+k.y);
   return true;
 }
 /* ---- a board as big as what is on it — decision 287 --------------------
@@ -407,7 +608,10 @@ const MARGIN = {w:8, h:8};
 function fitBoard(cid){
   const id = cid==null ? hereId() : cid;
   const o = boardCfg(id);
-  if(!o || (id!==ROOT && (!byId(id) || innerOf(id) || growsNot(id)))) return null;
+  if(!o || (id!==ROOT && (!byId(id) || innerOf(id)))) return null;
+  // a tiled or fixed board is its tiles, never the rectangle round its things
+  if(tiledBoard(id)) return fitTiles(id);
+  if(growsNot(id)) return null;
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   S.objects.forEach(k=>{
     if(!k || (k.parent||ROOT)!==id || k.done || inFront(k)) return;
@@ -504,7 +708,8 @@ function ensureBoards(cid, cells, at){
 }
 /* A board that grows by itself: any container not sized from its tile. The
    desk grows too, but only when you ask it to. */
-const growsDown = cid => cid!=null && cid!==ROOT && !innerOf(cid) && !!byId(cid);
+const growsDown = cid => cid!=null && !innerOf(cid) && (tiledBoard(cid)
+  ? formOf(cid).full==='add' : cid!==ROOT && !!byId(cid));
 /* **A full container adds a board under the one you are on**, under the last
    board of that column, when there is room for one. Written as a fact — the
    board is that big now — and counted in `PLACED` so the render that asked
@@ -517,6 +722,18 @@ function growDown(cid, shows){
   if(!growsDown(cid) || (growsNot(cid) && !shows)) return false;
   const all = boardsOf(cid);
   if(all.length >= PAGES_MAX) return false;
+  /* **A full tiled board adds a row of tiles** under the ones it has, one
+     under each column of tiles: below, so nothing counted from the corner
+     moves (decision 288). */
+  if(tiledBoard(cid)){
+    const f = formOf(cid), ts = tilesOf(cid), o = boardCfg(cid);
+    const ty = Math.max(...ts.map(t=>t.y)) + 1;
+    if((ty+1)*f.h > SPAN) return false;
+    const xs = [...new Set(ts.map(t=>t.x))];
+    o.tiles = ts.map(t=>t.x+','+t.y).concat(xs.map(x=>x+','+ty));
+    PLACED.n++;
+    return true;
+  }
   /* **A tile of one cell grows by rows** (decision 283): a page of cells
      under the whole width of the board, since one cell under the column you
      are in is never room for anything wider than a cell. Below the rectangle,
@@ -661,7 +878,7 @@ const gridOf = (device, cid)=>{
      somewhere you can scroll to and press the plus on. Not on a board that
      cannot grow. */
   const id = cid==null ? hereId() : cid;
-  const pad = padded(d, id) && !inner && !growsNot(id) ? shelfH : 0;
+  const pad = padded(d, id) && !inner && !growsNot(id) && formOf(id).form!=='fixed' ? shelfH : 0;
   /* …and to the left and right (Timothy, 2026-09-29): the phone scrolls
      every way, so the slot one step off either side is somewhere you can
      scroll to as well. */
@@ -1331,7 +1548,7 @@ function cellW(grid,g){
 
 export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, FRESH, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
-  ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, FORMS, formOf, tiledBoard, tilesOf, tileRectOf, setForm, setTileDim, fitTiles, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

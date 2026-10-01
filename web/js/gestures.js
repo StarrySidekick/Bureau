@@ -1,8 +1,8 @@
 import { $, $$, clamp, D, ROOT } from './util.js';
-import { blockHold, frontHold, tileAway } from './wire.js';
+import { blockHold, frontHold, tileAway, tileHere } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom, formOf, tileRectOf, tilesOf, reachable } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
@@ -1003,12 +1003,29 @@ function onDown(e){
     const hold = e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE;
     /* …and since decision 287 nothing is carved: a board is as big as what
        is on it, and the wood past its edge is only the edge. */
-    if(!isBoard(home, ti, tj)){ G=null; return; }
+    /* …except on a **tiled** board (decision 288): the wood one step off a
+       tile, held unlocked, lays a tile of the same size there. */
+    if(!isBoard(home, ti, tj)){
+      const tf = formOf(home);
+      if(locked || tf.form!=='tiled' || !reachable(home, ti, tj)){ G=null; return; }
+      holdTimer=setTimeout(()=>{
+        holdTimer=null;
+        if(G!==g0 || G.mode) return;
+        G=null; gestureFlags.suppressClick=true;
+        if(navigator.vibrate) navigator.vibrate(12);
+        tileHere(home, ti, tj);
+      }, hold);
+      holdFrom={x:e.clientX,y:e.clientY};
+      return;
+    }
     /* The middle cell of a tile, held on past the Magic Selector, takes the
        tile away: only the middle, so a hold anywhere else stays a sketch, and
        the tile darkens while you decide. Things on it ask where they go. */
-    // never since decision 287: a cell is not filled back in by hand
-    const centre = false;
+    /* Never on a free board since decision 287; on a tiled one of more than
+       one tile, the middle cell of each (decision 288). */
+    const tf = formOf(home), tr = tf.form==='tiled' ? tileRectOf(home, ti, tj) : null;
+    const centre = !locked && !!tr && tilesOf(home).length>1
+      && ti===tr.x0 + ((tf.w-1)>>1) && tj===tr.y0 + ((tf.h-1)>>1);
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0 || G.mode) return;
@@ -1018,7 +1035,8 @@ function onDown(e){
         goEl=document.createElement('div');
         goEl.className='tilegoing';
         goEl.style.setProperty('--go', TILE_GO+'ms');
-        place(goEl, {x:ti*g.shelfW+1, y:tj*g.shelfH+1, w:g.shelfW, h:g.shelfH}, home);
+        place(goEl, tr ? {x:tr.x0+1, y:tr.y0+1, w:tf.w, h:tf.h}
+          : {x:ti*g.shelfW+1, y:tj*g.shelfH+1, w:g.shelfW, h:g.shelfH}, home);
         grid.appendChild(goEl);
         goTimer=setTimeout(()=>{
           goTimer=null;

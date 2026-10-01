@@ -4,7 +4,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
   placeOf, cfgOf, isHeld, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
-import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
+import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
@@ -658,6 +658,15 @@ function fits(kind, home, dv, cell){
   const [w,h] = cell && cell.w ? [cell.w, cell.h] : sizeOfKind(kind, d, home);
   if(roomFor(w, h, d, home)) return true;
   const c = byId(home);
+  /* A board that is full on purpose says so (decision 288). */
+  const f = formOf(home);
+  if(f.form!=='free'){
+    const nm = home===ROOT ? 'The desk' : (c && c.title) || 'This board';
+    toast(f.form==='fixed' || f.full==='stop'
+      ? `${nm} is full`
+      : `${nm} is full. Hold the wood beside it to add a tile`);
+    return false;
+  }
   /* a tile is added where you want it (decision 219), so that is the way
      out; since decision 276 by holding an empty slot, not pressing a plus */
   toast(home===ROOT

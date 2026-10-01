@@ -12133,3 +12133,68 @@ presentational… we don't need this one-by-one schema."
   of each board fits it.
 - Not touched: magic drawers (they pack what they collect into the room they
   have) and proportional boards.
+
+## 288. Free, tiled and fixed boards, and the Board (v2.81, 2026-10-01)
+
+Timothy: the growing expanse is right for the desk, but a container should be
+able to be a set size you place into, expandable or not, and either should be
+able to be either. "Tiled: set height and width, expands with tiles of the
+same height and width. Fixed: like tiled but not expandable. Free: objects
+define the board." And a new object, a board you lay down on a free board,
+to drag things around inside "without it creating new space". Free is about
+smooth scrolling and room; tiled and fixed are restrictions on purpose. The
+scope is `docs/BOARDS.md`.
+
+- **One reader, `formOf(id)`** in grid.js: `{form, w, h, full}` off the
+  board's config (`form`, `bw`, `bh`, `full`), else its type's (`form` in
+  KINDS), else the default: the desk is free, an inbox and the bin are fixed,
+  every other container is tiled 8×14. `bw`/`bh` are decision 235's fields,
+  retired by migration 50 and back with the same meaning: a tile's size, 2 to
+  24 each way.
+- **Fixed is tiled that cannot grow**, so the code has two modes and the
+  interface three. A tiled board stores its tiles as `tiles` ("tx,ty"), and
+  `boardRect()`/`boardList()` derive the rectangle and the cells from them,
+  so `isBoard()`, the wood drawn round a board (`vacancies()`), its walls and
+  every reader of them work unchanged.
+- **Free is decision 287 exactly.** `fitBoard()` hands a tiled board to
+  `fitTiles()` and runs as before on a free one.
+- **The first time a board is tiled** (a new container, an old one at load,
+  one switched in Board settings) what is on it moves up to the corner,
+  which on an old container is the margin 287 kept, and it is given as many
+  tiles as cover it. After that a tiled board's numbers change only when a
+  tile is added to the left or above by hand, or the last tile on the left
+  or top taken away. Things never leave a board: a box past the tiles gets
+  the tile it is on, and a fixed board grows to hold it.
+- **Gestures**: the wood one step off a tiled board, held unlocked, lays a
+  tile there (`tileHere()`); the middle cell of a tile, held past the Magic
+  Selector, takes an empty one away (`tileAway()`). A fixed board draws no
+  wood to hold. Both were 219/276's gestures, off since 287 and back for
+  tiled boards only.
+- **Full**: a tiled board whose `full` is `add` (the default) adds a row of
+  tiles below when nothing fits (`growDown()`); `stop`, or a fixed board,
+  refuses with "Kitchen is full" (`fits()` in mutations.js).
+- **Board settings → Kind of board** (`shelfCountField()` in views.js): Free,
+  Tiled, Fixed; a tile's width and height as steppers (a fixed board never
+  smaller than what is on it); *When it is full*: Add a tile, Say no. There is
+  no undo for these, as for the desk's other settings, because a switch can
+  move every box on the board.
+- **Cells are the same size on every board** (Timothy: "cells should always be
+  square, that should be very consistent"). A board smaller than the screen
+  is centred in wood, never stretched.
+- **The Board object** (`mat` in KINDS; `board` was taken by the checkerboard
+  colours): a background (`backdrop`) whose fill is the board's own
+  checkerboard in a wooden rim, lined up with the squares under it (`--mx`,
+  `--my`). Things stand on it and a free board already counts its cells, so
+  moving things about on it grows nothing. It carries what lies wholly on it
+  (`carries` on the kind, `carriesOf()`, `carriedBy()`), through
+  `travelWith()`, so the group drag that already checks the whole set's
+  landing does the rest. It is in Decoration's family beside Background.
+- **The Collage is free** (`form:'free'` on its kind).
+- **The Mac is not worked out** (Timothy: "for now we will work out mac
+  later"). Tiles count in cells and both devices read the same tiles, so a
+  Mac draws the phone's board.
+- Guarded in `test/safari.mjs` as `theDeskIsFree`, `aNewDrawerIsOneTile`,
+  `holdingTheWoodAddsATile`, `aFixedBoardSaysNo` and `aBoardCarriesWhatIsOnIt`.
+- Not done, from the scope: deleting the dead generations (`dimsOf()`'s
+  retired path, the `if(TILE)` branches, the proportional mode, `CAMERA`), and
+  flows stating their `form`.

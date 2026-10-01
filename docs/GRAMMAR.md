@@ -357,6 +357,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `painting` | Painting | 3×3 |  | An Impressionist painting, framed |
 | `window` | Window | 2×2 |  | A view, framed |
 | `background` | Background | 4×4 |  | A color, a check or a weave laid under other things |
+| `mat` | Board | 8×8 |  | A board on the board: things go on it and move with it |
 
 **Doodad** (`instrument`)
 

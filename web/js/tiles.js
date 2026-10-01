@@ -2640,8 +2640,10 @@ function drawTileFace(o, arr, box, persp){
      tiles by `z-index`, and on a locked board it takes no taps, so the things
      standing on it are what you press. */
   if(isBackdrop(o)){
+    // a Board's squares line up with the board's own (two cells a period)
+    const par = fillOf(o)==='board' ? `--mx:${((box.x-1)%2+2)%2};--my:${((box.y-1)%2+2)%2};` : '';
     return `<button class="drawer otile bgtile fill-${fillOf(o)}${sel}" data-row="${o.id}"
-      title="${esc(o.title||'Background')}" style="--c:${colour};${place}">${handles}</button>`;
+      title="${esc(o.title||K(o.kind).nm||'Background')}" style="--c:${colour};${par}${place}">${handles}</button>`;
   }
   if(isDecor(o)){
     const own = o.media && o.media.src;

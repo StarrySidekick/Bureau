@@ -10,7 +10,7 @@ import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, d
   prioOf, repeatOf, repeatSaid, nextRepeat, boardLocked, BINDINGS, bindingOf, PANELS, panelOf,
   isHeld, heldObjects, tiltMode, READS, dz, ASPECT_KINDS } from './model.js';
 import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, boxOk, innerOf, colsOf,
-  isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows, zoomOf, zoomRange, setZoom, startOf, snapZoom, boardHolds, fitAll, fitBoard, MARGIN } from './grid.js';
+  isBoard, boardsOf, addBoard, removeBoard, dimsOf, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows, zoomOf, zoomRange, setZoom, startOf, snapZoom, boardHolds, fitAll, fitBoard, MARGIN, formOf, setForm, setTileDim, tilesOf } from './grid.js';
 import { create, setBoardDims, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
   holdIt, unholdIt , toast, someKind, furnish, loadTexts } from './mutations.js';
@@ -275,6 +275,8 @@ window.BUREAU = {
   isBoard, boardsOf, addBoard, removeBoard,
   // a board as big as what is on it (decision 287)
   fitBoard, MARGIN,
+  // free, tiled and fixed boards, and the Board that carries (decision 288)
+  formOf, setForm, setTileDim, tilesOf,
   // is there room for one of these here — the question "it won't fit" answers
   roomFor: (w,h,parent)=> roomFor(w,h,S.device,parent||'root'),
   // somewhere free to put a fixture, so a test needn't hardcode a coordinate

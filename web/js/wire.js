@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
   sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
-  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE } from './grid.js';
+  shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
@@ -618,6 +618,23 @@ function act(name, el){
     case 'overview': openOverview(el.dataset.id || ROOT); break;
     // out as far as the whole board goes (decision 274)
     case 'zoomfit': closePanel(); zoomFit(el.dataset.id || ROOT); break;
+    /* the kind of board and its tile (decision 288) */
+    case 'boardform': {
+      const id = el.dataset.id || ROOT;
+      if(setForm(id, el.dataset.form)){ save(); render(); refreshPanel();
+        toast(el.dataset.form==='free' ? 'A free board' : el.dataset.form==='tiled' ? 'A tiled board' : 'A fixed board'); }
+      break; }
+    case 'tiledim': {
+      const id = el.dataset.id || ROOT, f = formOf(id), part = el.dataset.part;
+      const want = (part==='w' ? f.w : f.h) + (+el.dataset.d||0);
+      if(setTileDim(id, part, want)){ save(); render(); refreshPanel(); }
+      else if(f.form==='fixed' && +el.dataset.d<0) toast('Something is in the way');
+      break; }
+    case 'boardfull': {
+      const id = el.dataset.id || ROOT, c = cfgOf(id); if(!c) break;
+      if(el.dataset.full==='stop') c.full = 'stop'; else delete c.full;
+      save(); render(); refreshPanel();
+      break; }
     // the setup card's own buttons (decision 229)
     case 'setupnext': setupNext(!!el.dataset.empty); break;
     case 'setupback': setupBack(); break;
@@ -1257,8 +1274,10 @@ function coinToss(board, el){
    both, through these same two. */
 function tileHere(cid, x, y, walk){
   const got = addBoard(cid, x, y);
-  if(!got){ toast(TILE===1 ? 'No room to carve that way' : 'No room for another tile that way'); return false; }
-  if(overviewOn()){ save(); render(); refreshOverview(); toast(TILE===1 ? 'Carved' : 'A new tile'); return true; }
+  // a tiled board grows by tiles (decision 288); only an old carved one carved
+  const tl = formOf(cid).form!=='free' || TILE!==1;
+  if(!got){ toast(tl ? 'No room for another tile that way' : 'No room to carve that way'); return false; }
+  if(overviewOn()){ save(); render(); refreshOverview(); toast(tl ? 'A new tile' : 'Carved'); return true; }
   /* Held where it is, you are looking at it, so you stay (the view kept still
      if a tile to the left or above moved every number under it); from the map
      you walk onto it. */
@@ -1266,7 +1285,7 @@ function tileHere(cid, x, y, walk){
   save(); render(); refreshPanel();
   if(walk) landOnShelf(cid); else holdView(cid, x<0, y<0);
   tileArrives(cid, got.x, got.y);
-  toast(TILE===1 ? 'Carved' : 'A new tile');
+  toast(tl ? 'A new tile' : 'Carved');
   return true;
 }
 function tileAway(cid, x, y){
@@ -1277,9 +1296,10 @@ function tileAway(cid, x, y){
   /* A board with things on it asks where they go first (decision 234). */
   const on = onBoard(cid, x, y);
   if(on.length){ overAsk({cid, x, y, n:on.length}); return; }
-  if(!removeBoard(cid, x, y)){ toast(TILE===1 ? 'The last cell stays' : 'The last tile stays'); return; }
+  const tl = formOf(cid).form!=='free' || TILE!==1;
+  if(!removeBoard(cid, x, y)){ toast(tl ? 'The last tile stays' : 'The last cell stays'); return; }
   save(); render(); refreshPanel(); refreshOverview();
-  toast(TILE===1 ? 'Filled in' : 'Tile taken away');
+  toast(tl ? 'Tile taken away' : 'Filled in');
 }
 
 function wire(){

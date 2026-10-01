@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, innerOf, PLACED, proportional, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
-  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN } from './grid.js';
+  isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN, formOf, tilesOf } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
@@ -748,7 +748,26 @@ function shelfCountField(cid){
   if(cid===ROOT || !proportional()){
     const sh = shelvesOf(cid);
     const magic = cid!==ROOT && has(container(cid),'magic');
-    return `<div class="field" style="margin-top:12px"><label>Size</label>
+    /* **Which kind of board** (decision 288): free, tiled or fixed, with the
+       tile's size and what a full one does under the two that have tiles. */
+    const f = formOf(cid), where = cid===ROOT ? 'The desk' : 'This board';
+    const chip = (k, nm) => `<button class="fchip${f.form===k?' on':''}" data-act="boardform" data-id="${esc(cid)}" data-form="${k}">${nm}</button>`;
+    const step = (part, n, mn, mx) => `<span class="tilestep"><button class="fchip" data-act="tiledim" data-id="${esc(cid)}" data-part="${part}" data-d="-1"${n<=mn?' disabled':''} aria-label="Smaller">−</button><b>${n}</b><button class="fchip" data-act="tiledim" data-id="${esc(cid)}" data-part="${part}" data-d="1"${n>=mx?' disabled':''} aria-label="Bigger">+</button></span>`;
+    const kinds = `<div class="field" style="margin-top:12px"><label>Kind of board</label>
+      <div class="filterbar" style="margin-top:6px">${chip('free','Free')}${chip('tiled','Tiled')}${chip('fixed','Fixed')}</div>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">${
+        f.form==='free' ? 'Grows round whatever is put on it, with room to spare. Scroll and pinch to move around it.'
+        : f.form==='tiled' ? 'A tile of a set size. Hold the wood beside it to add another tile the same size; hold a tile’s middle to take an empty one away.'
+        : 'One tile of a set size, and no more. Things that will not fit are refused.'}</div></div>`;
+    if(f.form!=='free'){
+      const nt = tilesOf(cid).length;
+      return kinds + `<div class="field" style="margin-top:12px"><label>${f.form==='tiled'?'Each tile':'Size'}</label>
+        <div class="tilesize" style="margin-top:6px">${step('w', f.w, DIM_MIN, DIM_MAX)}<span>×</span>${step('h', f.h, DIM_MIN, DIM_MAX_H)}<span class="mini">cells${
+          f.form==='tiled' ? `, ${nt} tile${nt===1?'':'s'}` : ''}</span></div></div>${f.form==='tiled' ? `
+        <div class="field" style="margin-top:12px"><label>When it is full</label>
+        <div class="filterbar" style="margin-top:6px"><button class="fchip${f.full==='add'?' on':''}" data-act="boardfull" data-id="${esc(cid)}" data-full="add">Add a tile</button><button class="fchip${f.full==='stop'?' on':''}" data-act="boardfull" data-id="${esc(cid)}" data-full="stop">Say no</button></div></div>` : ''}`;
+    }
+    return kinds + `<div class="field" style="margin-top:12px"><label>Size</label>
       <div class="mini" style="--k:var(--brass);margin-top:6px">${cid===ROOT?'The desk':'This drawer'} is <b>${sh.w} × ${sh.h}</b> cells${magic
         ? '. A sorting drawer packs what it collects into the room it has.'
         : `: everything on it with ${MARGIN.w} empty cells round it, and it grows when something is put in that margin.`}${
