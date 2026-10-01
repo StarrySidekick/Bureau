@@ -274,6 +274,19 @@ tile should click into place; and an empty slot should be just a plus,
 thicker and fainter, with no outline or dotted ring, and only when unlocked.
 Built as decision 275 (v2.61).
 
+### Added 2026-10-01 — what it is for, honed
+
+Timothy: Bureau is *"trying to do so many things at once"*, and much of its
+dashboard side could now be an artifact made on the spot. So: what does it
+actually do? Forty uses and sixteen objects were proposed; he approved
+twenty-five uses and sixteen objects, renamed several (the brain dump is the
+**Inbox**, the ledger is an **Automaton**, pneumatic tubes are **copper
+pipes**, the lottery drum is a **pond**), and added a **garbage bin** that
+deleted things fall into, with gravity, to be sifted. String is to work like
+redstone. Automatons are fine *"as long as they are built with Bureau in mind
+and integrate well."* The whole list, the constraints and the order to build
+it in are **`docs/USES.md`**, which is now where "what now" is read from.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
