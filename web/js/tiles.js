@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -461,7 +461,7 @@ function dispense(g){
    the string is the thing you can see saying where the words go, and the
    spool is how you say it. `into` set in the editor still wins, because it
    was said outright. Either end of the string will do. */
-const holdsThings = d => !!d && isContainer(d) && !has(d,'magic') && !isHeld(d);
+const holdsThings = d => !!d && isContainer(d) && !has(d,'magic') && !isGone(d);
 const intoOf = g => { if(!g) return null;
   const d = g.into && byId(g.into);
   if(holdsThings(d)) return d;
@@ -2388,6 +2388,32 @@ function drawTileFace(o, arr, box, persp){
       <i class="jarshine"></i>
       <span class="jarlabel">${nameField(o)}</span>
       ${rollTag(o)}
+      ${handles}
+    </button>`;
+  }
+
+  /* ---- the garbage bin: a wire basket of crumpled paper — decision 285 ----
+     A jar's cousin, and drawn the same way for the same reason: what is in it
+     shows without opening it. Each thing thrown away is a ball of paper in
+     its own colour, heaped from the bottom and spilling over the rim once the
+     basket is full; the wire is drawn over the paper, so the heap is *inside*.
+     Placement is jitter(), never random, so the heap holds still between
+     renders. Only what lies in the bin itself is a ball: a drawer thrown away
+     whole is one ball, not every page of it. */
+  if(cont && faceOf(o)==='bin'){
+    const kids=childrenOf(o), n=kids.length, per=3, rows=5;
+    const balls = kids.slice(0, per*rows).map((x,i)=>{
+      const j=jitter(x.id), row=Math.floor(i/per);
+      const left = ((i%per) + .5 + (row%2 ? .35 : 0)) * (100/(per+.35)) + (j[0]-.5)*8;
+      const bot  = 4 + row*17 + (j[1]-.5)*5;
+      return `<i class="binball" title="${esc(x.title||'')}" style="--k:${objColour(x)};--bb:${
+        (34+j[2]*10).toFixed(1)}%;left:${left.toFixed(1)}%;bottom:${bot.toFixed(1)}%;transform:translateX(-50%) rotate(${
+        Math.round((j[3]-.5)*160)}deg)"></i>`;
+    }).join('');
+    return `<button class="drawer dtile bintile${sel}" data-drawer="${o.id}"
+        title="${esc(o.title||'Garbage bin')}${n ? ` · ${n} thrown away` : ''}" style="--c:${colour};${place}">
+      <span class="binheap">${balls}</span>
+      <i class="binwire"></i><i class="binrim"></i>
       ${handles}
     </button>`;
   }

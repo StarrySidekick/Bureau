@@ -1,10 +1,10 @@
-import { $, esc, uid, clamp, ROOT, HOLD, D, pastTense } from './util.js';
+import { $, esc, uid, clamp, ROOT, HOLD, BIN, D, pastTense } from './util.js';
 import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, T, dz, dev,
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
-import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
+  placeOf, cfgOf, isHeld, inBin, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
@@ -298,18 +298,100 @@ function removeMany(ids){
   S.sel=(S.sel||[]).filter(x=>!ids.includes(x));
   return steps;
 }
-function del(id){
-  const steps=removeMany([id]);
-  if(!steps.length) return;
-  pushUndo('Deleted', steps);
-  toast('Deleted', true); render();
+/* ---- the garbage bin — decision 285 -------------------------------------
+   Delete used to be removal, with twenty moves of undo and nothing after.
+   Now Delete **files the thing in the bin**: a real container with a fixed
+   id, made on the desk the first time anything is thrown away, whose board
+   tumbles (gravityMode()). It is a reparent like any other, so it is undone
+   like any other, and a picture in the bin is never reaped because its
+   object is still in S.objects. What it came out of is written on it
+   (`binFrom`, `binBox`, `binAt`), so Put back can return it to where it was.
+
+   A thing **already in the bin** is deleted for good, which is how you take
+   one thing out of the heap; Empty the bin does the lot. Both still undo. A
+   drawer thrown away goes whole, with what is in it, and comes back whole:
+   isGone() keeps its contents out of Today, search and every sorting drawer
+   while it is there. */
+function theBin(){
+  let b = byId(BIN);
+  if(b) return b;
+  b = create('bin', {id:BIN, parent:ROOT, title:'Garbage bin', noSeed:true});
+  delete b.setup;
+  ['desk','phone'].forEach(dv=>{
+    const [w,h] = sizeOfKind('bin', dv);
+    b[dv] = fitSpot(w, h, dv, ROOT) || anySpot(w, h, dv, ROOT);
+  });
+  return b;
 }
+function binMany(ids){
+  const live = ids.map(byId).filter(o=>o && o.id!==BIN && o.id!==ROOT && !inBin(o));
+  if(!live.length) return [];
+  const had = !!byId(BIN), steps = [];
+  theBin();
+  // the bin is an object too, so making it is part of the move that needed it
+  if(!had) steps.push({add:BIN});
+  live.forEach(o=>{
+    ['parent','desk','phone','front','binFrom','binBox','binAt'].forEach(k=>steps.push({set:{id:o.id, k, v:o[k]}}));
+    o.binFrom = o.parent; o.binBox = {desk:o.desk||null, phone:o.phone||null}; o.binAt = T;
+    o.parent = BIN; keepSize(o);
+  });
+  const gone = live.map(o=>o.id);
+  if(gone.includes(S.writeId)||gone.includes(S.readId)||gone.includes(S.viewId)) closeSheet();
+  if(gone.includes(S.editId)) S.editId=null;
+  S.sel=(S.sel||[]).filter(x=>!gone.includes(x));
+  if(S.view==='drawer' && gone.includes(S.drawerId)){
+    const up=byId(live[0].binFrom); S.drawerId = up ? up.id : null; S.view = up ? 'drawer' : 'desk'; }
+  return steps;
+}
+/* Back where it came from: the container it was filed in if that is still on
+   the desk, and its old box there if that is still clear; otherwise the desk,
+   wherever there is room. */
+function unbin(id){
+  const o=byId(id); if(!o || !inBin(o) || o.parent!==BIN) return false;
+  const from=byId(o.binFrom);
+  const home = (o.binFrom===ROOT || (from && isContainer(from) && !inBin(from) && from.id!==BIN)) ? o.binFrom : ROOT;
+  const steps=['parent','desk','phone','binFrom','binBox','binAt'].map(k=>({set:{id:o.id, k, v:o[k]}}));
+  const was=o.binBox||{};
+  o.parent = home;
+  ['desk','phone'].forEach(dv=>{
+    const b=was[dv];
+    o[dv] = b && b.x!=null && boxOk(b, o.id, dv, home) ? Object.assign({}, b) : (b && b.w ? {w:b.w, h:b.h} : null);
+  });
+  delete o.binFrom; delete o.binBox; delete o.binAt;
+  pushUndo('Put back', steps);
+  const where = home===ROOT ? 'the desk' : (byId(home).title || 'its drawer');
+  toast(`Back in ${where}`, true);
+  return true;
+}
+// Everything in the bin, and everything inside what is in it.
+const binned = ()=> S.objects.filter(inBin);
+function emptyBin(){
+  const ids = binned().map(o=>o.id);
+  if(!ids.length){ toast('The bin is empty'); return; }
+  const steps = removeMany(ids);
+  pushUndo('Emptied the bin', steps);
+  toast(`Emptied the bin · ${ids.length} gone for good`, true); render();
+}
+/* Delete: into the bin, or out of the world if it is in the bin already. */
+function del(id){ delMany([id]); }
 function delMany(ids){
-  const steps=removeMany(ids);
+  if(ids.includes(BIN)){ toast('The bin stays. Hold it to empty it'); ids = ids.filter(x=>x!==BIN); }
+  const here = ids.map(byId).filter(Boolean);
+  const forGood = here.filter(inBin).map(o=>o.id);
+  // what is inside a thing deleted for good goes with it
+  const inside = forGood.length ? S.objects.filter(o=>forGood.some(g=>o.parent===g || isAncestorId(g, o))).map(o=>o.id) : [];
+  const steps = binMany(here.filter(o=>!inBin(o)).map(o=>o.id))
+    .concat(forGood.length ? removeMany(forGood.concat(inside)) : []);
   if(!steps.length) return;
-  pushUndo(`Deleted ${steps.length}`, steps);
-  toast(`Deleted ${steps.length}`, true); render();
+  const n = here.length;
+  pushUndo(forGood.length ? 'Deleted' : 'Into the bin', steps);
+  toast(forGood.length && forGood.length===n ? (n>1 ? `Deleted ${n} for good` : 'Deleted for good')
+    : (n>1 ? `${n} things into the bin` : 'Into the bin'), true);
+  render();
 }
+const isAncestorId = (a, o)=>{ let p=o && o.parent, n=0;
+  while(p && p!==ROOT && n++<32){ if(p===a) return true; const up=byId(p); p=up && up.parent; }
+  return false; };
 /* A drawer's contents are kept — they move up to wherever the drawer lived.
    Their boxes do not come with them: {x,y,w,h} was a coordinate in the
    drawer's own space, and the same numbers in the parent's space mean somewhere
@@ -325,10 +407,13 @@ function delDrawer(id){
                {set:{id:o.id, k:'phone',  v:o.phone}});
     o.parent=up; keepSize(o);
   });
-  steps.push(...removeMany([id]));
+  if(id===BIN){ toast('The bin stays. Hold it to empty it'); return; }
+  // a drawer already in the bin goes for good; anywhere else, into the bin
+  const forGood = inBin(d);
   if(S.drawerId===id){ S.drawerId = up===ROOT?null:up; S.view = up===ROOT?'desk':'drawer'; }
+  steps.push(...(forGood ? removeMany([id]) : binMany([id])));
   pushUndo('Drawer removed', steps);
-  toast('Drawer removed — its contents kept', true);
+  toast(forGood ? 'Drawer deleted for good, its contents kept' : 'Drawer into the bin, its contents kept', true);
   render();
 }
 /* ---- the holding space -------------------------------------------------
@@ -1496,7 +1581,7 @@ function dealTop(id){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo,
+export { toast, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

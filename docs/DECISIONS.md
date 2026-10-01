@@ -11945,3 +11945,59 @@ Claude can build boards for him reliably. It is `docs/GRAMMAR.md`.
   That list is the flat-pack's specification.
 - Guarded in the smoke test's paste block (`pasteOk`): a `pj_novel` key is a
   novel, and `"due": null` is undated.
+
+## 285. The garbage bin (v2.72, 2026-10-01)
+
+Timothy, approving `docs/USES.md`: *"garbage bin. deleted objects go to a
+gravity applied container where you can sift through things you threw away."*
+Second in the build order, because a delete was gone for good once it fell off
+twenty moves of undo, and that is the wrong bargain for a desk you live in.
+
+- **The bin is a real container, not a reserved id.** The Void Drawer (107) is
+  `HOLD`, a parent with no object, because a thing in it has no coordinates.
+  A bin is the opposite: it is a place you open and sift through, with things
+  lying in a heap, so it needs a board, and everything that draws a board,
+  opens a container, runs gravity and drags things out already works on a
+  container. Its id is fixed (`BIN = '__bin'` in util.js) so there is only
+  one; `theBin()` makes it on the desk, through `fitSpot()`, the first time
+  anything is thrown away, and that making is part of the delete's undo move.
+  Not on any picker. It cannot be deleted, only emptied.
+- **A delete is a reparent** (`binMany()`): `parent`, both boxes, `front`, and
+  three fields that say where it came from (`binFrom`, `binBox`, `binAt`), all
+  recorded as set steps, so undo is applyMove() as it was. The considered
+  alternative, a separate `S.bin` array outside `S.objects`, would have hidden
+  binned things from every reader for free, but would have needed its own
+  board, its own gravity and its own drag out. And `reap()` needed no change:
+  a picture's object is still in `S.objects`, so its bytes stay.
+- **`isGone()`** in model.js is the one answer to "is this off the desk": in
+  the Void Drawer, in the bin, or inside something that is. It replaces
+  `isHeld()` at every reader that meant "can the desk see this" (a sorting
+  drawer's match, search, counters, achievements, tags, a drawer front, a tug,
+  `holdsThings`), which also closes a hole the Void Drawer had: a task inside
+  a held drawer was still due today. It walks `parent` through `upOf()`, the
+  render pass's map, and on the desk it stops on the first step.
+- **A drawer thrown away goes whole.** `del()` on a container used to remove
+  the drawer and leave its contents pointing at nothing; now it bins the
+  drawer with them inside, and Put Back brings the lot. `delDrawer()`, the
+  editor's *Delete drawer*, still moves the contents up first, as decision 129
+  said, and bins the empty drawer.
+- **In the bin, the ring says Put Back** (first) and **Delete for Good** (last,
+  where Delete always is). `unbin()` returns a thing to the container it came
+  from if that is still on the desk and not itself in the bin, and to its old
+  box there if that is still clear; otherwise the desk, wherever there is room.
+  Deleting a thing already in the bin removes it and everything inside it, and
+  **Empty** on the bin's own ring does that for all of it. Both undo.
+- **The bin's board always tumbles**: `gravityMode()` answers `tumble` while
+  the bin is open, whatever the desk's own setting. The heap stops a row above
+  the bottom and can spill past the screen's sides, because gravity's pen is
+  the window of rows and the drawn width including the side pads; that is how
+  every gravity board is, and it is left alone here.
+- **The face is a wire wastebasket** (`bin` face in tiles.js, `.bintile` in
+  board.css): the dark inside, a heap of crumpled paper balls in each thing's
+  colour placed by `jitter()` like a jar's bits, and two diagonal wire
+  gradients over both, so the heap is inside the basket and spills over the
+  rim when full. The drawer-front layers `drawTile()` splices onto every
+  container (panel, grain, flank) are hidden on it.
+- Guarded by `garbageBin` in the smoke test, `undoWorks` now reads "in the
+  bin" for gone, and `test/safari.mjs` checks the basket is drawn and the heap
+  falls into the lower half of the board in WebKit.

@@ -101,7 +101,8 @@ tool that is tapped then aimed, and a source that is drawn from.
 
 1. **Grammar doc.** Done, v2.71: `docs/GRAMMAR.md`, decision 284. Writing it
    fixed three paste bugs; its §5 is the flat-pack's specification.
-2. **Garbage bin.** The safety net, before living in it means losing things.
+2. **Garbage bin.** Done, v2.72, decision 285: Delete puts things in a wire
+   wastebasket whose board tumbles; Put Back, Delete for Good and Empty.
 3. **Inbox with copper pipes.** The capture path, named the biggest idea since
    2026-09-23.
 4. **Stamp and the lens.** Two tools; the lens retires the tag-as-container.

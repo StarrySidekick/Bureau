@@ -9,7 +9,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, shelvesToHold, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, setBoardDims, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
@@ -1582,6 +1582,8 @@ function wire(){
           save(); render(); toast('Loose again', true);
         }
       }
+      else if(cmd==='putback'){ if(unbin(id)){ save(); render(); } }
+      else if(cmd==='emptybin'){ emptyBin(); save(); }
       else if(cmd==='del'){
         const sel = S.sel.includes(id) ? S.sel.slice() : [id];
         if(sel.length>1) delMany(sel); else del(id);

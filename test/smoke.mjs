@@ -1718,7 +1718,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render();
     const beforeGroup = ids();
     BUREAU.delMany(made);
-    out.groupGone = made.every(id => !S.objects.some(o => o.id === id));
+    // off the board and into the bin, which is a reparent now (decision 285)
+    out.groupGone = made.every(id => (S.objects.find(o => o.id === id) || {}).parent === '__bin');
     BUREAU.undo();
     out.groupExact = ids() === beforeGroup;
 
@@ -1729,7 +1730,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     BUREAU.render();
     const beforeDrawer = ids();
     BUREAU.delDrawer(d.id);
-    out.drawerGone = !S.objects.some(o => o.id === d.id);
+    out.drawerGone = (S.objects.find(o => o.id === d.id) || {}).parent === '__bin';
     const orphan = S.objects.find(o => o.id === kid.id);
     out.contentsKept = !!orphan && orphan.parent === 'root';
     // its box was a coordinate in the drawer's space. Reused on the desk it
@@ -1753,6 +1754,35 @@ const PROP_OFF = () => { const b = document.createElement('button');
     S.undo = [];
     BUREAU.undo();
     out.emptyStackSafe = true;
+    return out;
+  });
+
+  // --- the garbage bin (decision 285): Delete files a thing in the bin, out
+  // of Today and search with whatever is inside it; Put back returns it to
+  // where it was; a delete in the bin, or Empty, is for good; all undo.
+  const garbageBin = await page.evaluate(async () => {
+    const S = BUREAU.state, out = {}, M = await import('./js/model.js'), U = await import('./js/mutations.js');
+    const d = BUREAU.create('drawer', { parent: 'root', title: 'Bin test' });
+    const kid = BUREAU.create('task', { parent: d.id, title: 'Due today, then thrown away', due: M.T });
+    const t = BUREAU.create('task', { parent: 'root', title: 'Thrown away alone' });
+    BUREAU.render();
+    const today = () => M.childrenOf(M.byId('d_today')).some(x => x.id === kid.id);
+    out.todayBefore = today();
+    BUREAU.del(d.id); BUREAU.del(t.id);
+    const bin = M.byId('__bin');
+    out.binOnTheDesk = !!bin && bin.parent === 'root';
+    out.inTheBin = d.parent === '__bin' && t.parent === '__bin' && kid.parent === d.id;
+    out.notToday = !today() && M.isGone(kid);
+    out.notFound = !M.searchHits('Thrown away alone').length;
+    out.putBack = U.unbin(t.id) && t.parent === 'root' && t.binFrom === undefined;
+    out.binStays = (BUREAU.del('__bin'), !!M.byId('__bin'));
+    U.emptyBin();
+    out.emptied = !M.byId(d.id) && !M.byId(kid.id) && M.childrenOf(bin).length === 0;
+    BUREAU.undo();
+    out.emptyUndone = !!M.byId(d.id) && !!M.byId(kid.id) && d.parent === '__bin';
+    BUREAU.del(d.id);
+    out.forGood = !M.byId(d.id) && !M.byId(kid.id);
+    BUREAU.del(t.id); U.emptyBin(); S.undo = []; S.redo = []; BUREAU.render();
     return out;
   });
 
@@ -11405,7 +11435,7 @@ const PROP_OFF = () => { const b = document.createElement('button');
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,
-    noDupIds, undoWorks, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
+    noDupIds, undoWorks, garbageBin, readViews, paperSize, readPaper, readBar, movement, pager, desks, spans,
     listControls, checklistEdit, lockedNamesAreNames, perBoardGrid, newThingsAreSmall,
     picture, fronts, editor, noSelecting, selectionDropped,
     settingsHasDoors, settingsBack,

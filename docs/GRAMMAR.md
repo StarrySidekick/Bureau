@@ -211,7 +211,8 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
   things due this week and next, not in 2019.
 - **Don't set sizes, colors or looks without a reason.** The defaults are his
   choices from the Workshop and the aesthetic.
-- **Never use a cut type** (§8 lists them) or invent a type key.
+- **Never use a cut type** (§8 lists them) or invent a type key, and never
+  make a `bin`: there is one garbage bin, made by the first delete.
 - **Say what could not be pasted.** If the board needs strings, positions or
   pictures (§5), hand over the paste and say plainly what he will have to do
   by hand, or what the paste bridge would need.
@@ -389,6 +390,7 @@ Still made, still valid in a paste, never offered by a picker: what flows and ol
 | `progressbar` | Progress bar | 4×1 |  | How far along something is — its own milestones, or another object's |
 | `trip` | Trip | 3×2 | yes | Somewhere you are going |
 | `writing` | Essay | 3×3 | yes | An essay, an article or a blog post, and the work around it |
+| `bin` | Garbage bin | 2×2 | yes | Where deleted things go. Open it to sift through them; hold one to put it back |
 | `film` | Film | 2×2 | yes | A film, and everything it is made of |
 | `game` | Game | 2×4 | yes | A game, and everything it is made of |
 | `song` | Song | 2×2 | yes | A song, and everything it is made of |
