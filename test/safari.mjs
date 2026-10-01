@@ -91,7 +91,7 @@ await page.mouse.move(drag.x, drag.y - 2 * drag.cell, { steps: 8 }); await nap(8
 const follows = await page.evaluate(() => {
   const b = document.querySelector('#drawergrid .drawer[data-drawer="d_in"]').getBoundingClientRect(); return b.y + b.height / 2; });
 await page.mouse.up(); await nap(300);
-// a board fits itself to what is on it (decision 285), so every number may
+// a board fits itself to what is on it (decision 286), so every number may
 // have moved by the same amount: measured against a neighbour
 const [after, refAfter] = await page.evaluate(r => [BUREAU.state.objects.find(o => o.id === 'd_in').phone,
   BUREAU.state.objects.find(o => o.id === r).phone], drag.ref);
@@ -128,7 +128,7 @@ out.rigidSwipeMovesOneTile = await page.evaluate(async () => {
   return Math.abs(moved - step) < 2 || Math.abs(sc.scrollTop - (sc.scrollHeight - sc.clientHeight)) < 2;
 });
 
-// ---- a board is as big as what is on it (decision 285) -----------------
+// ---- a board is as big as what is on it (decision 286) -----------------
 /* No carving: the desk is everything on it with a margin of empty cells
    round it. A thing put out in the margin grows the board past it, and the
    view holds still while the numbers under it move. Locked, the empty cells
@@ -203,6 +203,28 @@ out.aDrawerOpens = await page.evaluate(async () => {
     && document.querySelectorAll('#drawergrid > .drawer').length > 0;
 });
 await shot('05-drawer');
+
+// ---- the garbage bin (decision 285): a wire basket on the desk, and a heap
+// at the bottom of its board once it is opened, which is the gravity solver
+// running in Safari on a board it was not switched on for.
+out.theBinIsABasket = await page.evaluate(async () => {
+  const S = BUREAU.state; S.view = 'desk'; S.drawerId = null;
+  BUREAU.delMany(S.objects.filter(o => o.parent === 'root' && !BUREAU.state.objects.some(x => x.parent === o.id)
+    && !o.filter && o.id !== '__bin').slice(0, 5).map(o => o.id));
+  await new Promise(r => setTimeout(r, 400));
+  const t = document.querySelector('.bintile');
+  return !!t && t.querySelectorAll('.binball').length === 5 && !t.querySelector('.dpanel:not([style*="none"])')?.offsetWidth;
+});
+await shot('06-bin-on-desk');
+out.theBinHeapsUp = await page.evaluate(async () => {
+  const S = BUREAU.state; S.view = 'drawer'; S.drawerId = '__bin'; BUREAU.render();
+  await new Promise(r => setTimeout(r, 3500));
+  const g = document.querySelector('#drawergrid').getBoundingClientRect();
+  const tiles = [...document.querySelectorAll('#drawergrid > .drawer')];
+  // every one has fallen into the lower half of the board
+  return tiles.length === 5 && tiles.every(e => e.getBoundingClientRect().top - g.top > g.height / 2 - 60);
+});
+await shot('07-bin-open');
 
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));

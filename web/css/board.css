@@ -1917,6 +1917,55 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
   border-radius:4px / 45%;
 }
 .jartile > .rollup{position:absolute;right:6px;bottom:5px;margin:0;z-index:6}
+
+/* ---- the garbage bin: a wire wastebasket — decision 285 -----------------
+   Three layers in one trapezoid: the dark inside of the basket, the heap of
+   paper, and the wire drawn over both, so the paper is in it rather than on
+   it. The heap is clipped to the basket's sides but not its top, so a full
+   bin spills over the rim. The wire is two diagonal gradients, which is what
+   a woven wastebasket is; nothing in it is a photograph, because the heap
+   has to sit between the back and the front. */
+.drawer.dtile.bintile{
+  background:none;border:0;box-shadow:none;padding:0;overflow:visible;
+  --binmetal:#3a3a38;--binshape:polygon(4% 9%, 96% 9%, 84% 100%, 16% 100%);
+}
+@media (hover:hover){.drawer.dtile.bintile:hover{box-shadow:none;filter:brightness(1.05)}}
+/* a basket has no moulding, no grain and no flank: drawTile() splices those
+   onto every drawer face, and on wire they drew a pale panel behind it */
+.bintile > .dpanel, .bintile > .dgrain, .bintile > .dside{display:none}
+.drawer.dtile.bintile::before{
+  content:'';position:absolute;inset:0;z-index:0;clip-path:var(--binshape);
+  background:linear-gradient(180deg, rgba(0,0,0,.42), rgba(0,0,0,.18) 70%, rgba(0,0,0,.30));
+}
+.bintile .binheap{
+  position:absolute;left:4%;right:4%;top:9%;bottom:0;z-index:1;
+  clip-path:polygon(0 -60%, 100% -60%, 100% 0, 87% 100%, 13% 100%, 0 0);
+}
+/* one thing thrown away: a crumpled ball of paper in its own colour, lit from
+   the top left like everything else, its creases a conic gradient */
+.bintile .binball{
+  position:absolute;width:var(--bb,38%);aspect-ratio:1;
+  border-radius:47% 53% 44% 56% / 55% 45% 52% 48%;
+  background:
+    repeating-conic-gradient(from 20deg at 46% 52%, rgba(0,0,0,.13) 0 7deg, transparent 7deg 26deg, rgba(255,255,255,.14) 26deg 31deg, transparent 31deg 47deg),
+    radial-gradient(circle at 34% 30%, color-mix(in srgb, var(--k) 45%, #fff) 0 14%, var(--k) 52%, color-mix(in srgb, var(--k) 70%, #000) 100%);
+  box-shadow:0 1px 2px rgba(0,0,0,.35);
+}
+.bintile .binwire{
+  position:absolute;inset:0;z-index:2;clip-path:var(--binshape);pointer-events:none;
+  background:
+    linear-gradient(var(--binmetal), var(--binmetal)) bottom / 100% 4px no-repeat,
+    repeating-linear-gradient(60deg, transparent 0 7px, var(--binmetal) 7px 8.4px),
+    repeating-linear-gradient(-60deg, transparent 0 7px, var(--binmetal) 7px 8.4px),
+    linear-gradient(90deg, rgba(255,255,255,.10), transparent 40%, rgba(0,0,0,.15));
+}
+/* the rolled rim round the mouth, in the same wire (the foot is the wire's
+   first layer) */
+.bintile .binrim{
+  position:absolute;left:2%;right:2%;top:5%;height:9%;z-index:3;pointer-events:none;
+  border:2.5px solid var(--binmetal);border-radius:50%;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25), 0 1px 2px rgba(0,0,0,.3);
+}
 /* a jar too small for a label is a jar you can still see into */
 .drawer.dtile.jartile.sz-narrow .jarlabel{padding:1px 3px 2px}
 .drawer.dtile.jartile.sz-narrow .jarlabel .dname{font-size:10.5px;-webkit-line-clamp:1}
@@ -3727,7 +3776,7 @@ html[data-surface="wood"] .grid > .tilepaper{display:none}
 .noboard{display:flex;align-items:center;justify-content:center;pointer-events:none;
   background:var(--wood)}
 .grid.vacant .noboard{background:transparent}
-/* ---- a locked board shows what is on it — decision 285 -----------------
+/* ---- a locked board shows what is on it — decision 286 -----------------
    The board's own paper goes to the carcass's wood, said twice like the
    surface rule above so an aesthetic's own background cannot outrank it, and
    each thing stands on a piece of the checkerboard cut to its box, lined up

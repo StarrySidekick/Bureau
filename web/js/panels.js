@@ -1,4 +1,4 @@
-import { $, $$, esc, ic, uid, clamp, D, ROOT, pastTense, outURL } from './util.js';
+import { $, $$, esc, ic, uid, clamp, D, ROOT, BIN, pastTense, outURL } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
@@ -18,7 +18,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
-import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf } from './model.js';
+import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin } from './model.js';
 import { paintTarget, hasArt } from './paint.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS, BACKS } from './active.js';
@@ -2904,6 +2904,10 @@ function openCtx(x,y,id){
   // the hold is now *for* there (decision 181).
   if(!many && boardLocked()) items.push(has(o,'movable')
     ? it(`free:${id}`, 'lock', 'Lock') : it(`free:${id}`, 'grip', 'Unlock'));
+  /* The bin's own two answers (decision 285): a thing lying in it can be put
+     back where it came from, and the bin itself is emptied rather than
+     deleted. Put back leads, because it is why you opened the bin. */
+  if(!many && o.parent===BIN) items.push(it(`putback:${id}`, 'undo', 'Put Back'));
   if(!many){
     /* Open, View, Read, Write, Next one and Complete were cut in the Workshop
        (decision 218): a tap already opens, reads, plays or ticks a thing, so
@@ -2926,7 +2930,9 @@ function openCtx(x,y,id){
     items.push(it(`editlook:${id}`, 'brush', 'Edit Look'));
     items.push(it(`editdoes:${id}`, 'sliders', 'Edit Behavior'));
   }
-  items.push(it(`del:${id}`, 'trash', many?`Delete ${sel.length}`:'Delete', 'danger'));
+  if(!many && id===BIN) items.push(it(`emptybin:${id}`, 'trash', 'Empty', 'danger'));
+  else items.push(it(`del:${id}`, 'trash', many ? `Delete ${sel.length}`
+    : inBin(o) ? 'Delete for Good' : 'Delete', 'danger'));
   /* Up to eight go round one ring; more than that and the ring widens rather
      than the blobs crowding, so a long menu is a bigger circle, not a
      tighter one. */

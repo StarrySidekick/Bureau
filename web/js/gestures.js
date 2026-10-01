@@ -997,13 +997,13 @@ function onDown(e){
        walks, and a locked board holds nothing. */
     const ti=Math.floor((cx-1)/g.shelfW), tj=Math.floor((cy-1)/g.shelfH);
     const hold = e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE;
-    /* …and since decision 285 nothing is carved: a board is as big as what
+    /* …and since decision 286 nothing is carved: a board is as big as what
        is on it, and the wood past its edge is only the edge. */
     if(!isBoard(home, ti, tj)){ G=null; return; }
     /* The middle cell of a tile, held on past the Magic Selector, takes the
        tile away: only the middle, so a hold anywhere else stays a sketch, and
        the tile darkens while you decide. Things on it ask where they go. */
-    // never since decision 285: a cell is not filled back in by hand
+    // never since decision 286: a cell is not filled back in by hand
     const centre = false;
     holdTimer=setTimeout(()=>{
       holdTimer=null;

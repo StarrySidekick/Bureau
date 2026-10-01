@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, habitOn } from './model.js';
+  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways, innerOf,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, dimsOf, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -461,7 +461,7 @@ function dispense(g){
    the string is the thing you can see saying where the words go, and the
    spool is how you say it. `into` set in the editor still wins, because it
    was said outright. Either end of the string will do. */
-const holdsThings = d => !!d && isContainer(d) && !has(d,'magic') && !isHeld(d);
+const holdsThings = d => !!d && isContainer(d) && !has(d,'magic') && !isGone(d);
 const intoOf = g => { if(!g) return null;
   const d = g.into && byId(g.into);
   if(holdsThings(d)) return d;
@@ -1129,6 +1129,7 @@ function gridTile(o, arr, parentId){
    sensible answer without being told. */
 const depthOf = o =>
     isDecor(o) || isBackdrop(o) ? 0  /* a cut-out, or a cloth, with no box to have sides */
+  : faceOf(o)==='bin' ? 0         // …or a wire basket (decision 285)
   : isContainer(o)  ? 1           // furniture, standing on the shelf
   : shapeOf(o)==='spine' ? 0.9    // a book is nearly as deep as the drawer beside it
   : has(o,'media')  ? 0.55        // a framed thing has a frame's thickness
@@ -2392,6 +2393,32 @@ function drawTileFace(o, arr, box, persp){
     </button>`;
   }
 
+  /* ---- the garbage bin: a wire basket of crumpled paper — decision 285 ----
+     A jar's cousin, and drawn the same way for the same reason: what is in it
+     shows without opening it. Each thing thrown away is a ball of paper in
+     its own colour, heaped from the bottom and spilling over the rim once the
+     basket is full; the wire is drawn over the paper, so the heap is *inside*.
+     Placement is jitter(), never random, so the heap holds still between
+     renders. Only what lies in the bin itself is a ball: a drawer thrown away
+     whole is one ball, not every page of it. */
+  if(cont && faceOf(o)==='bin'){
+    const kids=childrenOf(o), n=kids.length, per=3, rows=5;
+    const balls = kids.slice(0, per*rows).map((x,i)=>{
+      const j=jitter(x.id), row=Math.floor(i/per);
+      const left = ((i%per) + .5 + (row%2 ? .35 : 0)) * (100/(per+.35)) + (j[0]-.5)*8;
+      const bot  = 4 + row*17 + (j[1]-.5)*5;
+      return `<i class="binball" title="${esc(x.title||'')}" style="--k:${objColour(x)};--bb:${
+        (34+j[2]*10).toFixed(1)}%;left:${left.toFixed(1)}%;bottom:${bot.toFixed(1)}%;transform:translateX(-50%) rotate(${
+        Math.round((j[3]-.5)*160)}deg)"></i>`;
+    }).join('');
+    return `<button class="drawer dtile bintile${sel}" data-drawer="${o.id}"
+        title="${esc(o.title||'Garbage bin')}${n ? ` · ${n} thrown away` : ''}" style="--c:${colour};${place}">
+      <span class="binheap">${balls}</span>
+      <i class="binwire"></i><i class="binrim"></i>
+      ${handles}
+    </button>`;
+  }
+
   /* A calendar is a container drawing what it collects on the day each thing
      falls. It is usually a magic drawer, so the sparkle belongs on it like any
      other — the days are what it shows, collecting is how it filled them.
@@ -3415,7 +3442,7 @@ function gridOfContainer(cid){
     kids = kids.filter(o=>{ const b=FLOW.get(o.id)||lay(o, dv, c.id);
       return b.x>shift.x && b.x<=shift.x+drawCols(g, dv) && b.y>shift.y && b.y<=shift.y+tall; });
   }
-  /* **Locked, the board is what is on it** (decision 285): the empty cells
+  /* **Locked, the board is what is on it** (decision 286): the empty cells
      go back to the carcass and only the cells things stand on keep the
      paper, cut into the wood the way a carved board was. Read here, before
      the tiles are drawn, because gridTile() takes each box out of FLOW. */
@@ -3576,7 +3603,7 @@ function vacancies(cid, dv, g, shift, cols, rows, cam){
   return {all: none===nx*ny, html};
 }
 
-/* ---- a locked board shows what is on it — decision 285 -----------------
+/* ---- a locked board shows what is on it — decision 286 -----------------
    One paper per thing, its box on the board, the checkerboard lined up with
    the grid's own (the squares are two cells across, so an odd column starts
    half a period in); and the same walls a carved board had, round the cells

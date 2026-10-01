@@ -385,7 +385,7 @@ function removeBoard(cid, x, y){
   if(keep.length===w*h) delete o.boards; else o.boards = keep.map(b=>b.x+','+b.y);
   return true;
 }
-/* ---- a board as big as what is on it — decision 285 --------------------
+/* ---- a board as big as what is on it — decision 286 --------------------
    Timothy, 2026-10-01: with the smooth scroll there is no need for a board
    you carve out and fill back in; "the objects themselves are the grid".
    So a board is never shaped by hand. It is the rectangle round everything
@@ -451,7 +451,7 @@ function cornerOf(id, dv){
   });
   return x===Infinity ? null : {x, y};
 }
-/* Every board at once, at load: the one time a desk from before decision 285
+/* Every board at once, at load: the one time a desk from before decision 286
    moves its numbers, before anything is drawn or held. */
 function fitAll(){
   fitBoard(ROOT);
@@ -994,7 +994,7 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   /* A proportional board's pages are not tiles (decision 195), so once a
      tile is a cell (283) each page is searched whole from its corner. */
   const whole = home!==ROOT && !!innerOf(home, dv);
-  /* **Not out past the top or the left of what is there** (decision 285),
+  /* **Not out past the top or the left of what is there** (decision 286),
      while anywhere else will do: a thing put there grows the board that way
      and moves every number on it, which is for a person to choose by putting
      it there, not for a new thing to do by itself. */

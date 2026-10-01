@@ -20,6 +20,10 @@ const ROOT = 'root';   // the desk: the container every other object descends fr
    id rather than a real object, exactly as ROOT is, so nothing has to be
    seeded, migrated, exported or tidied up after. See decision 107. */
 const HOLD = '__hold';
+/* The garbage bin (decision 285) is the other way off the desk, and unlike
+   HOLD it is a real object: a container you can put down, open and sift
+   through, so it has a board. Its id is fixed so there is only ever one. */
+const BIN = '__bin';
 
 const D = {
   today(){ const d=new Date(); d.setHours(0,0,0,0); return d; },
@@ -405,4 +409,4 @@ function whereTo(u){
   return sch;
 }
 
-export { $, $$, esc, uid, clamp, ROOT, HOLD, D, ic, md, plain, oneline, pastTense, outURL, whereTo };
+export { $, $$, esc, uid, clamp, ROOT, HOLD, BIN, D, ic, md, plain, oneline, pastTense, outURL, whereTo };

@@ -545,6 +545,28 @@ furniture, rather than a "Where it lives" row in a form.
 
 See decisions 107 and 165.
 
+### 7a′. The garbage bin
+
+**Delete files a thing in the bin** (decision 285). The bin is a real
+container with a fixed id, `BIN` (`'__bin'`), made on the desk the first time
+anything is thrown away and drawn as a wire wastebasket with a ball of paper
+for each thing in it. Unlike the Void Drawer it is a place: it has a board,
+and that board always tumbles (`gravityMode()`), so what you threw away lies
+in a heap you sift through.
+
+- **A delete is a reparent.** `binMany()` writes where the thing came from on
+  it (`binFrom`, `binBox`, `binAt`) and parents it to `BIN`; it undoes like any
+  other move, and a picture in the bin is never reaped, because its object is
+  still in `S.objects`.
+- **Off the desk means `isGone()`**: held, binned, or inside something that is.
+  Today, search, tags, counters, achievements and every sorting drawer ask it,
+  so a task in a binned drawer is not due today.
+- **Hold a thing in the bin: Put Back** (`unbin()`), into the container it came
+  from and its old box if both are still there, otherwise the desk. **Delete
+  for Good** on the same ring removes it.
+- **Hold the bin: Empty** (`emptyBin()`), which removes everything in it for
+  good and still undoes. The bin itself cannot be deleted.
+
 ### 7b. The cavity
 
 The board is **set into** the carcass, and on a phone tilting looks into that

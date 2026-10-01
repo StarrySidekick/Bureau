@@ -1,4 +1,4 @@
-import { uid, clamp, D, ROOT, HOLD } from './util.js';
+import { uid, clamp, D, ROOT, HOLD, BIN } from './util.js';
 import { stockPlans } from './stockplans.js';
 
 /* ============================================================
@@ -421,6 +421,14 @@ const BUILTIN_KINDS = {
      that is where a jar's name is. It holds by hand like a drawer; a jar that
      collected by rule would be a sorting drawer made of glass, which is a
      thing you can already ask for by ticking `magic`. See decision 177. */
+  /* **The garbage bin** (decision 285): where Delete puts things. One of it,
+     made the first time something is thrown away, with a fixed id (BIN). A
+     wire basket you can see the crumpled things in; open it and its board
+     tumbles, so what you threw away lies in a heap you sift through. Not on
+     any picker, because a second bin would be a second place things go. */
+  bin:     {face:'bin', nm:'Garbage bin', ic:'trash', c:12, key:'',
+     ds:'Where deleted things go. Open it to sift through them; hold one to put it back',
+     attrs:['container'], layout:'grid', size:[2,2], phoneSize:[2,2], body:'' },
   jar:     {face:'jar', nm:'Jar', ic:'pot', c:15, key:'A',
      ds:'Glass — what is in it shows without opening it',
      attrs:['container'], layout:'grid', size:[3,4], phoneSize:[3,4], body:'' },
@@ -2119,7 +2127,7 @@ function tugOf(o){
   if(!o) return null;
   const v = o.tug || K(o.kind).tug;
   if(v!=='open') return null;
-  const goes = d => !!d && d.id!==o.id && isContainer(d) && !isHeld(d);
+  const goes = d => !!d && d.id!==o.id && isContainer(d) && !isGone(d);
   return (o.rel||[]).map(byId).find(goes)
     || S.objects.find(x=>goes(x) && (x.rel||[]).includes(o.id)) || null;
 }
@@ -2330,6 +2338,8 @@ const tiltClasses = ()=> (tiltsDesk()?' tilt-desk':'') + (tiltsWindows()?' tilt-
    decision 166. */
 const GRAVITIES = {off:'Off', sand:'Sand', tumble:'Tumbling'};
 const gravityMode = ()=>{
+  // the bin's board always lets go: a heap is what a bin is (decision 285)
+  if(S.view==='drawer' && S.drawerId===BIN) return 'tumble';
   const g = S.look && S.look.gravity;
   return GRAVITIES[g] && g!=='off' ? g : 'off';
 };
@@ -2352,6 +2362,24 @@ const gravityTilts = ()=> gravityOn() && !!(S.look && S.look.gravitytilt) && S.d
    of things you meant to move rather than a board you arranged. See decision
    107. */
 const isHeld = o => !!o && o.parent===HOLD;
+/* **Off the desk**, for everything that reads the desk: in the Void Drawer, in
+   the bin, or inside something that is (a drawer thrown away whole takes what
+   is in it along). Today, search, tags, counters and every sorting drawer ask
+   this, not isHeld, so a task in a binned drawer is not due today. The walk
+   goes through upOf(), the render pass's map, so it is cheap where it is
+   asked most; on the desk itself it stops at once. */
+function isGone(o){
+  let p = o && o.parent, n = 0;
+  while(p && p!==ROOT && n++ < 32){
+    if(p===HOLD || p===BIN) return true;
+    const up = upOf(p); p = up && up.parent;
+  }
+  return false;
+}
+const inBin = o => !!o && o.id!==BIN && binOf(o);
+const binOf = o => { let p = o && o.parent, n = 0;
+  while(p && p!==ROOT && n++ < 32){ if(p===BIN) return true; const up = upOf(p); p = up && up.parent; }
+  return false; };
 /* ---- in the drawer front — decision 252 ----------------------------------
    A board's drawer front has six places, three either side of the knob, and
    any object on the board can stand in one: `front` says which side. It is
@@ -2360,7 +2388,7 @@ const isHeld = o => !!o && o.parent===HOLD;
    front, as its one-by-one self, instead of on the grid, and it gives up its
    cells while it is there. The front is a phone's, so a Mac, which has no
    front to draw it in, draws it on the board where its desk box says. */
-const inFront = o => !!o && (o.front==='left' || o.front==='right') && !isHeld(o) && !o.done
+const inFront = o => !!o && (o.front==='left' || o.front==='right') && !isGone(o) && !o.done
   && S.device==='phone';
 const heldObjects = ()=> S.objects.filter(isHeld).sort((a,b)=>(a.ord||0)-(b.ord||0));
 const heldCount = ()=> S.objects.reduce((n,o)=>n+(isHeld(o)?1:0), 0);
@@ -2404,7 +2432,7 @@ function inContainer(c,o){
        put it back on a board it has been deliberately taken off, and then it
        would be in two places — which is the one thing containment promises it
        cannot be. See decision 107. */
-    if(isHeld(o)) return false;
+    if(isGone(o)) return false;
     if(!inScope(c,o)) return false;    // before anything else: it cannot see it
     if(f.done) return !!o.done;        // the archive
     if(o.done && !keepsDone(c)) return false;   // finished things leave elsewhere
@@ -2787,7 +2815,7 @@ function searchHits(q, scopeId){
     return 0;
   };
   return S.objects
-    .filter(o => o.parent!==HOLD && !o.archived && o.id!==root && inScope(o))
+    .filter(o => !isGone(o) && !o.archived && o.id!==root && inScope(o))
     .map(o => ({o, w: hit(o)}))
     .filter(r => r.w)
     .sort((a,b) => b.w - a.w
@@ -3384,9 +3412,9 @@ function countOf(o){
   if(!how) return (o && o.count) || 0;
   const t = byId(o.tracks);
   switch(how){
-    case 'open':   return under(t).filter(x=>has(x,'check') && !x.done && !isHeld(x)).length;
-    case 'done':   return under(t).filter(x=>has(x,'check') && x.done).length;
-    case 'items':  return under(t).filter(x=>!x.done && !isHeld(x)).length;
+    case 'open':   return under(t).filter(x=>has(x,'check') && !x.done && !isGone(x)).length;
+    case 'done':   return under(t).filter(x=>has(x,'check') && x.done && !isGone(x)).length;
+    case 'items':  return under(t).filter(x=>!x.done && !isGone(x)).length;
     case 'streak': return streak(t);
     case 'words':  return (String(t.body||'').match(/\S+/g)||[]).length;
     case 'days':   return t.due ? Math.max(0, Math.round((D.parse(t.due)-D.parse(T))/864e5)) : 0;
@@ -3418,7 +3446,7 @@ function progressOf(o){
    finished is the one you are making a plaque for. See decision 135. */
 function finishedThings(){
   return S.objects.filter(o=>{
-    if(!o || isHeld(o)) return false;
+    if(!o || isGone(o)) return false;
     if(has(o,'check')) return !!o.done;
     if(isContainer(o)){
       /* A piece of work that is finished — a goal reached, a project done.
@@ -3537,7 +3565,7 @@ function tagMatch(o, expr){
 function everyTag(){
   const own={}, imp={};
   S.objects.forEach(o=>{
-    if(isHeld(o)) return;
+    if(isGone(o)) return;
     (o.tags||[]).forEach(t=>{ t=tagSlug(t); if(t) own[t]=(own[t]||0)+1; });
     implicitTags(o).forEach(t=>imp[t]=(imp[t]||0)+1);
   });
@@ -3566,7 +3594,7 @@ export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, co
   SHAPES_KEPT, shapeName, shapeChoices,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  placeOf, isHeld, inFront, heldObjects, heldCount,
+  placeOf, isHeld, isGone, inBin, inFront, heldObjects, heldCount,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
   GRAVITIES, gravityMode, gravityOn, gravityTilts, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,

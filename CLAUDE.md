@@ -360,7 +360,13 @@ carved out of the carcass a cell at a time (hold the wood beside it; a long
 hold on an empty cell fills it back); a fresh desk or container is 8×14
 (`FRESH`); migration 54 re-cuts old boards cell by cell, moving nothing; the
 cut is drawn as wooden walls and shadow (`carveEdges()`, `.carve`).
-**v2.72–2.75** (decision 285): **a board is as big as what is on it.** Nothing is
+**v2.71** (decision 284): **the grammar** (`docs/GRAMMAR.md`,
+`scripts/grammar.mjs`) and three paste fixes. **v2.72** (decision 285):
+**the garbage bin**. Delete files a thing in a real container (`BIN`), a wire
+wastebasket whose board always tumbles; `isGone()` keeps what is in it (and
+in a drawer thrown away whole) out of Today, search and every sorting drawer;
+hold one for Put Back or Delete for Good, hold the bin to Empty it.
+**v2.74–2.76** (decision 286): **a board is as big as what is on it.** Nothing is
 carved: `fitBoard()` makes it the rectangle round its things plus `MARGIN`
 (8) empty cells each side, at least `FRESH`, every render and at boot
 (`fitAll()`). The right and bottom follow what is there both ways; **the
