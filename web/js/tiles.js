@@ -3593,6 +3593,18 @@ function showcaseOf(kids, shift, dv, cid){
     papers += `<i class="showpaper" aria-hidden="true" style="grid-column:${i+1}/span ${b.w};grid-row:${j+1}/span ${h};--px:${((i%2)+2)%2};--py:${((j%2)+2)%2}"></i>`;
   });
   if(!cover.size) return null;
+  /* A board that gives each tile its own checkerboard (decision 274) keeps
+     it under the things on it: the same rolled colours, only where the paper
+     is. */
+  const cfg = cid===ROOT ? S.deskCfg : byId(cid);
+  if(cfg && cfg.tilepaper==='each'){
+    papers = '';
+    cover.forEach(k=>{
+      const [i, j] = k.split(',').map(Number), x = shift.x+i, y = shift.y+j;
+      const [a, b] = randomBoard(seeded(`${cid}:${x}:${y}:${cfg.tileseed||0}`)).split('|');
+      papers += `<i class="tilepaper" aria-hidden="true" style="--board-1:${a};--board-2:${b};grid-column:${i+1};grid-row:${j+1}"></i>`;
+    });
+  }
   let walls = '';
   cover.forEach(k=>{
     const [i, j] = k.split(',').map(Number);

@@ -424,8 +424,14 @@ function fitBoard(cid){
     // the margin gives way before the things do, so nothing is ever cut off
     const mx = clamp(Math.floor((SPAN - (x1-x0+1))/2), 0, MARGIN.w);
     const my = clamp(Math.floor((SPAN - (y1-y0+1))/2), 0, MARGIN.h);
-    sx = mx - (x0-1); sy = my - (y0-1);
-    w = Math.max(FRESH.w, x1 + sx + mx); h = Math.max(FRESH.h, y1 + sy + my);
+    /* **The left and top only ever grow.** A thing put within the margin of
+       either moves every number along; a thing taken away from them moves
+       nothing, because a number that changes while it is held somewhere (a
+       gesture, a pending box, the undo stack, a test) is a thing put back in
+       the wrong place. The right and the bottom are counted from the corner
+       already, so they follow what is on the board both ways for nothing. */
+    sx = Math.max(0, mx - (x0-1)); sy = Math.max(0, my - (y0-1));
+    w = Math.min(SPAN, Math.max(FRESH.w, x1 + sx + mx)); h = Math.min(SPAN, Math.max(FRESH.h, y1 + sy + my));
   }
   const same = !sx && !sy && r.w===w && r.h===h && !o.boards;
   if(same) return null;
@@ -434,6 +440,22 @@ function fitBoard(cid){
   delete o.boards;
   PLACED.n++;
   return {x:sx, y:sy};
+}
+/* The top-left corner of what is on a board on one device, or null. */
+function cornerOf(id, dv){
+  let x = Infinity, y = Infinity;
+  S.objects.forEach(k=>{
+    if(!k || (k.parent||ROOT)!==id || k.done || inFront(k)) return;
+    const b = k[dv]; if(!b || !b.x || !b.w) return;
+    x = Math.min(x, b.x); y = Math.min(y, b.y);
+  });
+  return x===Infinity ? null : {x, y};
+}
+/* Every board at once, at load: the one time a desk from before decision 284
+   moves its numbers, before anything is drawn or held. */
+function fitAll(){
+  fitBoard(ROOT);
+  S.objects.forEach(o=>{ if(o && has(o,'container')) fitBoard(o.id); });
 }
 /* Everything on a board moved by whole cells, the undo and redo stacks too. */
 function shiftCells(id, sx, sy){
@@ -972,13 +994,20 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   /* A proportional board's pages are not tiles (decision 195), so once a
      tile is a cell (283) each page is searched whole from its corner. */
   const whole = home!==ROOT && !!innerOf(home, dv);
-  for(const clear of clearOnly ? [true] : [true, false]) for(const [sx,sy] of whole ? [[0,0]] : order){
+  /* **Not out past the top or the left of what is there** (decision 284),
+     while anywhere else will do: a thing put there grows the board that way
+     and moves every number on it, which is for a person to choose by putting
+     it there, not for a new thing to do by itself. */
+  const lo = whole ? null : cornerOf(home, dv);
+  const passes = (clearOnly ? [true] : [true, false]).flatMap(c => lo ? [[c, true], [c, false]] : [[c, false]]);
+  for(const [clear, inside] of passes) for(const [sx,sy] of whole ? [[0,0]] : order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
     // the top-left cell is in this tile; the box may run on across the seam
     const lastX = whole ? g.cols-w+1 : Math.min(g.shelfW, g.cols-x0-w+1);
     const lastY = whole ? g.rows-h+1 : Math.min(g.shelfH, g.rows-y0-h+1);
     for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
+      if(inside && (box.x < lo.x || box.y < lo.y)) continue;
       if(boxOk(box,null,dv,home,clear)) return box;
     }
   }
@@ -1266,7 +1295,7 @@ function cellW(grid,g){
 
 export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, INNER, FRESH, dimsOf, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
-  ensureBoards, boardHolds, onBoard, fitBoard, MARGIN, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
+  ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, proportional, shelvesToHold, colsOf, gridKeyOf, shelvesOf, innerOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,
   gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, roomFor, gridRows, sizeOfKind, toPhoneSize,
   ensureBox, keepSize, cellW, PLACED };

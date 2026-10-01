@@ -142,7 +142,9 @@ const fit = await page.evaluate(async () => {
         x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w - 1); y1 = Math.max(y1, b.y + (b.h || 1) - 1); }); });
     return { x0, y0, x1, y1 }; };
   const r0 = BUREAU.shelvesOf('root'), b0 = box();
-  const margin = b0.x0 - 1 === 8 && b0.y0 - 1 === 8 && r0.w - b0.x1 >= 8 && r0.h - b0.y1 >= 8;
+  // the left and the top only ever grow, so at least the margin there; the
+  // right and the bottom follow what is there exactly
+  const margin = b0.x0 - 1 >= 8 && b0.y0 - 1 >= 8 && r0.w - b0.x1 === 8 && r0.h - b0.y1 === 8;
   // a 1×1 put out at the far left of the margin: the board grows that way
   const t = S.objects.find(o => o.id === 'd_in'), ref = S.objects.find(o => o.id !== 'd_in' && (o.parent || 'root') === 'root' && o.phone && o.phone.x);
   const refAt = { ...ref.phone };

@@ -362,11 +362,14 @@ hold on an empty cell fills it back); a fresh desk or container is 8×14
 cut is drawn as wooden walls and shadow (`carveEdges()`, `.carve`).
 **v2.71** (decision 284): **a board is as big as what is on it.** Nothing is
 carved: `fitBoard()` makes it the rectangle round its things plus `MARGIN`
-(8) empty cells each side, at least `FRESH`, every render, shifting every box,
-`SHELF`, `start` and the undo stacks when the top or left edge moves, and the
-scroll with them. **Locked, it is a showcase**: wood, with the checkerboard
-only under things and walls round them (`showcaseOf()`, `.showcase`).
-Migration 55 drops the carved lists.
+(8) empty cells each side, at least `FRESH`, every render and at boot
+(`fitAll()`). The right and bottom follow what is there both ways; **the
+left and top only grow**, shifting every box, `SHELF`, `start`, the undo
+stacks and the scroll together when something is put within the margin
+there, and `freeSpot()` keeps new things out of that margin. **Locked, it is
+a showcase**: wood, with the checkerboard only under things and walls round
+them (`showcaseOf()`, `.showcase`), taking back decision 192's half that
+the lock is not the surface. Migration 55 drops the carved lists.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

@@ -7,10 +7,13 @@ paths:
 
 **Read this first of all (decision 284): a board is as big as what is on
 it.** Nothing is carved; `fitBoard()` sizes the board being drawn at every
-render to its things plus `MARGIN` empty cells each side (at least `FRESH`),
-and moves every number (boxes, `SHELF`, `start`, the undo stacks) when the
-top or left edge moves, so **a box's coordinates are not stable across a
-render**: compare positions against a neighbour, never as absolute numbers.
+render (and `fitAll()` at boot) to its things plus `MARGIN` empty cells each
+side (at least `FRESH`). The right and bottom follow both ways; the top and
+left only grow, and when they do every number moves (boxes, `SHELF`,
+`start`, the undo stacks, the scroll), so **a box's coordinates are not
+stable across a render that put something near the top or left**: in a
+test, compare positions against a neighbour or read them after the render,
+never save absolute numbers across one.
 Locked, the empty cells are drawn as wood (`.showcase`). The carving gestures
 in the next paragraph are history.
 

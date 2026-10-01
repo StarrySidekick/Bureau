@@ -999,7 +999,7 @@ function onDown(e){
     const hold = e.pointerType==='touch' ? HOLD_TOUCH : HOLD_MOUSE;
     /* …and since decision 284 nothing is carved: a board is as big as what
        is on it, and the wood past its edge is only the edge. */
-    if(!isBoard(home, ti, tj)) return;
+    if(!isBoard(home, ti, tj)){ G=null; return; }
     /* The middle cell of a tile, held on past the Magic Selector, takes the
        tile away: only the middle, so a hold anywhere else stays a sketch, and
        the tile darkens while you decide. Things on it ask where they go. */

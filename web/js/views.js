@@ -1907,9 +1907,20 @@ function render(){
      drawn on it. A shift of its left or top edge moved every box under the
      kept scroll, so the scroll moves with it below. */
   const fitId = (S.view==='drawer' && S.drawerId) || ROOT;
-  const fit = (S.view==='desk' || S.view==='drawer') ? fitBoard(fitId) : null;
+  let fit = (S.view==='desk' || S.view==='drawer') ? fitBoard(fitId) : null;
   const placed = PLACED.n;      // ensureBox() may invent boxes as this builds
   $('#app').innerHTML = viewHTML();
+  /* A thing placed by this build (ensureBox) can be what the board has to
+     grow round; fitted again now, and built once more if it did, so the
+     numbers settle in the render that put it there and not in some later
+     one while you are holding something. */
+  if(fit!==undefined && PLACED.n!==placed && (S.view==='desk' || S.view==='drawer')){
+    const again = fitBoard(fitId);
+    if(again){
+      fit = fit ? {x:fit.x + again.x, y:fit.y + again.y} : again;
+      $('#app').innerHTML = viewHTML();
+    }
+  }
   const key=viewKey(), now=$('#app .scroll');
   /* Turning the phone's scroll on or off is arriving somewhere as well: the
      scroller changes from a window to a column, and the offset it had means

@@ -11927,16 +11927,31 @@ presentational… we don't need this one-by-one schema."
   round everything on it, on either device, with `MARGIN` (eight cells) of
   empty checkerboard on every side, never smaller than `FRESH` (8×14, what an
   empty board is) and never past `SPAN`. It runs on the board being drawn at
-  the start of every `render()`, since every way of changing what is on a
-  board ends in one. Put something in the margin and the board grows past
-  it; take the last thing off an edge and it closes up.
+  the start of every `render()`, and again in the same render if that render
+  placed something (`ensureBox()`), since every way of changing what is on a
+  board ends in one; `fitAll()` fits every board at boot, before anything is
+  drawn, which is when an older desk moves its numbers once.
+- **The right and the bottom follow what is there both ways; the left and
+  the top only grow.** Those two are counted from the corner, so moving them
+  moves every number on the board. Put a thing within the margin of the left
+  or the top and it grows that way; take it away and nothing moves back. The
+  first build of this refitted all four sides every render, and every number
+  held across a render broke: an undo after a filing, a test's saved
+  arrangement, a gesture's measured target. Clearing the left or top leaves
+  that strip until the next time the board is fitted from scratch, which is
+  bounded and costs nothing.
 - **When the left or top edge moves, every number moves with it**
   (`shiftCells()`): the boxes on the board on both devices, `SHELF`,
-  `start`, and the boxes held on the undo and redo stacks, so an undo after
-  a fit puts a thing back where it was and not eight cells off. `render()`
-  moves the kept scroll by the same shift, so nothing moves on the screen.
-  (`shiftBoard()`, which a tile added to the left used to go through, never
-  patched the stacks.)
+  `start`, and the boxes held on the undo and redo stacks (a box belongs to
+  the board its object will be on when it is put back, which for a filing
+  undone is the parent the same move restores), so an undo after a fit puts
+  a thing back where it was. `render()` moves the kept scroll by the same
+  shift, so nothing moves on the screen. (`shiftBoard()`, which a tile added
+  to the left used to go through, never patched the stacks.)
+- **A new thing is not put out past the left or the top by itself.**
+  `freeSpotIn()` looks inside the corner of what is there first
+  (`cornerOf()`), then anywhere. Growing the board that way is for a person
+  to choose by putting something there.
 - **The carving gestures are gone**: holding the wood past the edge does
   nothing, and a long hold on a cell is only the Magic Selector. Board
   settings' Tiles map is a line saying how big the board is and why.
@@ -11946,9 +11961,13 @@ presentational… we don't need this one-by-one schema."
   and `.showpaper` in board.css): the board's own paper goes to the carcass's
   wood and each thing stands on a piece of the checkerboard cut to its box,
   aligned with the squares the unlocked board draws, with decision 283's walls
-  round the cells things cover. An empty locked board keeps its paper.
-  Unlocked is the open checkerboard. Locked is the default, so this is what
-  the board usually looks like.
+  round the cells things cover. An empty locked board keeps its paper, and a
+  board with each tile its own checkerboard keeps those colours under its
+  things. Unlocked is the open checkerboard. Locked is the default, so this
+  is what the board usually looks like. **This takes back decision 192's
+  rule that the lock is not the surface**: Timothy asked for the locked
+  board to be presentational, so the switch you flick does change what you
+  look at, on purpose, now.
 - **Migration 55** drops every stored list of carved cells; the first render
   of each board fits it.
 - Not touched: magic drawers (they pack what they collect into the room they
