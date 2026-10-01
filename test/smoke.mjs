@@ -643,7 +643,14 @@ const PROP_OFF = () => { const b = document.createElement('button');
       && t.kind === 'task' && m.kind === 'task'      // a bare string is a task
       && t.due === '2026-09-02'
       && (BUREAU.state.objects.find(o => o.title === 'The Tide Book') || {}).kind === 'pj_novel'
-      && (BUREAU.state.objects.find(o => o.title === 'Someday') || {}).due === null);
+      && (BUREAU.state.objects.find(o => o.title === 'Someday') || {}).due === null
+      // …and both go again, novel and board, so the desk every later block
+      // was written against is the desk it gets
+      && (() => { const S = BUREAU.state, nv = S.objects.find(o => o.title === 'The Tide Book');
+        const gone = new Set([nv.id, S.objects.find(o => o.title === 'Someday').id]);
+        for (let more = true; more;) { more = false;
+          S.objects.forEach(o => { if (!gone.has(o.id) && gone.has(o.parent)) { gone.add(o.id); more = true; } }); }
+        S.objects = S.objects.filter(o => !gone.has(o.id)); BUREAU.render(); return true; })());
   });
 
   // --- magic rules: a magic drawer collects by rule, and completed things
