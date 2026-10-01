@@ -1014,6 +1014,27 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
      it there, not for a new thing to do by itself. */
   const lo = whole ? null : cornerOf(home, dv);
   const passes = (clearOnly ? [true] : [true, false]).flatMap(c => lo ? [[c, true], [c, false]] : [[c, false]]);
+  /* **The cells taken, once per search** (decision 286). `boxOk()` asks every
+     sibling about every candidate, and a search over a board of a few
+     thousand cells did that a few thousand times for each thing placed: a
+     garbage bin of two hundred things took minutes to open. The same rule
+     `boxOk()` keeps, as two sets of cells, rules out nearly every candidate
+     for the price of a lookup; `boxOk()` still has the last word on the few
+     that are left. */
+  const taken = {true:new Set(), false:new Set()};
+  const floats = d => has(d,'decor') || has(d,'backdrop') || wordOf(d,'layer')==='above';
+  childrenOf(container(home)).forEach(d=>{
+    if(inFront(d) || !hasBox(d, dv)) return;
+    const b = lay(d, dv, home), hit = [!has(d,'backdrop'), !floats(d)];
+    for(let j=0; j<(b.h||1); j++) for(let i=0; i<b.w; i++){
+      const k = (b.x+i)+','+(b.y+j);
+      if(hit[0]) taken.true.add(k);
+      if(hit[1]) taken.false.add(k);
+    }
+  });
+  const free = (box, clear) => { const t = taken[clear];
+    for(let j=0; j<box.h; j++) for(let i=0; i<box.w; i++) if(t.has((box.x+i)+','+(box.y+j))) return false;
+    return true; };
   for(const [clear, inside] of passes) for(const [sx,sy] of whole ? [[0,0]] : order){
     const x0=sx*g.shelfW, y0=sy*g.shelfH;
     // the top-left cell is in this tile; the box may run on across the seam
@@ -1022,6 +1043,7 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
     for(let y=1;y<=lastY;y++) for(let x=1;x<=lastX;x++){
       const box={x:x0+x, y:y0+y, w, h};
       if(inside && (box.x < lo.x || box.y < lo.y)) continue;
+      if(!free(box, clear)) continue;
       if(boxOk(box,null,dv,home,clear)) return box;
     }
   }
