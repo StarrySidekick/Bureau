@@ -382,7 +382,7 @@ there, and `freeSpot()` keeps new things out of that margin. **Locked, it is
 a showcase**: wood, with the checkerboard only under things and walls round
 them (`showcaseOf()`, `.showcase`), taking back decision 192's half that
 the lock is not the surface. Migration 56 drops the carved lists.
-**v2.81** (decision 288): **free, tiled and fixed boards.** `formOf(id)` in
+**v2.81–2.82** (decision 288): **free, tiled and fixed boards.** `formOf(id)` in
 grid.js is the one reader (`form`, `bw`, `bh`, `full` on a board's config or
 its type). The desk is free (decision 287); a container is tiled 8×14 by
 default, more tiles of the same size laid by holding the wood beside it

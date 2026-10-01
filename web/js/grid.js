@@ -260,7 +260,9 @@ function fitTiles(id){
   let sx = 0, sy = 0;
   if(!Array.isArray(c.tiles)){
     const bs = boxesOn(id);
-    if(bs.length){
+    /* Only a board that was free, and so kept a margin (decision 287), is
+       moved up; a new one keeps whatever was put on it where it was put. */
+    if(bs.length && c.shelves){
       sx = 1 - Math.min(...bs.map(b=>b.x)); sy = 1 - Math.min(...bs.map(b=>b.y));
       if(sx || sy) shiftCells(id, sx, sy);
     }
@@ -273,11 +275,17 @@ function fitTiles(id){
     const w = Math.max(f.w, ...bs.map(b=>b.x+b.w-1)), h = Math.max(f.h, ...bs.map(b=>b.y+(b.h||1)-1));
     if(w!==f.w || h!==f.h){ c.bw = Math.min(DIM_MAX, w); c.bh = Math.min(DIM_MAX_H, h); PLACED.n++; }
   } else {
+    /* A box past the tiles is given every tile from the corner out to it,
+       so the board stays one piece rather than an island where it lies. */
     const have = new Set(c.tiles);
     bs.forEach(b=>{
-      for(let ty=Math.floor((b.y-1)/f.h); ty<=Math.floor((b.y+(b.h||1)-2)/f.h); ty++)
-        for(let tx=Math.floor((b.x-1)/f.w); tx<=Math.floor((b.x+b.w-2)/f.w); tx++)
-          if(tx>=0 && ty>=0 && !have.has(tx+','+ty)){ have.add(tx+','+ty); c.tiles.push(tx+','+ty); PLACED.n++; }
+      const tx1 = Math.floor((b.x+b.w-2)/f.w), ty1 = Math.floor((b.y+(b.h||1)-2)/f.h);
+      const tx0 = Math.floor((b.x-1)/f.w), ty0 = Math.floor((b.y-1)/f.h);
+      let inside = true;
+      for(let ty=ty0; ty<=ty1 && inside; ty++) for(let tx=tx0; tx<=tx1; tx++) if(!have.has(tx+','+ty)){ inside = false; break; }
+      if(inside) return;
+      for(let ty=0; ty<=ty1; ty++) for(let tx=0; tx<=tx1; tx++)
+        if(!have.has(tx+','+ty)){ have.add(tx+','+ty); c.tiles.push(tx+','+ty); PLACED.n++; }
     });
   }
   return sx || sy ? {x:sx, y:sy} : null;
@@ -1305,7 +1313,7 @@ function randomSpot(w,h,device,parentId){
    always held at three by three. So the step-down runs on the pages there are
    until the object is half the size it asked for, a page is added only then,
    and past that it steps down as it always did. */
-function fitSpot(w,h,device,parentId,prefer){
+function fitSpot(w,h,device,parentId,prefer,keep){
   let a=Math.max(1,w|0), b=Math.max(1,h|0);
   const minA=Math.ceil(a/2), minB=Math.ceil(b/2);
   /* A clear spot at any size down to half, and then a new page with one on
@@ -1317,6 +1325,16 @@ function fitSpot(w,h,device,parentId,prefer){
     if(c<=minA && r<=minB) return null;
     if(c>=r && c>minA) c--; else if(r>minB) r--; else c--;
   } };
+  /* **A size somebody drew is kept** on a tiled board that adds tiles
+     (decision 288): a tile is laid before the thing is made smaller. A thing
+     made at its type's size still steps down, so it lands where you can see
+     it rather than on a new tile off the screen. */
+  const home = parentId||ROOT;
+  if(keep && tiledBoard(home) && formOf(home).full==='add'){
+    let exact = freeSpotIn(a, b, device, parentId, prefer, true);
+    while(!exact && growDown(parentId)) exact = freeSpotIn(a, b, device, parentId, prefer, true);
+    if(exact) return exact;
+  }
   let first = clear();
   while(!first && growDown(parentId)) first = clear();
   if(first) return first;
