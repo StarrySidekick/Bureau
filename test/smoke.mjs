@@ -628,10 +628,12 @@ const PROP_OFF = () => { const b = document.createElement('button');
 
   // --- the paste bridge: JSON in, a drawer with its children on the desk out
   const pasteOk = await page.evaluate(() => {
-    const before = BUREAU.state.objects.length;
     BUREAU.paste(JSON.stringify([
       { type: 'drawer', title: 'Lisbon', children: [
-        { type: 'task', title: 'Book the flight', due: '2026-09-02' }, 'Milk' ] }
+        { type: 'task', title: 'Book the flight', due: '2026-09-02' }, 'Milk',
+        // an exact key with an underscore is that type, not a note (GRAMMAR.md),
+        // and "due": null is undated rather than today
+        { type: 'pj_novel', title: 'The Tide Book' }, { type: 'task', title: 'Someday', due: null } ] }
     ]));
     const d = BUREAU.state.objects.find(o => o.title === 'Lisbon');
     const t = BUREAU.state.objects.find(o => o.title === 'Book the flight');
@@ -639,7 +641,8 @@ const PROP_OFF = () => { const b = document.createElement('button');
     return !!(d && t && m && t.parent === d.id && m.parent === d.id
       && t.kind === 'task' && m.kind === 'task'      // a bare string is a task
       && t.due === '2026-09-02'
-      && BUREAU.state.objects.length === before + 3);
+      && (BUREAU.state.objects.find(o => o.title === 'The Tide Book') || {}).kind === 'pj_novel'
+      && (BUREAU.state.objects.find(o => o.title === 'Someday') || {}).due === null);
   });
 
   // --- magic rules: a magic drawer collects by rule, and completed things

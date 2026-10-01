@@ -99,7 +99,8 @@ Foundations first, because most of the uses above are flows made of the
 objects, and the objects mostly share three mechanisms: string as signal, a
 tool that is tapped then aimed, and a source that is drawn from.
 
-1. **Grammar doc.** Docs only, and it makes every later flow cheaper to build.
+1. **Grammar doc.** Done, v2.71: `docs/GRAMMAR.md`, decision 284. Writing it
+   fixed three paste bugs; its §5 is the flat-pack's specification.
 2. **Garbage bin.** The safety net, before living in it means losing things.
 3. **Inbox with copper pipes.** The capture path, named the biggest idea since
    2026-09-23.

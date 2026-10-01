@@ -11913,3 +11913,35 @@ is inset within the carcass, so sell the carved out of wood effect."
   things on the board, so a thing against the edge sits under the lip. The
   wood carries the cut's rim on the side that meets the board. Only edge cells
   get an element, so the cost is the perimeter.
+
+## 284. The grammar: how to build in Bureau (v2.71, 2026-10-01)
+
+Timothy approved `docs/USES.md`, and its first item is a written grammar so
+Claude can build boards for him reliably. It is `docs/GRAMMAR.md`.
+
+- **Two halves, one generator.** The rules (the model, the paste, flows and
+  `fill`, what a paste cannot do, markdown, how to build a good board) are
+  written by hand. The vocabulary (every type under the fifteen, the types
+  outside them, the cut ones, every flow with every title `fill` can reach,
+  the compounds, the attributes and their fields, faces, shapes) is spliced
+  in between markers by `scripts/grammar.mjs` from the running app, the way
+  the specimen book and the Workshop snapshot are made (143, 246).
+  `--check` exits 1 when it is stale. Rerun it after changing a type, a field
+  or a flow.
+- **Writing it found three things wrong with the paste bridge**, by pasting
+  the doc's own examples:
+  - `kindFromName()` squeezed a name down to its letters before looking it
+    up, so every key with an underscore (`pj_*`, `lf_*`, `wf_*`, `cp_*`)
+    answered to nothing and arrived as a note, silently. An exact key is
+    tried first now.
+  - A compound went through `create()` and arrived as nothing useful. It goes
+    through `makeCompound()` now, grouped and tied, and the compound's own
+    undo move is taken back off the stack so a paste stays one move. It is
+    made only where its whole footprint is clear.
+  - There was no way to paste an undated task: anything with `date` is born
+    on today. `"due": null` now says undated.
+- **What a paste still cannot do is listed** (GRAMMAR §5: place, file into an
+  existing drawer, tie, group, define milestones, look, media, board shape).
+  That list is the flat-pack's specification.
+- Guarded in the smoke test's paste block (`pasteOk`): a `pj_novel` key is a
+  novel, and `"due": null` is undated.

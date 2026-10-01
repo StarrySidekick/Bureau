@@ -370,6 +370,11 @@ at, and what is worth taking from Bear, Things 3 and Notion.
 missing for Timothy to live in it, and the case for a freeze.
 `docs/FUNCTIONS.md` is the fifteen functions a paper system serves and Bureau's
 answer to each — scoped, not built, and the source of the current plan.
+`docs/USES.md` (2026-10-01) is what Timothy approved Bureau being for, the
+objects that need, and the order to build them. **`docs/GRAMMAR.md` is how to
+build in Bureau** (a paste, a flow and its `fill`, the whole vocabulary):
+read it before writing any board for him, and rerun `node scripts/grammar.mjs`
+after changing a type, a field or a flow.
 
 Read `docs/SYSTEM.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately
