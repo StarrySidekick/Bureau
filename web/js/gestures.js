@@ -2137,7 +2137,7 @@ function onUp(e){
     gestureFlags.tapped = {id: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
     // a tap on a button's face fires it; anywhere else follows the type
     const o=byId(g.id);
-    if(o && has(o,'button') && g.startedOnFace) fireButton(o); else tileTap(g.id);
+    if(o && has(o,'button') && g.startedOnFace && !S.stamping) fireButton(o); else tileTap(g.id);
   }
 }
 

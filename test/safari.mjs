@@ -310,6 +310,38 @@ out.aBoardCarriesWhatIsOnIt = await page.evaluate(async () => {
 });
 await shot('12-a-board');
 
+// ---- the rubber stamp (decision 292): pressed with a finger, then a task
+// pressed with a finger, and the task carries the impression; the stamp
+// pressed again puts it down, and a second press on the task does nothing.
+const stampAt = await page.evaluate(async () => {
+  const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; S.look.locked = false;
+  const st = BUREAU.create('tstamp', {parent:'root'}); st.stampw = 'Paid';
+  const t = BUREAU.create('task', {parent:'root', title:'Electric bill'}); delete t.setup;
+  BUREAU.render(); await new Promise(r => setTimeout(r, 200));
+  // side by side, out in empty space to the right of everything
+  const right = Math.max(...S.objects.filter(o => (o.parent || 'root') === 'root' && o.phone && o.phone.x)
+    .map(o => o.phone.x + o.phone.w));
+  st.phone = {x: right + 1, y: 10, w: 1, h: 1}; t.phone = {x: right + 3, y: 10, w: 3, h: 2};
+  BUREAU.render(); await new Promise(r => setTimeout(r, 300));
+  const el = id => document.querySelector(`#drawergrid [data-row="${id}"],#drawergrid [data-drawer="${id}"]`);
+  el(t.id).scrollIntoView({block: 'center', inline: 'center'}); await new Promise(r => setTimeout(r, 300));
+  const c = id => { const b = el(id).getBoundingClientRect(); return {x: b.x + b.width / 2, y: b.y + b.height / 2}; };
+  return {st: st.id, t: t.id, a: c(st.id), b: c(t.id)};
+});
+const press = async p => { await page.mouse.move(p.x, p.y); await page.mouse.down(); await nap(60); await page.mouse.up(); await nap(350); };
+await press(stampAt.a);
+const inked = await page.evaluate(() => !!BUREAU.state.stamping && BUREAU.state.stamping.w === 'Paid');
+await press(stampAt.b);
+await shot('13-stamped');
+out.aStampPrintsOnWhatItIsPressedOn = inked && await page.evaluate(id => {
+  const o = BUREAU.state.objects.find(x => x.id === id), el = document.querySelector(`#drawergrid [data-row="${id}"] .stampimp`);
+  return !!o.stamps && o.stamps.length === 1 && o.stamps[0].w === 'Paid' && !!el && /PAID/i.test(el.textContent)
+    && getComputedStyle(el).position === 'absolute' && el.getBoundingClientRect().width > 20;
+}, stampAt.t);
+await press(stampAt.a);
+out.andIsPutDownByPressingItAgain = await page.evaluate(id => !BUREAU.state.stamping
+  && BUREAU.state.view === 'desk' && BUREAU.state.objects.find(x => x.id === id).stamps.length === 1, stampAt.t);
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

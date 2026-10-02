@@ -137,6 +137,9 @@ const FIELDS = {
   '@made':  {key:'created',type:'date', nm:'Made on',           meta:true, get:o=>o.created||null},
   '@holds': {key:'holds',  type:'number', nm:'Things filed in it', meta:true,
              get:o=>S.objects.filter(x=>x.parent===o.id).length},
+  /* Stamped (decision 292): the words of every impression on it, so a
+     sorting drawer can collect what was stamped Paid. */
+  '@stamp': {key:'stamps', type:'text', nm:'Stamped',          meta:true, list:true, get:o=>stampsOf(o).map(x=>x.w)},
   '@colour':{key:'c',      type:'text', nm:'Color slot',       meta:true, get:o=>o.c==null?'':String(o.c)}
 };
 /* Every container a thing is inside, innermost first. Bounded, because a
@@ -573,7 +576,7 @@ const BUILTIN_KINDS = {
      /* **The tools and the counter are doodads too** (decision 240): one
         place for the small things that do something when pressed. */
      family:['button','m_counter','metronome','hourglass','candle','bell','clock','die','deck',
-             'tglass','tblock','tlock','tgear','tswipe','spool','pipe','coin','anything'],
+             'tglass','tblock','tlock','tgear','tswipe','spool','tstamp','pipe','coin','anything'],
      famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
   /* **The Button** (decision 243): the Control, the Spawner and the old
@@ -636,7 +639,7 @@ const BUILTIN_KINDS = {
      tool is an instrument as far as the rest of the app is concerned. */
   tool:{cat:true, nm:'Tool', ic:'gear', c:12,
      ds:'The drawer front\u2019s tools, as things you can put on a board',
-     family:['tglass','tblock','tlock','tgear','tswipe','spool','coin'],
+     family:['tglass','tblock','tlock','tgear','tswipe','spool','tstamp','coin'],
      famSub:'Which tool?',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   tglass:{act:'tglass', nm:'Magnifying glass', ic:'search', c:12, ds:'Searches the board it lies on',
@@ -653,6 +656,13 @@ const BUILTIN_KINDS = {
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   spool: {act:'spool',  nm:'Spool of thread', ic:'pin', c:11, ds:'Press it, then two things, and they are tied with string',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  /* **A rubber stamp** (decision 292): press it, then press things, and
+     each is stamped with its word and today's date in its ink. It stays
+     inked until it is pressed again, the way you stamp a pile of letters
+     and not one. What it says is `stampw` and the ink `stampink`, on the
+     stamp; the impression is a record on the thing it lands on (`stamps`). */
+  tstamp:{act:'tstamp', nm:'Rubber stamp', ic:'check', c:12, ds:'Press it, then press things: each is stamped with its word and today\u2019s date',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', stampw:'Received', stampink:'red', body:'' },
   coin:  {act:'coin',   nm:'Spiral coin', ic:'spiral', c:12, ds:'Toss it and it makes one of anything, somewhere on the board',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   /* A **deck** is the one instrument that holds things, which is why it is a
@@ -1125,6 +1135,7 @@ const WORKSHOP_SIZES = {
   tgear:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   tswipe:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   spool:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  tstamp:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   coin:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   deck:{size:[2,3], range:[[2,4],[3,6]], phone:null},
   counter:{size:[2,2], range:[[1,8],[1,4]], phone:null},
@@ -1746,6 +1757,22 @@ const SEAL_KEYS = Object.keys(SEALS);
 const sealOf = o => { const k = (o && o.seal) || K(o && o.kind).seal;
   return SEALS[k] ? k : 'none'; };
 const isSealed = o => sealOf(o) !== 'none';
+/* ---- the rubber stamp — decision 292 ------------------------------------
+   An impression is a record, like a margin entry: a word, the day it was
+   made and the ink, `{w, d, ink}`, appended to `stamps` and never rewritten.
+   The ink is a stamp pad's, so it is a literal colour and not a slot, for
+   the seal's reason: a red pad is red in every aesthetic. */
+const STAMP_WORDS = ['Received','Paid','Sent','Done','Approved','Filed','Copy','Urgent','Void'];
+const STAMP_INKS = {red:['Red','#A8322A'], blue:['Blue','#2D4F9E'], black:['Black','#2B2724'],
+  green:['Green','#2F6A3C'], violet:['Violet','#5C3F8F']};
+const stampsOf = o => Array.isArray(o && o.stamps) ? o.stamps.filter(x=>x && x.w) : [];
+const stampInk = k => (STAMP_INKS[k] || STAMP_INKS.red)[1];
+/* What a stamp will print: the stamp's own word and ink, or a board's (the
+   one in a drawer front), or the type's. */
+const stampOf = o => ({
+  w: String((o && o.stampw) || K('tstamp').stampw || 'Received').slice(0, 18),
+  ink: STAMP_INKS[o && o.stampink] ? o.stampink : (K('tstamp').stampink || 'red')
+});
 const plateOf = o => {
   const k = slotKey(slotRaw(o,'plate'));
   return PLATES[k] ? k : 'none';
@@ -3678,6 +3705,7 @@ export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, co
   BINDINGS, BINDING_SLOTS, bindingOf, FRAMES, FRAME_SLOTS, frameOf, isWindow,
   PANELS, PANEL_SLOTS, panelOf, KNOBS, KNOB_SLOTS, knobOf,
   PLATES, PLATE_SLOTS, plateOf, SEALS, SEAL_KEYS, sealOf, isSealed,
+  STAMP_WORDS, STAMP_INKS, stampsOf, stampInk, stampOf,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, loopOf, isPicture,
   isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, CUT_KINDS, isCut, isBackdrop, FILLS, FILL_KEYS, fillOf,

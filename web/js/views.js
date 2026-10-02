@@ -6,7 +6,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
-  URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL } from './model.js';
+  URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL, STAMP_WORDS, STAMP_INKS, stampOf, stampInk } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, PLACED, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
@@ -156,9 +156,9 @@ function gridBar(c){
    front has always had; the spool of thread and the spiral coin are new, and
    each of the six is also an object a board can hold (`TOOLART`, the tool
    rows of `ACTIVE`). */
-const RAIL_TOOLS = ['glass','block','lock','gear','swipe','spool','coin'];
+const RAIL_TOOLS = ['glass','block','lock','gear','swipe','spool','stamp','coin'];
 const RAIL_NAMES = {glass:'Magnifying glass', block:'Letter block', lock:'Padlock',
-  gear:'Gear', swipe:'Swipe switch', spool:'Spool of thread', coin:'Spiral coin'};
+  gear:'Gear', swipe:'Swipe switch', spool:'Spool of thread', stamp:'Rubber stamp', coin:'Spiral coin'};
 const RAIL_DEFAULT = {left:['glass','block'], right:['lock','gear']};
 function railToolsOf(cid){
   const r = (cfgOf(cid)||{}).rail;
@@ -211,6 +211,11 @@ function railTool(t, c){
   if(t==='spool') return railObj('spool', 'spool', c.id,
     S.threading ? 'Tying — press two things, or the spool to stop' : 'Spool of thread — press it, then two things to tie', !!S.threading);
   if(t==='coin') return railObj('coin', 'coinspin', c.id, 'Spiral coin — one of anything, anywhere on this board');
+  /* The stamp in a drawer front prints the board's word in the board's ink
+     (`stampw`/`stampink` on the board, set beside this row). Decision 292. */
+  if(t==='stamp'){ const st = stampOf(cfgOf(c.id)||{}), on = !!(S.stamping && S.stamping.from===c.id);
+    return railObj('stamp', 'stamp', c.id, on ? `Inked: ${st.w}. Press things to stamp them, or the stamp to put it down`
+      : `Rubber stamp: ${st.w}. Press it, then press things`, on, stampInk(st.ink)); }
   if(t==='swipe'){ const r = rigidOn();
     return railObj('swipe', 'swipetoggle', c.id, r ? 'Rigid swipe, a tile at a time — tap for a smooth scroll'
       : 'Smooth scroll — tap for a rigid swipe, a tile at a time', r, r); }
@@ -231,8 +236,14 @@ function railToolsField(cid){
   const stood = things.length ? `<div class="railpick"><span class="mini" style="--k:var(--brass)">Standing in it</span>
     <div class="filterbar">${things.map(o=>`<button class="fchip" data-act="frontout" data-id="${esc(o.id)}"
       title="Put it back on the board">${esc(o.title||K(o.kind).nm)} ${ic('x',11)}</button>`).join('')}</div></div>` : '';
+  // the front's stamp says the board's word, chosen here (decision 292)
+  const st = stampOf(cfgOf(cid)||{});
+  const stamp = rt.left.concat(rt.right).includes('stamp') ? `<div class="railpick"><span class="mini" style="--k:var(--brass)">The stamp says</span>
+    <div class="filterbar">${STAMP_WORDS.map(w=>`<button class="fchip${st.w===w?' on':''}" data-railstamp="${esc(cid)}:stampw:${w}">${w}</button>`).join('')}</div>
+    <div class="filterbar">${Object.entries(STAMP_INKS).map(([k,[n,hex]])=>`<button class="fchip${st.ink===k?' on':''}" data-railstamp="${esc(cid)}:stampink:${k}"
+      ><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${hex};margin-right:5px"></i>${n}</button>`).join('')}</div></div>` : '';
   return `<div class="field" style="margin-top:12px"><label>Drawer Front</label>
-    ${side('left','Left of the knob')}${side('right','Right of the knob')}${stood}
+    ${side('left','Left of the knob')}${side('right','Right of the knob')}${stamp}${stood}
     <div class="mini" style="--k:var(--brass);margin-top:6px">Six places on a phone, three either side, and the knob stays in the middle whatever is beside it. Carry anything on the board onto an empty place to stand it there; hold it there to take it out. Every tool here is also an object you can put on a board.</div>
   </div>`;
 }

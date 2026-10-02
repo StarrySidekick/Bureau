@@ -378,6 +378,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `tgear` | Gear | 1×1 |  | Opens the settings of the board it lies on |
 | `tswipe` | Swipe switch | 1×1 |  | Flips every board between a smooth scroll and a rigid swipe, a tile at a time |
 | `spool` | Spool of thread | 1×1 |  | Press it, then two things, and they are tied with string |
+| `tstamp` | Rubber stamp | 1×1 |  | Press it, then press things: each is stamped with its word and today’s date |
 | `pipe` | Copper pipe | 1×1 |  | Tie it to a drawer with string: what goes in comes out there |
 | `coin` | Spiral coin | 1×1 |  | Toss it and it makes one of anything, somewhere on the board |
 

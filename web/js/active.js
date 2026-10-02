@@ -1,5 +1,6 @@
 import { esc } from './util.js';
-import { S, byId, K, SORT_FACES, MANUAL, sortOf, container, boardLocked, SUITS, suitOf } from './model.js';
+import { S, byId, K, SORT_FACES, MANUAL, sortOf, container, boardLocked, SUITS, suitOf,
+  STAMP_WORDS, STAMP_INKS, stampOf, stampInk } from './model.js';
 import { objColour } from './look.js';
 import { save } from './persist.js';
 
@@ -159,6 +160,25 @@ const TOOLART = {
       fill="none" stroke-linecap="round"/>`
 };
 TOOLART.unlock = ()=> TOOLART.lock(true);
+/* **A rubber stamp** (decision 292): a turned wooden handle on a block, the
+   rubber underneath wet with the ink it prints in. Seen a little from above
+   and the side, so the handle reads as the thing you hold and the inked edge
+   as the thing that prints. `ink` is a hex. */
+TOOLART.stamp = (ink = '#A8322A') => `<defs><radialGradient id="ro-tk" cx=".35" cy=".3" r=".8">
+        <stop offset="0" stop-color="#E8B57A"/><stop offset=".55" stop-color="#9A5A26"/>
+        <stop offset="1" stop-color="#4A2408"/></radialGradient>
+      <linearGradient id="ro-tb" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#5A2E0E"/><stop offset=".4" stop-color="#C98A4C"/>
+        <stop offset="1" stop-color="#4A250A"/></linearGradient></defs>
+    <ellipse cx="20" cy="37" rx="14" ry="2.4" fill="#000" fill-opacity=".3"/>
+    <rect x="7" y="31.4" width="26" height="4.2" rx="1" fill="${ink}"/>
+    <rect x="7" y="31.4" width="26" height="1.4" fill="#000" fill-opacity=".25"/>
+    <rect x="6" y="24" width="28" height="8" rx="1.6" fill="url(#ro-tb)"/>
+    <rect x="6.6" y="24.6" width="26.8" height="1.2" rx=".6" fill="#fff" fill-opacity=".3"/>
+    <path d="M16.6 24c.4-3 1-5.2 1-8.2h4.8c0 3 .6 5.2 1 8.2Z" fill="url(#ro-tb)"/>
+    <circle cx="20" cy="10.2" r="7.4" fill="url(#ro-tk)"/>
+    <path d="M15.2 8.4a5.4 5.4 0 0 1 3.4-3.6" stroke="#fff" stroke-opacity=".6" stroke-width="1.4"
+      fill="none" stroke-linecap="round"/>`;
 /* **The swipe switch** (decision 274): a brass toggle on a walnut plate, the
    lever thrown to the wave for a smooth scroll or to the steps for a rigid
    swipe, a tile at a time. What it shows is what a press changes to the
@@ -432,6 +452,19 @@ const ACTIVE = {
   tgear:  tool('gear',  'Gear', 'This board’s settings', ()=>null),
   spool:  tool('spool', 'Spool of thread', 'Tie one thing to another', ()=>null),
   coin:   tool('coin',  'Spiral coin', 'One of anything, anywhere', ()=>null),
+  /* The stamp says which word it prints and in which ink, so its settings
+     are the two rings and a field for a word of your own (decision 292). */
+  tstamp: Object.assign(tool('stamp', 'Rubber stamp', 'Stamp things with a word and the date', o=>stampInk(stampOf(o).ink)), {
+    say: o => `${stampOf(o).w} · ${(STAMP_INKS[stampOf(o).ink]||STAMP_INKS.red)[0].toLowerCase()} ink`,
+    zoom: o => { const st = stampOf(o);
+      return azSay('What it says')
+        + azRing(o.id, 'stampw', STAMP_WORDS.map(w=>[w, w]), st.w)
+        + `<div class="azrow"><input class="aztime azword" type="text" maxlength="18" placeholder="Your own word"
+            data-astampw="${o.id}" value="${STAMP_WORDS.includes(st.w) ? '' : esc(st.w)}"></div>`
+        + azSay('The ink')
+        + azRing(o.id, 'stampink', Object.entries(STAMP_INKS).map(([k,[n]])=>[k, n]), st.ink)
+        + azSay('Press it, then press things to stamp them. Press it again to put it down.'); }
+  }),
   tswipe: tool('swipe', 'Swipe switch', 'Smooth scroll or a rigid swipe', ()=>!!(S.look && S.look.flow==='rigid')),
   /* ---- the metronome ---------------------------------------------------
      A wedge with a scale up it and a bar that swings. The swing is a CSS

@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, measureOf, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, SMART, ctlOf, barOf,
-  PRIMARY, SECONDARY, MASTER_HOLDS, inMaster, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate,
+  PRIMARY, SECONDARY, MASTER_HOLDS, inMaster, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate, stampsOf, stampInk,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -1929,6 +1929,15 @@ function objectPanelBody(id, sec){
         + `<button class="pill" data-act="margin" data-id="${id}">Add</button>`,
         'Dated as it is written, and never rewritten.'));
     }
+    /* What it has been stamped (decision 292), each a record printed in its
+       own ink, newest first. Lift is the one way back from a stamp on the
+       wrong thing once its toast has gone; nothing rewrites one. */
+    const sts = stampsOf(o);
+    if(sts.length) f.push(prow(`Stamped — ${sts.length}`,
+      `<div class="margins">${sts.map((x,i)=>[x,i]).reverse().map(([x,i])=>
+        `<div class="marg"><i>${esc(x.d)}</i><span style="color:${stampInk(x.ink)};font-weight:700;letter-spacing:.06em">${esc(x.w.toUpperCase())}</span>
+          <button class="pill" data-unstamp="${id}:${i}" title="Lift this stamp">Lift</button></div>`).join('')}</div>`,
+      'Press a rubber stamp, then press this, to add one.'));
     /* A decoration picks one of the ten that ship with the app, or a file of
        your own. The ten are drawn as themselves — a decoration *is* a picture,
        so a list of names would be the one picker in the app that made you

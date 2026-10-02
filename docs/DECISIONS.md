@@ -12274,3 +12274,52 @@ wooden table, "a slightly lighter brown". So a locked board's showcase
   light across the middle. The grain's frequencies are whole cycles of its
   480px tile, or the repeat shows as a seam.
 - Unlocked is the open checkerboard, as before.
+
+## 292. The rubber stamp, and benches (v2.86, 2026-10-02)
+
+Timothy, 2026-10-02: start building the approved features (`docs/USES.md`)
+and start building **benches**, his word for a flow that brings its whole
+environment with it, honed to the best five; and when a bench needs
+something, scope it as a feature of Bureau so any bench can use it. The
+concept, the five proposed, the ledger of shared features and the order are
+`docs/BENCHES.md`. The stamp is the first feature through that process: four
+of the five proposed benches want it, and it was next in USES §4.
+
+**The stamp is a tool, and a press-then-press tool.** Same grammar as the
+spool (decision 220): press the stamp, then press things. Unlike the spool
+it **stays inked** until it is pressed again (or Escape), because you stamp
+a pile of letters, not one. While inked, a press on anything stamps it and
+does nothing else: no opening, no setup card, no notepad caret, no button
+firing (`S.stamping`, checked in `tileTap()` and in the button branch of
+`gestures.js`). Picking up the spool puts the stamp down and the other way
+round.
+
+**An impression is a record**, `stamps: [{w, d, ink}]` on any object, like
+a margin entry: appended, never edited. The same word twice in one day is
+one impression. Each stamp is one undo move and its toast carries Undo; the
+editor lists every impression newest first with **Lift**, the way back once
+the toast has gone, since a phone has no ⌘Z (decision 128). No side
+effects: stamping Done does not tick a task and stamping Paid does not move
+a bill on. That is string as signal (USES §2), later, reacting to a stamp.
+
+- `tstamp` (Tool and Doodad families, 1×1): `stampw` the word, `stampink`
+  the ink. Its settings are a ring of nine words (Received, Paid, Sent,
+  Done, Approved, Filed, Copy, Urgent, Void), a field for a word of your
+  own (18 letters at most), and five pad inks. `STAMP_WORDS`, `STAMP_INKS`,
+  `stampOf()`, `stampsOf()`, `stampInk()` in model.js.
+- **The ink is a literal colour, not a slot**, for the wax seal's reason
+  (decision 184): a red pad is red in every aesthetic.
+- **In the drawer front** as `stamp` (`RAIL_TOOLS`); it prints the board's
+  own `stampw`/`stampink`, chosen under Drawer Front in Board settings once
+  the stamp is on the front. So a Money bench's front can say Paid and a
+  Film bench's Approved.
+- **Drawn** as the last impression on the tile (`stampLayer()` in tiles.js,
+  spliced in `drawTile()` like the seal, only on something stamped): a ruled
+  box, the word in capitals over the date, American Typewriter, turned a
+  few degrees fixed by the id, thinned unevenly by a mask, with a count when
+  there are more under it. Smaller on a one-cell-wide or one-row tile, not
+  on a miniature.
+- **A rule**, `@stamp` (*Stamped*), so a sorting drawer can collect what was
+  stamped Paid; the lens will read the same field.
+- `test/safari.mjs` presses a stamp and a task with the pointer and asserts
+  the impression, and that pressing the stamp again puts it down.

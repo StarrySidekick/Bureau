@@ -3924,8 +3924,36 @@ html[data-surface="wood"] .grid > .showpaper{display:none}
   30%{transform:perspective(200px) rotateY(900deg) scale(1.12)}
   100%{transform:perspective(200px) rotateY(1440deg) scale(1)}
 }
-.acttile.threading .actart,.railobj.ro-spool.on{
+.acttile.threading .actart,.railobj.ro-spool.on,
+.acttile.inked .actart,.railobj.ro-stamp.on{
   filter:drop-shadow(0 0 5px color-mix(in srgb, var(--glow) 80%, transparent))}
+/* ---- an impression — decision 292 --------------------------------------
+   What a rubber stamp leaves: a ruled box, the word in capitals and the date,
+   in the pad's ink, turned a few degrees, and uneven where the rubber did
+   not take the ink (a mask that thins it across the box). Never a slot
+   colour, for the seal's reason. It sits over the face and takes no press. */
+.stampimp{
+  position:absolute;right:7%;top:12%;z-index:5;pointer-events:none;
+  transform:rotate(var(--st,-4deg));transform-origin:100% 0;
+  color:var(--ink,#A8322A);border:2px solid currentColor;border-radius:3px;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, currentColor 35%, transparent);
+  padding:2px 5px 2px;display:flex;flex-direction:column;align-items:center;gap:1px;
+  font-family:'American Typewriter','Courier New',Courier,ui-monospace,monospace;line-height:1;opacity:.86;
+  -webkit-mask-image:linear-gradient(103deg,#000 0 42%,rgba(0,0,0,.62) 58%,#000 72%,rgba(0,0,0,.8) 100%);
+  mask-image:linear-gradient(103deg,#000 0 42%,rgba(0,0,0,.62) 58%,#000 72%,rgba(0,0,0,.8) 100%);
+  max-width:86%;
+}
+.stampimp b{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:clip;max-width:100%}
+.stampimp small{font-size:8px;font-weight:700;letter-spacing:.04em;white-space:nowrap}
+.stampimp em{position:absolute;right:-7px;top:-7px;font-style:normal;font-size:8px;font-weight:800;
+  min-width:13px;height:13px;border-radius:7px;display:grid;place-items:center;
+  background:var(--ink,#A8322A);color:#fff;font-family:inherit}
+.drawer.sz-narrow .stampimp b{font-size:9.5px;letter-spacing:.05em}
+.drawer.sz-thin .stampimp,.drawer.sz-short .stampimp{padding:1px 3px;border-width:1.5px;right:4%;top:6%}
+.drawer.sz-thin .stampimp b,.drawer.sz-short .stampimp b{font-size:7.5px;letter-spacing:.02em}
+.drawer.sz-thin .stampimp small,.drawer.sz-short .stampimp small{display:none}
+.drawer.minitile .stampimp{display:none}
 .drawer.tiedfrom{outline:2px dashed #C9362B;outline-offset:3px}
 .railpick{margin-top:6px}
 .fchip.railchip{padding:3px;width:38px;height:38px;display:inline-grid;place-items:center}

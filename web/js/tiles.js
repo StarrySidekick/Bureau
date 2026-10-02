@@ -10,11 +10,11 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn } from './model.js';
+  groupOf, sealOf, isSealed, stampsOf, stampInk, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
-  ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf } from './mutations.js';
+  ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf, stampIt } from './mutations.js';
 import { DECOR, decorOf, decorEmits, flamePoint, decorSVG, LIFE_ART, lifeSVG } from './decor.js';
 import { isActive, activeArt, activeSay, activeName, activeFlame, actOf,
   metroGoing, activeTap, burning, faceUp, backHTML, cardFace, deckTapOf } from './active.js';
@@ -648,16 +648,19 @@ function tileTap(id){
   const o=byId(id); if(!o) return;
   /* A tap on a notepad is writing on it (decision 263): its field ignores the
      finger so a hold can carry the pad, and the tap hands it the caret. */
-  if(shapeOf(o)==='notepad' && !S.threading){
+  if(shapeOf(o)==='notepad' && !S.threading && !S.stamping){
     const f=document.querySelector(`#app [data-fieldfor="${id}"]`); if(f){ f.focus(); return; } }
   /* **The first tap on a thing that has not been set up asks what it is**
      (decision 229), before anything a tap would otherwise do. */
-  if(needsSetup(o) && !S.threading){ openSetup(id); return; }
+  if(needsSetup(o) && !S.threading && !S.stamping){ openSetup(id); return; }
   /* **Tying with the spool** (decision 220). Pressing the spool picks up the
      thread; the next thing pressed is where it starts and the one after is
      where it is tied, and nothing else a tap would do happens in between. The
      spool itself, pressed again, puts the thread down. */
   if(S.threading && actOf(o)!=='spool'){ threadTo(id); return; }
+  /* **An inked stamp** (decision 292): every press lands an impression and
+     does nothing else, until the stamp itself is pressed again. */
+  if(S.stamping && actOf(o)!=='tstamp'){ if(stampIt(id, S.stamping)) render(); return; }
   /* A copper pipe is a way through (decision 286): pressing it takes you to
      the drawer at its other end, and an untied pipe says how to tie it. */
   if(isPipe(o)){
@@ -1631,6 +1634,9 @@ function drawTile(o, arr, box, persp){
        reason: an element on every tile to carry nothing is a fifth of a render
        at three thousand objects. See decision 184. */
     + (isSealed(o) ? sealLayer(o) : '')
+    /* The last impression a stamp left (decision 292), and how many more
+       there are under it. Only on something stamped, for the seal's reason. */
+    + (o.stamps && o.stamps.length ? stampLayer(o) : '')
     /* A drawing (decision 271), on a front or a spine; a card draws its own
        inside the card, under the words. */
     + (o.art && paintTarget(o) && paintTarget(o)!=='card' ? artLayer(o, paintTarget(o), box) : '')
@@ -2617,7 +2623,7 @@ function drawTileFace(o, arr, box, persp){
   if(isActive(o)){
     return `<button class="drawer otile acttile act-${actOf(o)}${
         metroGoing(o.id)?' going':''}${S.threading && actOf(o)==='spool' ? ' threading' : ''}${
-        S.threading && S.threading.from===o.id ? ' tiedfrom' : ''}${sel}" data-row="${o.id}"
+        S.threading && S.threading.from===o.id ? ' tiedfrom' : ''}${S.stamping && actOf(o)==='tstamp' && S.stamping.from===o.id ? ' inked' : ''}${sel}" data-row="${o.id}"
       title="${esc(o.title || activeName(o))} · ${esc(activeSay(o))}"
       style="--c:${colour};${place}">
       ${activeArt(o)}
@@ -3210,6 +3216,20 @@ const SEAL_ART = {
     + '<ellipse cx="7.4" cy="9.4" rx="3.4" ry="2.2" opacity=".55" transform="rotate(-24 7.4 9.4)"/>'
     + '<ellipse cx="16.6" cy="9.4" rx="3.4" ry="2.2" opacity=".55" transform="rotate(24 16.6 9.4)"/>'
 };
+/* ---- an impression — decision 292 -------------------------------------
+   The last stamp on a thing, as a rubber stamp prints: a ruled box, the word
+   in capitals, the date under it, turned a few degrees (the same few for the
+   same thing, from its id, so a render does not shuffle it) and a little
+   uneven where the rubber did not take the ink. */
+function stampLayer(o){
+  const all = stampsOf(o); if(!all.length) return '';
+  const st = all[all.length-1];
+  let h = 0; for(const ch of String(o.id)) h = (h*31 + ch.charCodeAt(0)) | 0;
+  const tilt = ((Math.abs(h) % 13) - 6) - 4;
+  return `<i class="stampimp" aria-label="Stamped ${esc(st.w)} ${esc(D.human(st.d))}"
+    style="--ink:${stampInk(st.ink)};--st:${tilt}deg"><b>${esc(st.w)}</b><small>${esc(D.short(st.d))}</small>${
+    all.length > 1 ? `<em>${all.length}</em>` : ''}</i>`;
+}
 const sealLayer = o => `<i class="wseal ws-${sealOf(o)}" aria-hidden="true"
   style="--wax:${esc(o.sealc || '#8E3B38')}"><svg viewBox="0 0 24 24">${
   SEAL_ART[sealOf(o)] || ''}</svg></i>`;

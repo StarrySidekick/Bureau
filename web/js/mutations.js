@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+  placeOf, cfgOf, isHeld, stampsOf, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
 import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -1583,7 +1583,34 @@ function dealTop(id){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
-export { toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+/* ---- the rubber stamp — decision 292 -------------------------------------
+   One impression, on one thing: the stamp's word, today's date and its ink,
+   appended to `stamps`. A record, so it is added and not edited; the same
+   word twice in one day is one impression, because stamping a pile of
+   letters twice by accident should not leave a second mark. One undo move
+   per press, and the toast carries the Undo, since a phone has no other. */
+function stampIt(id, st){
+  const o = byId(id); if(!o || !st) return false;
+  const was = stampsOf(o), d = D.iso(D.today());
+  if(was.some(x=>x.w===st.w && x.d===d)){ toast(`Already stamped ${st.w} today`); return false; }
+  pushSet('Stamped', id, 'stamps', o.stamps ? o.stamps.slice() : undefined);
+  o.stamps = was.concat([{w:st.w, d, ink:st.ink}]);
+  save();
+  toast(`${st.w} · ${o.title || K(o.kind).nm}`, true);
+  return true;
+}
+/* Lifting one off, from the editor: the way back from a stamp on the wrong
+   thing once the toast has gone. */
+function unstamp(id, i){
+  const o = byId(id); if(!o) return;
+  const was = stampsOf(o); if(!was[i]) return;
+  pushSet('Stamp lifted', id, 'stamps', o.stamps.slice());
+  o.stamps = was.filter((_, j)=>j!==i);
+  if(!o.stamps.length) delete o.stamps;
+  save(); toast('Stamp lifted', true);
+}
+
+export { stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

@@ -397,6 +397,13 @@ answer `TILE`. Read decisions 188–195 as history.
 meets the wood.
 **v2.85** (decision 291): locked, a board sits on a drawn wooden table
 (`--table`, `--table-grain`) instead of the carcass.
+**v2.86** (decision 292): **benches** and **the rubber stamp**. A bench is a
+flow that brings its whole environment with it; the scope, five proposed,
+and the ledger of features they share are `docs/BENCHES.md`, which is where
+"what now" is read from. The stamp (`tstamp`, also `stamp` in the drawer
+front) is the first feature through it: press it, then press things, and
+each carries an impression (`stamps: [{w, d, ink}]`, a record, Lift in the
+editor) until the stamp is pressed again (`S.stamping`); `@stamp` is a rule.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

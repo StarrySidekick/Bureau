@@ -5,13 +5,13 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
-  sortOf, sortCycleOf, SORT_FACES, inFront, isCut } from './model.js';
+  sortOf, sortCycleOf, SORT_FACES, inFront, isCut, stampOf } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal } from './mutations.js';
+  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal, unstamp } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
@@ -92,7 +92,7 @@ function armDrag(e, host){
    the current value of a number so a stepper adds to the *clamped* one rather
    than to whatever happens to be stored. Both are tables and not branches, so
    a seventh instrument adds rows and nothing else. */
-const ACT_NM = {bpm:'Tempo', mins:'Sand', burn:'Burn time', sides:'Die',
+const ACT_NM = {stampw:'Stamp word', stampink:'Stamp ink', bpm:'Tempo', mins:'Sand', burn:'Burn time', sides:'Die',
   clock:'Clock', alarm:'Alarm', waxc:'Wax', face:'Face'};
 const ACT_READ = {bpm:bpmOf, mins:minsOf, burn:burnOf, sides:sidesOf};
 const activeNum = (o, key) => (ACT_READ[key] ? ACT_READ[key](o) : (+o[key] || 0));
@@ -100,6 +100,8 @@ function setActive(id, key, val){
   const o=byId(id); if(!o) return;
   pushSet(ACT_NM[key] || 'Setting', id, key, o[key]);
   if(val===null || val==='') delete o[key]; else o[key]=val;
+  // an inked stamp prints what it now says, without being put down first
+  if(S.stamping && S.stamping.from===id) Object.assign(S.stamping, stampOf(o));
   /* A metronome already running has to be restarted to pick up a new tempo:
      the interval was set from the old one and nothing re-reads it. */
   if(key==='bpm' && metroGoing(id)) startMetro(id);
@@ -1151,8 +1153,26 @@ function act(name, el){
        it down. The next two things pressed are tied (`threadTo()` in tiles.js). */
     case 'spool': {
       if(S.threading){ S.threading = null; render(); toast('Thread put down'); break; }
+      S.stamping = null;
       S.threading = {from:null}; render();
       toast('Press the first thing to tie');
+      break;
+    }
+    /* **The rubber stamp** (decision 292), from a board or the drawer front:
+       ink it, or put it down. Inked, every press on a thing stamps it
+       (tileTap() in tiles.js) until the stamp is pressed again. A stamp on a
+       board prints its own word; the front's prints its board's. */
+    case 'stamp': {
+      const from = (el.dataset && (el.dataset.row || el.dataset.id)) || ROOT;
+      const was = S.stamping;
+      S.stamping = null;
+      if(was && was.from===from){ render(); toast('Stamp put down'); break; }
+      const src = el.dataset && el.dataset.row ? byId(el.dataset.row) : cfgOf(from);
+      const st = stampOf(src||{});
+      S.threading = null;
+      S.stamping = {from, w:st.w, ink:st.ink};
+      render();
+      toast(`${st.w}: press things to stamp them`);
       break;
     }
     case 'coinspin': toolPress('coin', el.dataset.id, null); break;
@@ -1230,6 +1250,7 @@ function toolPress(tool, cid, el){
   if(tool==='lock')  return act('togglelock', as);
   if(tool==='gear')  return act('appsettings', as);
   if(tool==='spool') return act('spool', as);
+  if(tool==='stamp') return act('stamp', {dataset:{id:board, row:el && el.dataset ? el.dataset.row : undefined}});
   if(tool==='coin')  return coinToss(board, el);
   if(tool==='swipe') return act('swipetoggle', as);
 }
@@ -1840,6 +1861,18 @@ function wire(){
     /* A tool on or off one side of a board's drawer front (decision 220). One
        side at most: pressing it on the left takes it off the right. Three a
        side, and a fourth says so rather than pushing one off. */
+    /* What the drawer front's stamp says, and its ink (decision 292). */
+    const rst=t.closest('[data-railstamp]');
+    if(rst){
+      const [cid,key,v]=rst.dataset.railstamp.split(':');
+      const cfg = cfgOf(cid); if(!cfg) return;
+      if(cid!==ROOT) pushSet('Stamp', cid, key, cfg[key]);
+      cfg[key] = v;
+      if(S.stamping && S.stamping.from===cid) Object.assign(S.stamping, stampOf(cfg));
+      save(); render(); refreshPanel();
+      return; }
+    const ust=t.closest('[data-unstamp]');
+    if(ust){ const [id,i]=ust.dataset.unstamp.split(':'); unstamp(id, +i); render(); refreshPanel(); return; }
     const rtl=t.closest('[data-railtool]');
     if(rtl){
       const [cid,side,tool]=rtl.dataset.railtool.split(':');
@@ -2432,6 +2465,12 @@ function wire(){
        browser's own time field rather than two steppers — a phone gives you
        its wheel and a Mac gives you a typed field, and both are better than
        anything worth writing here. An empty value clears it. */
+    // a word of your own for a stamp (decision 292)
+    if(e.target.dataset.astampw!=null){
+      const w = e.target.value.trim().slice(0, 18);
+      if(w) setActive(e.target.dataset.astampw, 'stampw', w);
+      return;
+    }
     if(e.target.dataset.atime!=null){
       setActive(e.target.dataset.atime, 'alarm', e.target.value || null);
       return;
@@ -2845,6 +2884,7 @@ function wire(){
       if(guideOpen()){ closeGuide(); return; }
       if(overviewOn()){ closeOverview(); return; }
       if(setupOpen()){ closeSetup(); return; }
+      if(S.stamping){ S.stamping = null; render(); toast('Stamp put down'); return; }
       closeCtx(); closeCmd(); closePanel();
       if(S.writeId||S.readId||S.viewId||S.cardId) closeSheet();
       /* …and the camera is a thing that is up, so Escape backs it off — after

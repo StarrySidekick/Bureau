@@ -295,6 +295,18 @@ where you put a thing is where it goes. Locked, the board turns to the
 carcass so it looks presentational, and you can still look around. Built as
 decision 287 (v2.75).
 
+### Added 2026-10-02 — benches
+
+Timothy: now the grid is settled, build the approved features and start on
+**benches**: a flow that is a fully inclusive environment, its settings
+aligned to the one thing it is for. Hone in on the best five and make them
+good; when a bench needs something, scope it as a feature of Bureau so any
+other bench can use it. **`docs/BENCHES.md`** is the concept, the five
+proposed (Day, Film, Writing, Shelf, Money), the ledger of shared features
+and the order, and it is where "what now" is read from. Its §6 has five
+questions for him. The rubber stamp was the first feature through it
+(decision 292, v2.86).
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
