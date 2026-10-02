@@ -12398,3 +12398,32 @@ v2.88: the smoke suite's stock-flow checks were updated for the Prioritizer
 (42 flows), for zones lying under things, and for the film's sixth board; and
 the Prioritizer was given its way out (*Give it a time*, Google Calendar),
 because decision 194 says every board has one and it had none.
+
+## 294. The notepad replaces the garden (v2.89, 2026-10-02)
+
+Timothy: *"the garden is sort of the notepad, right. the notepad should
+replace the garden as an object."* It is: the garden (`generator`, the green
+planter with a line in it) and the notepad (decision 258) were the same
+machine, a line you write on that makes a thing and puts it beside itself or
+into a drawer, going through the same Enter handler in wire.js. The garden
+had been cut from every picker since decision 243, but it was still the
+*Add to this…* line along the bottom of every flow, the line five project
+types were born holding, and anything already on a desk.
+
+- Every flow's way in is a **notepad** at `[1,13,8,2]` with the same title as
+  its placeholder. A flow that names a kind (`inbox`) keeps it; one that does
+  not makes **what the line reads as**, which is the notepad's own answer,
+  where the garden made a task.
+- `MAKES()` in stockplans.js and the Film pipeline's *New scene* line are
+  notepads, so a line that files into a drawer (`into`) still does.
+- The five project types that seeded a garden seed a notepad.
+- **Migration 58** turns every garden on every board, and inside every saved
+  flow, into a notepad keeping its title, `genKind`, `into` and colour, and
+  drops what only a press meant (`genDir`, `spawnBy`, `onclick:'generate'`).
+  The sample desk's garden specimen is dropped rather than turned, because
+  the notepad already has one.
+- **The sample desk's museum no longer shows cut types**: it is one of
+  everything you can make, and a cut type is not one. `sampler.one` in the
+  smoke suite exempts them.
+- The `generator` type itself stays defined and cut, as every cut type does,
+  and `dispense()` stays, because a Button set to make presses through it.

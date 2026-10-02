@@ -95,7 +95,10 @@ function build(spec){
      needs most: somewhere to throw a thing before deciding where it goes. On a
      screen shorter than fourteen it goes to the next screenful by itself. */
   const inbox = spec.inbox===false ? [] :
-    [{k:'generator', t:'Add to this…', b:[1,13,8,2], set:{genKind:spec.inbox||'task', c:spec.c}}];
+    /* **A notepad, not the garden** (decision 294): the line you write on is
+       the notepad, which makes what the line reads as unless the flow says
+       one kind (`inbox`). The garden was the same line in a planter. */
+    [{k:'notepad', t:'Add to this…', b:[1,13,8,2], set:spec.inbox ? {genKind:spec.inbox, c:spec.c} : {c:spec.c}}];
   /* **No title across the top** (decision 219). Every board opened with a
      label eight cells wide saying what it was, directly under the lip that
      already says it, so the first row of every flow was the name twice. It
@@ -226,7 +229,7 @@ const LABEL = (t, b, c)=>({k:'label', t, b, set:{c}});
 /* A copper pipe (decision 286) out of an inbox, carrying one kind (or, with
    no kind, anything the others do not) into a drawer, both said by ref. */
 const PIPE = (kind, from, into, b)=>({k:'pipe', t:'', b, set:{takes:kind, from, into}});
-const MAKES = (t, kind, b, c, into)=>({k:'generator', t, b, set:into ? {genKind:kind, c, into} : {genKind:kind, c}});
+const MAKES = (t, kind, b, c, into)=>({k:'notepad', t, b, set:into ? {genKind:kind, c, into} : {genKind:kind, c}});
 /* A drawer that is a list with its name on it: where a spawner on the same
    board files what it makes (decision 197). It was a sorting drawer collecting
    by type from this board, which showed a knob and nothing else, and could not
@@ -279,7 +282,7 @@ const SCENE_PIPELINE = at => ({at, on:[
   {k:'scene', t:'Scene 1', b:[1,3,2,2], set:{c:9, tags:['written']}},
   {k:'scene', t:'Scene 2', b:[1,5,2,2], set:{c:9, tags:['written']}},
   {k:'scene', t:'Scene 3', b:[1,7,2,2], set:{c:9, tags:['written']}},
-  {k:'generator', t:'New scene', b:[1,13,8,2], set:{genKind:'scene', c:9}}
+  {k:'notepad', t:'New scene', b:[1,13,8,2], set:{genKind:'scene', c:9}}
 ], raw:true});
 const STAGES = (ref, list, b, c)=>({k:'checklist', t:'Stages', ref, b, set:{c}, kids:list.map(t=>({k:'task', t}))});
 /* **A film is its departments** (Timothy: "casting, storyboard, props,

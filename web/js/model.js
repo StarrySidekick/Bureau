@@ -217,7 +217,7 @@ const BUILTIN_KINDS = {
      editor, and a drawer that chose it keeps it. */
   life:    {setup:'life', face:'front', nm:'Aspect of Life', ic:'target', c:12, key:'L', ds:'A part of your life rather than a piece of work — it is never finished',
      attrs:['text','container','relates'], asksLife:true,
-     seed:[{kind:'generator', title:'Add to this…', sz:[8,2]}],
+     seed:[{kind:'notepad', title:'Add to this…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   /* A checklist wears its contents on the outside, so it also takes dictation:
      `spawn` gives it a box at the top, and `genKind` says a line you type into
@@ -488,14 +488,14 @@ const BUILTIN_KINDS = {
      See decision 135. */
   film:    {face:'project', proj:'film', film:true, nm:'Film', ic:'clapper', c:9, key:'!', ds:'A film, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
-     seed:[{kind:'generator', title:'Add to this film…', sz:[8,2]}],
+     seed:[{kind:'notepad', title:'Add to this film…', sz:[8,2]}],
      // born holding its board, the stock Short Film plan (decision 195)
      plan:'pl_stock_shortfilm',
      layout:'grid', size:[6,9], phoneSize:[4,6], body:'' },
   game:    {face:'project', proj:'game', nm:'Game', ic:'grid', c:9, key:'5',
      ds:'A game, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
-     seed:[{kind:'generator', title:'Add to this game…', sz:[8,2]}],
+     seed:[{kind:'notepad', title:'Add to this game…', sz:[8,2]}],
      plan:'pl_stock_game',
      layout:'grid', size:[6,8], phoneSize:[5,7], body:'' },
   song:    {face:'project', proj:'song', film:true, nm:'Song', ic:'music', c:10, key:';',
@@ -506,7 +506,7 @@ const BUILTIN_KINDS = {
   app:     {face:'project', proj:'app', nm:'App', ic:'grid', c:14, key:'7',
      ds:'Software, and everything it is made of',
      attrs:['text','container','date','progress','media','relates'],
-     seed:[{kind:'generator', title:'Add to this app…', sz:[8,2]}],
+     seed:[{kind:'notepad', title:'Add to this app…', sz:[8,2]}],
      plan:'pl_stock_application',
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   artpiece:{face:'project', proj:'art', nm:'Artwork', ic:'image', c:12, key:'3',
@@ -783,7 +783,7 @@ const BUILTIN_KINDS = {
      // born with a spawner inside it rather than a box bolted to its front:
      // the type that makes tasks out of typing already exists, so a project
      // gets one put in it instead of growing a second one of its own
-     seed:[{kind:'generator', title:'Add to this project…', sz:[8,2]}],
+     seed:[{kind:'notepad', title:'Add to this project…', sz:[8,2]}],
      layout:'grid', size:[5,5], phoneSize:[4,4], body:'' },
   timeline:{face:'timeline', nm:'Timeline',ic:'clock',   c:5, key:'0', ds:'Things in the order they happened', attrs:['container'], layout:'timeline', size:[10,6], body:'' },
   /* An **event** is a thing on a day, and it is the one type whose subject is
@@ -1459,6 +1459,8 @@ function seed(){
     const d=KINDS[k];
     // a compound is made of types that are all here already (decision 254)
     if(d.parts) return;
+    // …and a type that is cut is no longer one you can make (decision 294)
+    if(isCut(k)) return;
     const id='k_'+k;
     museum.push(O({id, kind:k, title:d.nm, tags:['sampler'],
       parent: kindHas(k,'container') ? 'd_alldr' : 'd_allob',

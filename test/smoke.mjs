@@ -1261,7 +1261,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const pr = BUREAU.create('project', { parent: 'root', title: 'Seeded' });
     pr.desk = BUREAU.free(5, 5);
     const kids = S.objects.filter(o => o.parent === pr.id);
-    const seeded = kids.length === 1 && kids[0].kind === 'generator'
+    const seeded = kids.length === 1 && kids[0].kind === 'notepad'
       && kids[0].desk.x === 1 && kids[0].desk.y === 1;
     // and a seeded child does not seed in turn (the test made one of its own
     // earlier, so count only what this project put inside itself)
@@ -2627,7 +2627,8 @@ const CHROME = process.env.BUREAU_CHROME;
     const all = S.objects.filter(o => (o.tags||[]).includes('sampler'));
     const homes = new Set(all.map(o => o.parent));
     // a compound is several of the others, each of which is here (decision 254)
-    return { one: kinds.every(k => BUREAU.K[k].parts || all.some(o => o.kind === k)),
+    // …and a cut type has no specimen, since it is not one you can make (294)
+    return { one: kinds.every(k => BUREAU.K[k].parts || BUREAU.isCut(k) || all.some(o => o.kind === k)),
              named: all.every(o => o.title === BUREAU.K[o.kind].nm),
              // …and none of it on the desk, which is what a first desk is for
              offTheDesk: !all.some(o => o.parent === 'root'),
@@ -7099,8 +7100,9 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aFilmHoldsItsBoard = fk.some(o => o.kind === 'progressbar')
       && fk.some(o => o.kind === 'outlink');
     // the board's own way in is there, and the type's seed is not
-    out.andNotTheSeedToo = !fk.some(o => o.kind === 'generator' && /film/i.test(o.title))
-      && fk.some(o => o.kind === 'generator' && o.title === 'Add to this…');
+    // …and the way in is a notepad, not the garden (decision 294)
+    out.andNotTheSeedToo = !fk.some(o => o.kind === 'notepad' && /film/i.test(o.title))
+      && fk.some(o => o.kind === 'notepad' && o.title === 'Add to this…');
     /* No spare screen beside it any more (decision 219): a board is added
        where you want one, so a Film is the board its flow is. */
     // a Film is its departments since decision 238: five boards, as its flow says
@@ -7171,7 +7173,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const top = p => p.objects.filter(o => o.parent === '__plan');
     // fourteen rows a board, on a flow of several boards too (decision 219)
     out.fourteenRows = ps.every(p => Math.max(...top(p).map(o => ((o.desk.y - 1) % 14) + o.desk.h)) === 14);
-    out.theBottomIsAWayIn = ps.every(p => top(p).some(o => o.kind === 'generator'
+    out.theBottomIsAWayIn = ps.every(p => top(p).some(o => o.kind === 'notepad'
       && o.desk.y === 13 && o.desk.h === 2 && o.desk.w === 8));
     // a pasted board, filled by the titles of the things on it
     const had = new Set(S.objects.map(o => o.id));
@@ -7189,7 +7191,7 @@ const CHROME = process.env.BUREAU_CHROME;
     // what goes into a list made undated has no day
     out.aWatchlistIsUndated = !!wl && inside(wl.id).every(o => !o.due);
     // the spawner files into Seen rather than onto the board
-    const sp = inside(box.id).find(o => o.kind === 'generator' && /finished/i.test(o.title));
+    const sp = inside(box.id).find(o => o.kind === 'notepad' && /finished/i.test(o.title));
     out.theSpawnerFilesIntoSeen = !!sp && sp.into === seen.id;
     S.view = 'drawer'; S.drawerId = box.id; BUREAU.render(); await nap(300);
     const before = inside(seen.id).length;
@@ -9380,7 +9382,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.andTakesTheProjectsShape = tk.desk.w >= 4 && tk.desk.h >= 4;
     // a project is born holding the band you type into — so is one you convert
     out.andArrivesHoldingTheWayIn =
-      BUREAU.kids(tk.id).some(id => BUREAU.state.objects.find(o=>o.id===id).kind === 'generator');
+      BUREAU.kids(tk.id).some(id => BUREAU.state.objects.find(o=>o.id===id).kind === 'notepad');
     BUREAU.undo(); await nap(150);
     out.andItIsOneUndoBack = tk.kind === 'task';
     S.objects = S.objects.filter(x => x.id !== tk.id && x.parent !== tk.id);
@@ -10895,7 +10897,7 @@ const CHROME = process.env.BUREAU_CHROME;
     pick('kind:film'); await nap(200);
     const fk = S.objects.filter(o => o.parent === d.id);
     out.aFilmIsLaidOut = d.kind === 'film' && fk.some(o => o.kind === 'progressbar')
-      && !fk.some(o => o.kind === 'generator' && /project/i.test(o.title));
+      && !fk.some(o => o.kind === 'notepad' && /project/i.test(o.title));
     pick('d30'); await nap(200);
     out.itHasADay = d.due === B.dz(30);
     document.querySelector('#setupin').value = 'The Last Video Store';

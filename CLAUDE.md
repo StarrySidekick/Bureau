@@ -414,6 +414,10 @@ brings its own board. Board settings → Bench makes and edits one. A **zone**
 exclusive tag (`zoneDrop()`), and a new thing never lands in one. Built:
 the Brain Dump, the Prioritizer (`wf_prioritizer`) and the Film benches;
 flows carry `env` and `stamp`; migration 57.
+**v2.89** (decision 294): **the notepad replaces the garden.** Every flow's
+*Add to this…* line, `MAKES()`, the type seeds and (migration 58) every
+garden already on a desk or in a saved flow are notepads; the museum shows
+no cut types.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

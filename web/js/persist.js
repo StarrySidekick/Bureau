@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.88';
+const APP_VERSION = '2.89';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 57;
+const DATA_V = 58;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1408,6 +1408,23 @@ const MIGRATIONS = [
     });
     const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
     if(!have.has('prioritizer') && fresh.prioritizer) d.plans.push(fresh.prioritizer);
+  }},
+  /* ---- the notepad replaces the garden (decision 294) --------------------
+     Every garden becomes a notepad, on every board and inside every saved
+     flow: the same line, the same title as its placeholder, the same kind it
+     makes and the same drawer it files into. What only a press did (a
+     direction to press out in, a press as its click) goes, because a notepad
+     is written on. */
+  {v:58, up(d){
+    const turn = o=>{ if(!o || o.kind!=='generator') return;
+      o.kind = 'notepad';
+      ['genDir','spawnBy'].forEach(k=>{ delete o[k]; });
+      if(o.onclick==='generate') delete o.onclick;
+    };
+    // the sample desk's specimen of the garden goes: the notepad has its own
+    d.objects = (d.objects||[]).filter(o=>!(o && o.id==='k_generator' && (o.tags||[]).includes('sampler')));
+    d.objects.forEach(turn);
+    (d.plans||[]).forEach(p=>{ (p && p.objects || []).forEach(turn); });
   }},
 ];
 function migrate(d){

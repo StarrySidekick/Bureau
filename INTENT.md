@@ -316,6 +316,9 @@ Day bench waits. Built as decision 293 (v2.87): the room (`env`), zones, and
 the Brain Dump, Prioritizer and Film benches. `docs/BENCHES.md` §0 has his
 words and §5 the order from here.
 
+**Then:** *"the notepad should replace the garden as an object."* Done as
+decision 294 (v2.89): every flow's way in is a notepad now.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
