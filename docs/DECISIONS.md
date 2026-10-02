@@ -12698,3 +12698,54 @@ spawner set to anything counted every new object beside it, and a random
 Brain Dump puts its quick add in the desk's front (297) and a compound is
 several parts. That count, and the coin's, now leave out what stands in the
 front and count a group once.
+
+## 300. The painter's Face and 3D modes (v2.96, 2026-10-02)
+
+Timothy, on the custom drawing mode for object faces: *"ability to see the
+drawer in 3d like a [cute] nintendo 64 model rotating; ability to edit the
+text and knob and face settings in that visual mode as well, and to move the
+knob and text wherever."* No new object; the painter (decision 271) has three
+modes in its header now, **Draw**, **Face** and **3D**.
+
+**Face** (a drawer front only). The front, large, with its knob and its name
+outlined: drag either and it goes there. The settings under it are the ones
+the Look door has for a front: its name as a field, its color out of the
+sixteen, the knob's shape (`KSHAPES`), size and tone. Everything is a
+**draft** (`PT.face`) over the sample the painter draws, kept on Done in the
+same undo move as the strokes ("Look kept") and thrown away on Cancel. A
+choice that is what the object already had is no change.
+
+**Where they go is stored as a fraction of the front**: `knobAt` and
+`nameAt`, `{x, y}` from 0 to 1, the middle of the knob or the name. The tile
+draws them with `knb-free` and `nm-free` (absolute, at `--kx/--ky` and
+`--nx/--ny`, moved by the `translate` property so a knob shape's own
+transform is untouched). `#frame` in front of both rules, because the deep
+shelf's knob rule is as specific and comes later; without it the knob kept
+`position:relative` and drew at nothing. Two doors keep their two knobs.
+*Knob back* and *Name back* clear them.
+
+**3D**: the thing as a low-poly model turning on a checked green floor under
+a blue sky, with a round shadow and a little bob. Flat-shaded CSS 3D faces,
+each a step darker than the last, the way an N64 model is lit; no library. A
+drawer is its front as a slab with edges, on a box narrower than it with the
+top open (you see down into it); a card is a thin slab with its printed back
+on the back; a spine is a book, covers either side, pages on top, bottom and
+fore-edge. The face is the face, drawing included. It turns by itself (one
+transform a frame on one element while the mode is up, never a render) and a
+finger turns and tilts it; the Face settings sit under it, so a color or a
+knob changes on the turning model.
+
+Three things learned building it:
+
+- **WebKit on Linux has no 3D compositing**, so `test/safari.mjs` can check
+  the model's structure but not how it looks: there it paints flat. Chromium
+  draws it properly and was used to look; real Safari on iOS composites 3D.
+- **`perspective` reaches only direct children**, and an `overflow:hidden`
+  between it and the 3D content flattens; it sits on `.p3scene` itself.
+- **Two planes half a pixel apart fight.** The card's slab had a back face
+  just behind the printed back, and a diagonal stripe of it showed through;
+  the slab has no back face there now.
+
+Tested in WebKit (`test/safari.mjs`: the knob and the name carried, a heart
+knob picked, kept on Done and drawn there on the board; the model built of
+its faces; shots 18 and 19).

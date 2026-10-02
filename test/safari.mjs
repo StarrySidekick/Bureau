@@ -544,6 +544,38 @@ await shot('15-film-bench');
 await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 out.theDeskKeepsItsOwnRoom = await page.evaluate(() => document.documentElement.dataset.style === BUREAU.state.look.style);
 
+// ---- the painter's Face and 3D (decision 300): the knob and the name
+// carried anywhere on a front, a knob shape picked, kept on Done and drawn
+// there on the board; and the turning model built of its faces.
+const fc = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null; S.look.locked = false;
+  const d = BUREAU.create('drawer', {parent:'root', title:'Kitchen Things'}); delete d.setup;
+  BUREAU.render(); await nap(300); BUREAU.openPaint(d.id); await nap(300);
+  document.querySelector('[data-ptmode="face"]').click(); await nap(300);
+  return d.id;
+});
+const grab = sel => page.evaluate(sel => { const r = document.querySelector('#paint .ptface ' + sel).getBoundingClientRect();
+  const t = document.querySelector('#paint .ptface .drawer').getBoundingClientRect();
+  return {x: r.x + r.width / 2, y: r.y + r.height / 2, tx: t.x, ty: t.y, tw: t.width, th: t.height}; }, sel);
+const kn = await grab('.pull');
+await page.mouse.move(kn.x, kn.y); await page.mouse.down(); await page.mouse.move(kn.tx + kn.tw * .8, kn.ty + kn.th * .8, {steps: 8}); await page.mouse.up(); await nap(200);
+const nm = await grab('.dname');
+await page.mouse.move(nm.x, nm.y); await page.mouse.down(); await page.mouse.move(nm.tx + nm.tw * .4, nm.ty + nm.th * .75, {steps: 8}); await page.mouse.up(); await nap(200);
+await page.click('[data-ptface="kshape"][data-v="heart"]'); await nap(200);
+await shot('18-paint-face');
+await page.click('[data-ptmode="3d"]'); await nap(600);
+out.theModelIsItsFaces = await page.evaluate(() => document.querySelectorAll('#paint .p3obj .p3f').length >= 10 && !!document.querySelector('#paint .p3obj .p3face .drawer'));
+await shot('19-paint-3d');
+await page.click('[data-pt="done"]'); await nap(400);
+out.theKnobAndNameGoWhereTheyArePut = await page.evaluate(id => {
+  const o = BUREAU.state.objects.find(x => x.id === id), t = document.querySelector(`[data-drawer="${id}"]`);
+  const k = t.querySelector('.pull').getBoundingClientRect(), r = t.getBoundingClientRect();
+  return o.kshape === 'heart' && Math.abs(o.knobAt.x - .8) < .06 && Math.abs(o.knobAt.y - .8) < .06 && o.nameAt.y > .6
+    && t.classList.contains('knb-free') && t.classList.contains('nm-free')
+    && Math.abs((k.x + k.width / 2 - r.x) / r.width - o.knobAt.x) < .06 && k.width > 4;
+}, fc);
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

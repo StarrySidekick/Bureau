@@ -333,6 +333,15 @@ html[data-theme="walnut"] .pill.solid{background:var(--brass);color:#20180E}
 .drawer.dtile.knb-centre:not(.cabinet):not(.sz-short):not(.sz-thin) > .dfoot{display:contents}
 .drawer.dtile.knb-centre:not(.cabinet):not(.sz-short):not(.sz-thin) > .dfoot > .pull{
   grid-row:2;justify-self:center;position:relative;z-index:1}
+/* **Put anywhere** (decision 300): a knob or a name the painter's Face mode
+   moved stands at its own point on the front, its middle on it. `translate`
+   rather than `transform`, so a knob shape's own transform is left alone. */
+#frame .drawer.dtile.knb-free > .dfoot{display:block}
+/* `#frame`: the deep shelf's own knob rule is as specific and comes later */
+#frame .drawer.dtile.knb-free > .dfoot > .pull{position:absolute;z-index:1;margin:0;
+  left:calc(var(--kx, .5) * 100%);top:calc(var(--ky, .5) * 100%);translate:-50% -50%}
+#frame .drawer.dtile.nm-free > .dtop{position:absolute;z-index:2;margin:0;padding:0;
+  left:calc(var(--nx, .5) * 100%);top:calc(var(--ny, .2) * 100%);translate:-50% -50%;width:max-content;max-width:92%}
 /* ---- a tile shows less as it gets smaller -----------------------------
    Three thresholds, stamped on by sizeClass() in tiles.js. Nothing here moves
    anything: each rule only takes away what there is no longer room for, so a

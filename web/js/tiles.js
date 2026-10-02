@@ -2610,10 +2610,18 @@ function drawTileFace(o, arr, box, persp){
        names the aesthetic it was borrowed from. The stylesheet keys on those
        scope classes rather than on `html[data-style]`, which is what lets a
        Victorian front wear a 1997 group box. See decision 98. */
+    /* **The knob and the name where they were put** (decision 300): the
+       painter's Face mode moves either anywhere on the front, stored as a
+       fraction of it (`knobAt`, `nameAt`, `{x, y}` from 0 to 1, the middle of
+       the thing). Two doors keep their two knobs where doors put them. */
+    const at = v => v && isFinite(v.x) && isFinite(v.y) ? v : null;
+    const kAt = !doors && at(o.knobAt), nAt = at(o.nameAt);
+    const free = (kAt ? `--kx:${(+kAt.x).toFixed(3)};--ky:${(+kAt.y).toFixed(3)};` : '')
+      + (nAt ? `--nx:${(+nAt.x).toFixed(3)};--ny:${(+nAt.y).toFixed(3)};` : '');
     return `<button class="drawer dtile ${dress(o,'bd')} ${dress(o,'tx')} ks-${
-        knobSizeOf(o)} knb-${o.knobpos||'centre'}${
+        knobSizeOf(o)} knb-${kAt ? 'free' : o.knobpos||'centre'}${nAt ? ' nm-free' : ''}${
         doors?' cabinet':''} ${dress(o,'pn')} ${dress(o,'pl')}${sel}" data-drawer="${o.id}"
-      style="--c:${colour};--knob:${knob};${place}">
+      style="--c:${colour};--knob:${knob};${free}${place}">
       ${chips}
       ${/* The wood the front is cut from. Both pseudo-elements are spoken for
            on a drawer tile — the magic frame is `::before` and the texture is

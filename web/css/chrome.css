@@ -6972,6 +6972,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .ptart.off .ptstrokes,.ptart.off .ptguide{display:none}
 .ptart .ptguide path{stroke:#6FD3E8;stroke-width:1.5;stroke-dasharray:8 8;opacity:.75;vector-effect:non-scaling-stroke}
 .ptzoom{position:absolute;right:8px;bottom:8px;display:flex;flex-direction:column;gap:4px}
+.ptzoom[hidden]{display:none}
 .ptzoom .iconbtn{background:rgba(0,0,0,.45);font-size:18px;font-weight:700;width:34px;height:34px}
 .pttools{flex:0 0 auto;display:flex;flex-direction:column;gap:6px;padding-top:8px}
 .ptrow{display:flex;gap:6px;align-items:center;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}
@@ -6993,6 +6994,38 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .ptmetal.m-rose{background:linear-gradient(135deg,#7E4A48,#E7AFA2 40%,#FFE7DE 55%,#C98C80 75%,#8A5552)}
 .ptdecals .ptchip svg{width:26px;height:26px}
 .ptsay{font-size:12.5px;opacity:.7;white-space:nowrap}
+/* ---- Face and 3D — decision 300 ---------------------------------------- */
+.ptmodes{display:inline-flex;margin-left:2px;border:1px solid rgba(255,255,255,.2);border-radius:99px;overflow:hidden;flex:none}
+.ptmode{border:0;background:transparent;color:#EDE5D2;font:600 13px/1 var(--sans, system-ui);padding:8px 13px;cursor:pointer}
+.ptmode.on{background:#EDE5D2;color:#1D1915}
+.paint .iconbtn.on{color:#E2B85C}
+.ptfacestage{cursor:default}
+.ptfacestage .ptface{pointer-events:auto}
+.ptfacestage .ptart{pointer-events:none}
+.ptfacestage .ptface .pull,.ptfacestage .ptface .dtop{cursor:grab;outline:1.5px dashed rgba(111,211,232,.85);outline-offset:3px;border-radius:4px}
+.ptfacestage .ptface .pull{border-radius:50%}
+.ptname{flex:1;min-width:0;height:38px;padding:0 12px;border-radius:10px;border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.07);color:#EDE5D2;font:500 16px/1 var(--serif)}
+.ptgap{flex:1 0 8px}
+.ptscroll{flex-wrap:nowrap}
+/* the turning model: a sky, a checked floor going away, a round shadow, and
+   the box, flat-shaded a step a face like a low-poly model */
+.pt3dstage{cursor:grab;background:none}
+.pt3dstage:active{cursor:grabbing}
+.p3scene{position:absolute;inset:0;overflow:hidden;border-radius:12px;perspective:900px;perspective-origin:50% 40%}
+.p3sky{position:absolute;inset:0;background:linear-gradient(180deg, #3E7BD6 0%, #7DB4F0 46%, #CFE8FF 62%)}
+.p3floor{position:absolute;left:-60%;right:-60%;top:60%;height:120%;transform-origin:50% 0;transform:rotateX(72deg);
+  background:#3FA34D;background-image:conic-gradient(#57BE5E 25%, #3FA34D 0 50%, #57BE5E 0 75%, #3FA34D 0);background-size:80px 80px}
+.p3stand{position:absolute;left:50%;top:46%;width:0;height:0;transform-style:preserve-3d;animation:p3bob 2.6s ease-in-out infinite}
+@keyframes p3bob{50%{transform:translateY(-6px)}}
+.p3shadow{position:absolute;left:0;top:0;height:28px;translate:-50% 0;border-radius:50%;
+  background:radial-gradient(closest-side, rgba(0,0,0,.42), transparent);filter:blur(1px)}
+.p3obj,.p3obj b{position:absolute;left:0;top:0;width:0;height:0;transform-style:preserve-3d}
+.p3f{position:absolute;left:0;top:0;display:block;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.p3face{position:absolute;left:0;top:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.p3face .pvscale{width:100% !important;height:100% !important}
+.p3face *{pointer-events:none;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+@media (prefers-reduced-motion: reduce){ .p3stand{animation:none} }
 
 /* ---- names with no room (2026-09-30) ------------------------------------
    Thirteen pixels either side left a one-cell tile 23px for its name, and

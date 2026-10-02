@@ -451,6 +451,11 @@ matters more and left if less (a binary insertion, `ranked`/`rankAt` on the
 deck, each card's `ord` and the deck's `top` following), ending on the
 numbered order. **The Prioritizer bench is a Priorities deck** with a line
 writing cards into it; migration 61 converts an old one (zones to the bin).
+**v2.96** (decision 300): the painter has **Draw, Face and 3D** modes. Face
+moves a front's knob and name anywhere (`knobAt`/`nameAt`, fractions of the
+front, `knb-free`/`nm-free` on the tile) and edits its name, color and knob
+as a draft kept on Done; 3D turns it as a flat-shaded CSS 3D model (drawer,
+card or book). WebKit on Linux cannot composite 3D: look at it in Chromium.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

@@ -350,6 +350,11 @@ artifact. Decision 299 (v2.95): a deck can rank, one card against another,
 swiped; it ends on the numbered order and the deck keeps it; the Prioritizer
 is that deck with a line writing priorities into it.
 
+**Then, the custom look:** *"see the drawer in 3d like a [cute] nintendo 64
+model rotating; edit the text and knob and face settings in that visual mode
+as well, and move the knob and text wherever."* Decision 300 (v2.96): the
+painter's Face and 3D modes.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
