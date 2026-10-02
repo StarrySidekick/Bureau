@@ -452,6 +452,14 @@ deck, each card's `ord` and the deck's `top` following), ending on the
 numbered order. **The Prioritizer bench is a Priorities deck** with a line
 writing cards into it; migration 61 converts an old one (zones to the bin).
 
+**v2.96** (decision 300): **three more benches**, from objects that exist:
+**Brainstorm** (ideas into a list, keepers picked with a *Keep* stamp that a
+sorting drawer collects, `@stamp`), **Story Builder** (`wf_storybuilder`: the
+hero's journey's twelve stages, then the eight archetypes, then the world, on
+three boards) and **Journal** (`wf_journal`: entries newest first). Seven
+benches are in `BENCH_READY`; migration 62. The made sorts break a same-day
+tie on `ord`.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

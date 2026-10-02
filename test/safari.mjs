@@ -544,6 +544,75 @@ await shot('15-film-bench');
 await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 out.theDeskKeepsItsOwnRoom = await page.evaluate(() => document.documentElement.dataset.style === BUREAU.state.look.style);
 
+// ---- three more benches (decision 300) -----------------------------------
+// Each opens in its own room. The Brainstorm's line writes ideas into Every
+// idea, and an idea stamped Keep shows in Keepers without moving. The Story
+// Builder opens on the twelve stages, then its people, then its world. The
+// Journal's line writes into Entries, newest first.
+const bench = async (kind, title) => page.evaluate(async ({kind, title}) => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const d = BUREAU.create(kind, {parent:'root', title}); delete d.setup;
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await nap(450);
+  const mine = S.objects.filter(o => o.parent === d.id);
+  return { id: d.id, style: document.documentElement.dataset.style, n: mine.length,
+    kinds: mine.map(o => o.kind), titles: mine.map(o => o.title),
+    pads: mine.filter(o => o.kind === 'notepad').map(o => ({id: o.id, into: o.into && S.objects.find(x => x.id === o.into)?.title})) };
+}, {kind, title});
+const write = async (pad, t) => {
+  await page.evaluate(id => document.querySelector(`[data-row="${id}"]`)?.scrollIntoView({block: 'center'}), pad);
+  const f = page.locator(`[data-fieldfor="${pad}"]`).first();
+  await f.evaluate(e => e.focus()); await f.fill(t); await f.press('Enter'); await nap(200);
+};
+const bs = await bench('wf_brainstorming', 'A name for the shop');
+out.theBrainstormIsAWorkshop = bs.style === 'carca' && bs.titles.includes('Every idea') && bs.titles.includes('Keepers')
+  && bs.pads.length === 1 && bs.pads[0].into === 'Every idea';
+await write(bs.pads[0].id, 'Call it after the street');
+await write(bs.pads[0].id, 'A word in another language');
+out.aKeptIdeaRisesToKeepers = await page.evaluate(async id => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  const list = S.objects.find(o => o.parent === id && o.title === 'Every idea');
+  const keep = S.objects.find(o => o.parent === id && o.title === 'Keepers');
+  const ideas = S.objects.filter(o => o.parent === list.id);
+  if (ideas.length !== 2 || !ideas.every(o => o.kind === 'idea')) return false;
+  const before = BUREAU.kids(keep.id).length;
+  ideas[0].stamps = [{w:'Keep', d:'2026-10-02', ink:'green'}]; BUREAU.render(); await nap(200);
+  const after = BUREAU.kids(keep.id);
+  return before === 0 && after.length === 1 && after[0] === ideas[0].id && ideas[0].parent === list.id;
+}, bs.id);
+await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent === id && o.kind === 'question');
+  document.querySelector(`[data-row="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, bs.id); await nap(300);
+await shot('16-brainstorm');
+
+const sb = await bench('wf_storybuilder', 'The lighthouse');
+out.theStoryBuilderIsTheJourneyFirst = sb.style === 'stelaine'
+  && sb.titles.filter(t => /^\d+\. /.test(t)).length === 12
+  && sb.titles.includes('Characters') && sb.titles.includes('Places') && sb.titles.includes('Powers and rules')
+  && await page.evaluate(id => BUREAU.boardsOf(id).length >= 3, sb.id);
+out.itsPeopleAreTheArchetypes = await page.evaluate(id => {
+  const S = BUREAU.state, c = S.objects.find(o => o.parent === id && o.title === 'Characters');
+  return S.objects.filter(o => o.parent === c.id && o.kind === 'character').length === 8; }, sb.id);
+await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent === id && o.title === '1. The ordinary world');
+  document.querySelector(`[data-row="${t.id}"],[data-drawer="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, sb.id);
+await nap(300); await shot('17-story-journey');
+for (const [t, n] of [['Characters', '17b-story-people'], ['Places', '17c-story-world']]) {
+  await page.evaluate(({id, t}) => { const o = BUREAU.state.objects.find(o => o.parent === id && o.title === t);
+    document.querySelector(`[data-row="${o.id}"],[data-drawer="${o.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, {id: sb.id, t});
+  await nap(400); await shot(n);
+}
+
+const jn = await bench('wf_journal', 'Journal');
+out.theJournalIsAnOldDesk = jn.style === 'victorian' && jn.pads.length === 1 && jn.pads[0].into === 'Entries';
+await write(jn.pads[0].id, 'Rain all day');
+await nap(30);
+await write(jn.pads[0].id, 'The first cold morning');
+out.newestEntryOnTop = await page.evaluate(id => {
+  const S = BUREAU.state, e = S.objects.find(o => o.parent === id && o.title === 'Entries');
+  const k = BUREAU.kids(e.id).map(i => S.objects.find(o => o.id === i)); return k.length === 2 && k[0].title === 'The first cold morning'; }, jn.id);
+await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent === id && o.title === 'Entries');
+  document.querySelector(`[data-row="${t.id}"],[data-drawer="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, jn.id); await nap(300);
+await shot('18-journal');
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

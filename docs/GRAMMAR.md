@@ -444,10 +444,12 @@ Still made, still valid in a paste, never offered by a picker: what benches and 
 | `pj_handmade` | Handmade Object | 2×2 | yes | Something made by hand, materials to finish |
 | `pj_device` | Device | 2×2 | yes | A thing with parts, wiring and code |
 | `workflow` | Bench | 2×2 | yes | A room set up for one way of working, with its own look and tools |
-| `wf_brainstorming` | Brainstorm | 2×2 | yes | Ideas out fast, timed, with prompts to push on |
+| `wf_brainstorming` | Brainstorm | 2×2 | yes | Ideas out fast against the clock, then stamp the ones to keep |
 | `wf_braindump` | Brain Dump | 8×6 | yes | Everything out of your head, sorted later |
 | `wf_projectmgmt` | Project Management | 2×2 | yes | Several projects at once: what is next and when |
-| `wf_prioritizer` | Prioritizer | 2×2 | yes | What matters, decided by where you put it |
+| `wf_prioritizer` | Prioritizer | 2×2 | yes | What matters most, ranked a swipe at a time |
+| `wf_storybuilder` | Story Builder | 2×2 | yes | A story outlined: the hero’s journey, then its people and its world |
+| `wf_journal` | Journal | 2×2 | yes | A page a day, newest on top, with a candle to write by |
 | `cp_labelled` | Labeled drawer | 4×4 |  | A drawer with a label over it saying what it is for |
 | `cp_quick` | Quick list | 4×7 |  | A list with a notepad on top: write a line, and it goes into the list |
 | `cp_left` | Counted list | 6×6 |  | A checklist with a notepad on top and a counter saying how many are left |
@@ -504,7 +506,9 @@ Name one in `plan`. Its things are what `fill` can address by title. *Offered* i
 | `braindump` | Brain Dump | **yes** | work | `wf_braindump` |  |
 | `prioritizer` | Prioritizer | **yes** | work | `wf_prioritizer` | Priorities, How it works, Ten minutes, Give it a time, Add a priority… |
 | `projectmgmt` | Project Management | shelved | work | `wf_projectmgmt` | Now, three at most, Next, Waiting on someone, Paused, Deadlines, Google Calendar, Focus, What one thing moves it most?, What can you drop?, What is blocked, and by whom?, Finish before you start, What is due first?, Ship the smallest version, Deep work, Add to this…, Someday, maybe…, Someday, Ideas for projects, Picking the next one, Can’t choose, The rule, Finished, Shipped this year, Looking back, Weekly review, Review, What did you finish?, What stalled, and why?, What should stop?, Who needs an update?, What is next week’s one thing?, This month |
-| `brainstorming` | Brainstorm | shelved | work | `wf_brainstorming` | The question, Another idea…, Everything, no judging, The best three, Five minutes, Pick one at random, Oblique turns, Reverse it, Make it absurd, What would a child do?, Steal from another field, Make it free, Make it ten times bigger, Next step, Are.na, Add to this… |
+| `brainstorming` | Brainstorm | **yes** | work | `wf_brainstorming` | The question, Every idea, Keepers, Are.na, Five minutes, Push on it, Reverse it, Make it absurd, What would a child do?, Steal from another field, Make it free, Make it ten times bigger, Take something away, Do it badly on purpose, Who would hate this?, Put the last two together, The rules, Another idea… |
+| `storybuilder` | Story Builder | **yes** | work | `wf_storybuilder` | What is it about?, 1. The ordinary world, 2. The call to adventure, 3. Refusing the call, 4. Meeting the mentor, 5. Crossing the threshold, 6. Tests, allies, enemies, 7. The approach, 8. The ordeal, 9. The reward, 10. The road back, 11. The final test, 12. Return with the elixir, Characters, Hero, Mentor, Herald, Threshold guardian, Shapeshifter, Shadow, Ally, Trickster, What each one is for, The arc, Ask a character, What do they want that they will not say?, What would they never do?, Who do they owe?, What are they wrong about?, What do they carry everywhere?, What are they hiding?, Who did they used to be?, What makes them laugh?, Someone new…, Places, The ordinary world, The special world, Things that matter, The elixir, Powers and rules, Who holds power, What it costs, How it looks, Find pictures, Somewhere new… |
+| `journal` | Journal | **yes** | work | `wf_journal` | Entries, 750 Words, Write while it burns, If nothing comes, What took up most of your head today?, What are you avoiding?, What went better than you expected?, Who did you think about, and why?, What would you tell yourself a year ago?, What do you want tomorrow to feel like?, Three things you noticed, What are you grateful for that you usually miss?, What did you change your mind about?, What is the smallest thing that would make this week better?, How it works, Today… |
 
 ### Compounds
 

@@ -287,6 +287,31 @@ const SCENE_PIPELINE = at => ({at, on:[
   {k:'scene', t:'Scene 3', b:[1,7,2,2], set:{c:9, tags:['written']}},
   {k:'notepad', t:'New scene', b:[1,13,8,2], set:{genKind:'scene', c:9}}
 ], raw:true});
+/* What a list starts with, and a list that keeps its newest line on top
+   (decision 300). */
+const WITH = (spec, kids)=>Object.assign(spec, {kids});
+const NEWEST = spec=>(spec.set.sort = 'made', spec);
+/* **The hero's journey** (decision 300), Vogler's twelve stages of
+   Campbell's monomyth, for the Story Builder's first board. Four to a row
+   and one act to a row: the departure, the initiation, the return. Each
+   stage is a note that asks the question that stage answers. */
+const JOURNEY = [
+  ['1. The ordinary world', '**Who they are before —** \n\n**What is missing —** '],
+  ['2. The call to adventure', '**What arrives —** \n\n**Why now —** '],
+  ['3. Refusing the call', '**Why they say no —** \n\n**What it would cost them —** '],
+  ['4. Meeting the mentor', '**Who —** \n\n**What they give —** '],
+  ['5. Crossing the threshold', '**The point of no return —** \n\n**What they leave behind —** '],
+  ['6. Tests, allies, enemies', '**Who helps —** \n\n**Who gets in the way —** \n\n**What the new rules are —** '],
+  ['7. The approach', '**What they prepare for —** \n\n**What they still fear —** '],
+  ['8. The ordeal', '**The worst moment —** \n\n**What dies —** '],
+  ['9. The reward', '**What they take —** \n\n**What it costs —** '],
+  ['10. The road back', '**What chases them —** \n\n**Why they go home —** '],
+  ['11. The final test', '**Life or death, once more —** \n\n**How they have changed —** '],
+  ['12. Return with the elixir', '**What they bring back —** \n\n**How home is different —** ']
+];
+const ACT_COLORS = [7, 9, 13];
+const STAGES_OF_THE_JOURNEY = JOURNEY.map(([t, body], i)=>({k:'note', t, body,
+  b:[1 + (i%4)*2, 3 + Math.floor(i/4)*4, 2, 4], set:{c:ACT_COLORS[Math.floor(i/4)]}}));
 const STAGES = (ref, list, b, c)=>({k:'checklist', t:'Stages', ref, b, set:{c}, kids:list.map(t=>({k:'task', t}))});
 /* **A film is its departments** (Timothy: "casting, storyboard, props,
    locations, script"), a board each round the one the film opens on: casting
@@ -1130,22 +1155,93 @@ const SPECS = [
     ]}
   ]},
 
-  {key:'brainstorming', rail:{left:['coin','glass'], right:['spool','gear']}, sec:'work', inbox:'idea', nm:'Brainstorm', ic:'sparkle', c:10, of:'wf_brainstorming', on:[
-    LABEL('Brainstorm', [1,1,8,1], 10),
-    {k:'note', t:'The question', b:[1,2,8,2], set:{c:12}, body:'What are we trying to solve?'},
-    MAKES('Another idea…', 'idea', [1,4,8,1], 10, '@bsall'),
-    LIST('Everything, no judging', 'bsall', [1,5,4,5], 10),
-    LIST('The best three', 'bsbest', [5,5,4,3], 13),
-    {k:'hourglass', t:'Five minutes', b:[5,8,2,2], set:{c:12, mins:5}},
-    {k:'die', t:'Pick one at random', b:[7,8,2,2], set:{c:14, sides:6}},
-    {k:'deck', t:'Oblique turns', b:[1,10,4,2], set:{c:10}, kids:CARDS([
-      'Reverse it', 'Make it absurd', 'What would a child do?',
-      'Steal from another field', 'Make it free', 'Make it ten times bigger'
+  /* **The Brainstorm bench** (decision 300): out, then pick. The question on
+     top, every idea one line each in a list, five minutes of sand, a deck to
+     cut when it runs dry, and the line along the bottom writing ideas into
+     the list. Picking is the stamp: the front's says *Keep*, and the Keepers
+     list is a sorting drawer collecting what on this board carries it, so
+     the good ones rise without being moved or written twice. Carca: a
+     workshop of war machines turned to tinkering. */
+  {key:'brainstorming', raw:true, inbox:false, rail:{left:['glass','stamp','coin'], right:['spool','gear']}, sec:'work', nm:'Brainstorm', ic:'sparkle', c:10, of:'wf_brainstorming',
+   env:{style:'carca', flow:false, gravity:false}, stamp:{w:'Keep', ink:'green'},
+   makes:{only:['idea','note','question','card','deck','image'], sizes:[]}, on:[
+    {k:'question', t:'The question', b:[1,1,8,2], set:{c:10}, body:'**What we are trying to solve —** '},
+    LIST('Every idea', 'bsall', [1,3,5,6], 10),
+    {k:'magic', t:'Keepers', b:[1,9,5,3], set:{c:6, face:'list', clhead:'1', layout:'list',
+      filter:{rules:[{f:'@stamp', op:'is', v:'Keep'}, HERE]}}},
+    // the way out (decision 194): somewhere to keep the keepers' pictures and links
+    LINK('Are.na', 'https://www.are.na', [1,12,5,1], 9),
+    {k:'hourglass', t:'Five minutes', b:[6,3,3,4], set:{c:12, mins:5}},
+    {k:'deck', t:'Push on it', b:[6,7,3,4], set:{c:10, faceup:true}, kids:CARDS([
+      'Reverse it', 'Make it absurd', 'What would a child do?', 'Steal from another field',
+      'Make it free', 'Make it ten times bigger', 'Take something away', 'Do it badly on purpose',
+      'Who would hate this?', 'Put the last two together'
     ])},
-    {k:'note', t:'Next step', b:[5,10,4,1], set:{c:6}},
-    LINK('Are.na', 'https://www.are.na', [5,11,4,1], 9)
-  ]}
+    {k:'note', t:'The rules', b:[6,11,3,2], set:{c:5}, body:'**Out first.** Write everything and judge nothing until the sand runs out.\n\n**Then pick.** Ink the stamp in the drawer front and press the ideas worth keeping. They show up in Keepers.'},
+    MAKES('Another idea…', 'idea', [1,13,8,2], 10, '@bsall')
+  ]},
 
+  /* **The Story Builder bench** (decision 300). Timothy: *"helps with
+     outlining a narrative in film, game, art or written word. First there's a
+     part to help build out the sections of the hero's journey, then
+     describing characters, places, etc."* So three boards, swiped through
+     rigidly in order. The first is the journey: the premise across the top
+     and the twelve stages under it, one act to a row (departure, initiation,
+     return), each asking its own question. To the right, the people: a list
+     of the eight archetypes as characters, what each one is for, and the arc.
+     Then the world: places, things that matter, the powers and the rules,
+     and a collage for how it looks. Stelaine, crystal stars over a floating
+     island; the stamp says *Canon*, for what is settled. */
+  {key:'storybuilder', raw:true, inbox:false, rail:{left:['glass','spool','stamp'], right:['block','gear']}, sec:'work', nm:'Story Builder', ic:'feather', c:7, of:'wf_storybuilder',
+   env:{style:'stelaine', flow:'rigid', gravity:false}, stamp:{w:'Canon', ink:'violet'},
+   makes:{only:['note','idea','scene','character','place','artifact','creature','group','law','histevent','image'], sizes:[]}, on:[
+    {k:'question', t:'What is it about?', b:[1,1,8,2], set:{c:10}, body:'**Told as —** a film, a game, a piece of art, or words\n\n**In one line —** '},
+    ...STAGES_OF_THE_JOURNEY
+  ],
+  boards:[
+    {at:[1,0], raw:true, on:[
+      WITH(LIST('Characters', 'cast', [1,1,4,8], 13), ['Hero','Mentor','Herald','Threshold guardian','Shapeshifter','Shadow','Ally','Trickster'].map(t=>({k:'character', t}))),
+      {k:'note', t:'What each one is for', b:[5,1,4,8], set:{c:5}, body:'**Hero —** the one who changes\n\n**Mentor —** gives them what they need\n\n**Herald —** brings the call\n\n**Threshold guardian —** tests them at the door\n\n**Shapeshifter —** cannot be trusted to stay one thing\n\n**Shadow —** wants the opposite, and is often what the hero could become\n\n**Ally —** walks beside them\n\n**Trickster —** breaks the rules, and the tension'},
+      {k:'note', t:'The arc', b:[1,9,4,4], set:{c:12}, body:'**At the start —** \n\n**At the end —** \n\n**What made the difference —** '},
+      {k:'deck', t:'Ask a character', b:[5,9,4,4], set:{c:10, faceup:true}, kids:CARDS([
+        'What do they want that they will not say?', 'What would they never do?', 'Who do they owe?',
+        'What are they wrong about?', 'What do they carry everywhere?', 'What are they hiding?',
+        'Who did they used to be?', 'What makes them laugh?'
+      ])},
+      MAKES('Someone new…', 'character', [1,13,8,2], 13, '@cast')
+    ]},
+    {at:[2,0], raw:true, on:[
+      WITH(LIST('Places', 'places', [1,1,4,6], 7), [{k:'place', t:'The ordinary world'}, {k:'place', t:'The special world'}]),
+      WITH(LIST('Things that matter', 'things', [5,1,4,6], 12), [{k:'artifact', t:'The elixir'}]),
+      WITH(LIST('Powers and rules', 'rules', [1,7,4,6], 14), [{k:'group', t:'Who holds power'}, {k:'law', t:'What it costs'}]),
+      {k:'moodboard', t:'How it looks', b:[5,7,4,5], set:{c:13}},
+      LINK('Find pictures', 'https://www.pinterest.com', [5,12,4,1], 9),
+      MAKES('Somewhere new…', 'place', [1,13,8,2], 7, '@places')
+    ]}
+  ]},
+
+  /* **The Journal bench** (decision 300). A page a day, newest on top: the
+     line along the bottom starts today's entry in Entries, which sorts newest
+     first, and a press on a line there opens it to keep writing. A candle to
+     write by until it goes out, and a deck to cut when nothing comes.
+     Victoria: an old desk, baize and brass. Nothing ticks or files here, so
+     the front has no stamp; the block turns Entries newest or oldest first. */
+  {key:'journal', raw:true, inbox:false, rail:{left:['glass','block'], right:['lock','gear']}, sec:'work', nm:'Journal', ic:'book', c:6, of:'wf_journal',
+   env:{style:'victorian', flow:false, gravity:false},
+   makes:{only:['note','thought','quote','image','card'], sizes:[]}, on:[
+    NEWEST(LIST('Entries', 'entries', [1,1,5,11], 6)),
+    // the way out (decision 194): a page that counts the words
+    LINK('750 Words', 'https://750words.com', [1,12,5,1], 9),
+    {k:'candle', t:'Write while it burns', b:[6,1,3,4], set:{c:8, burn:15}},
+    {k:'deck', t:'If nothing comes', b:[6,5,3,4], set:{c:10, faceup:true}, kids:CARDS([
+      'What took up most of your head today?', 'What are you avoiding?', 'What went better than you expected?',
+      'Who did you think about, and why?', 'What would you tell yourself a year ago?',
+      'What do you want tomorrow to feel like?', 'Three things you noticed', 'What are you grateful for that you usually miss?',
+      'What did you change your mind about?', 'What is the smallest thing that would make this week better?'
+    ])},
+    {k:'note', t:'How it works', b:[6,9,3,4], set:{c:5}, body:'**Write** the first line of today below. It goes to the top of Entries.\n\n**Press** an entry to keep writing it.\n\n**Light** the candle and write until it goes out.'},
+    MAKES('Today…', 'note', [1,13,8,2], 6, '@entries')
+  ]}
 ];
 
 /* `raw` is the boards as authored, before `fillRows()` — only migration 40

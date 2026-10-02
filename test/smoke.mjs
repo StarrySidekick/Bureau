@@ -6890,8 +6890,9 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     const ps = BUREAU.plans().filter(p => p.stock);
     // ten, then the twenty-three that followed (decision 196), then the eight
-    // Timothy named in the Workshop (decision 218), and the Prioritizer (293)
-    out.tenOfThem = ps.length === 42;
+    // Timothy named in the Workshop (decision 218), the Prioritizer (293), and
+    // the Story Builder and the Journal (300)
+    out.tenOfThem = ps.length === 44;
     out.everyOneSaysWhichList = ps.every(p => ['life','experience','project','work'].includes(p.sec));
     out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);
     /* every one lays something out but the Brain Dump, which is itself the
@@ -11043,7 +11044,7 @@ const CHROME = process.env.BUREAU_CHROME;
     out.theDrawerDoesNotAskAboutLife = !document.querySelector('#setup [data-setupv="life"]')
       && !!document.querySelector('#setup [data-setupv="flow"]');
     pick('flow'); await nap(250);
-    out.twoBenchesAreReady = [...document.querySelectorAll('#setup .suchoice')].map(e => e.dataset.setupv).join() === 'wf_braindump,wf_prioritizer';
+    out.twoBenchesAreReady = [...document.querySelectorAll('#setup .suchoice')].map(e => e.dataset.setupv).join() === 'wf_brainstorming,wf_braindump,wf_prioritizer,wf_storybuilder,wf_journal';
     B.closeSetup(); await nap(100);
     const ready = M.BENCH_READY.slice();
     M.BENCH_READY.push(...P.plans().filter(p => p.stock).map(p => p.stock));

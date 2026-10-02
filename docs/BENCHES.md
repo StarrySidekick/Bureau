@@ -13,8 +13,10 @@ it."*
 get there. Where they disagree about order, this file is newer.
 
 **Built so far:** the environment and zones (decision 293), the rubber stamp
-(292), and three benches: **Brain Dump**, **Prioritizer**, **Film** (293).
-The Brain Dump was rebuilt as an inbox you write into, with the tray (296).
+(292), and six benches: **Brain Dump**, **Prioritizer**, **Film** (293), and
+**Brainstorm**, **Story Builder** and **Journal** (300, asked for by Timothy
+after the first three). The Brain Dump was rebuilt as an inbox you write
+into, with the tray (296).
 
 ---
 
@@ -48,7 +50,8 @@ an arrangement, what sits on a board and where (decision 121, `plans.js`,
 `plan` in the code), and it may also bring **the room and the tools** with it,
 so the thing it is for is easier to do in it than anywhere else. The ones not
 yet worked on as benches are **shelved** for now: only Brain Dump,
-Prioritizer, Short Film and Feature Film are offered (`BENCH_READY`).
+Prioritizer, Short Film and Feature Film are offered (`BENCH_READY`), and
+since decision 300 Brainstorm, Story Builder and Journal.
 
 | Layer | What it is | Where it lives |
 | --- | --- | --- |
@@ -128,6 +131,23 @@ walks across, *Written*, *Prepped*, *Shot*, *Cut*, each giving its tag. In
 department. Front: glass, the stamp (says *Approved*, red), the spool, the
 block, the gear.
 
+**Brainstorm** (`wf_brainstorming`, decision 300). Out, then pick: the
+question, *Every idea* (the line writes into it), five minutes of sand, a
+deck of turns to push on, the rules. Pick by stamping: the front's stamp says
+*Keep*, and *Keepers* is a sorting drawer collecting what on the board carries
+it. In **Carca**.
+
+**Story Builder** (`wf_storybuilder`, decision 300, one per story). Three
+boards in order, a rigid swipe apart: the premise and the hero's journey's
+twelve stages, one act to a row; the people (the eight archetypes as
+characters, what each is for, the arc, questions to ask one); the world
+(places, things that matter, powers and rules, how it looks). In
+**Stelaine**; the stamp says *Canon*.
+
+**Journal** (`wf_journal`, decision 300). *Entries*, newest first, written
+into by the line along the bottom; a candle; a deck of prompts. In
+**Victoria**. Wants the **Daybook**: today an entry shows no day.
+
 ### Next
 
 **4. Writing** (Writing Tool). One piece from notes to draft, Bear's feel.
@@ -175,7 +195,7 @@ bench for a pipeline, and one feature answered both.
 | **Daily reset** | | | | | | x | x | to scope |
 | **Rolodex** face | | | x | | x | | | to scope |
 | **Strip layout** (storyboard) | | | x | x | | | | to scope |
-| **Daybook** | | | | x | | | x | to scope |
+| **Daybook** (also the Journal: an entry with its day) | | | | x | | | x | to scope |
 | **String as signal** | | x | | | | x | x | to scope |
 | **Automaton and gauge** | | | | | | x | | to scope |
 | **Book from ISBN** | | | | | x | | | to scope |

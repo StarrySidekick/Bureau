@@ -12698,3 +12698,65 @@ spawner set to anything counted every new object beside it, and a random
 Brain Dump puts its quick add in the desk's front (297) and a compound is
 several parts. That count, and the coin's, now leave out what stands in the
 front and count a group once.
+
+## 300. Three more benches: Brainstorm, Story Builder, Journal (v2.96, 2026-10-02)
+
+Timothy: *"now that we've begun this bench thing, let's make more… story
+builder bench. helps with outlining a narrative in film, game, art or written
+word. first there's a part to help build out the sections of the hero's
+journey, then describing characters, places, etc. journaling bench.
+brainstorming bench."*
+
+**Built out of objects that exist.** He asked (decision 296) to be asked
+before a new object is made, so none of the three adds one. Each is an
+arrangement, a room (`env`) and a drawer front, the same three layers as the
+Brain Dump and the Prioritizer. All three join `BENCH_READY`, so seven benches
+are offered.
+
+**Brainstorm** (`wf_brainstorming`, rebuilt). Out, then pick. The question
+across the top; *Every idea*, a list the line along the bottom writes ideas
+into; five minutes of sand; *Push on it*, a face-up deck of turns to cut when
+it runs dry; the rules; a link out to Are.na. Picking is **the stamp**: the
+front's says *Keep* (green), and **Keepers** is a sorting drawer whose rule is
+`@stamp is Keep` and *this board*, so a stamped idea shows there without
+being moved or written twice. That is the first bench to use the stamp and a
+rule together: one feature (292) answering "which of these were good". In
+**Carca**, the workshop.
+
+**Story Builder** (`wf_storybuilder`, new). Three boards, swiped rigidly in
+order. **The journey first**: *What is it about?* (told as a film, a game, a
+piece of art, or words) across the top, and Vogler's twelve stages of the
+hero's journey under it, four to a row and one act to a row (departure,
+initiation, return), each a note asking what that stage answers. Stage 11 is
+*The final test* rather than *The resurrection*, which broke mid-word at two
+cells wide. **Then the people**: *Characters*, a list holding the eight
+archetypes as characters (Hero to Trickster), a note saying what each is for,
+*The arc*, a face-up deck of questions to ask a character, and a line making
+characters into the list. **Then the world**: *Places* (the ordinary and the
+special world), *Things that matter* (the elixir), *Powers and rules* (a
+group and a law), a collage for how it looks and a link to Pinterest. In
+**Stelaine**; the stamp says *Canon* (violet), for what is settled; the spool
+is in the front, for tying a character to the stage they matter in.
+
+**Journal** (`wf_journal`, new). *Entries*, a list sorted newest first, which
+the line along the bottom (*Today…*) writes notes into; a candle to write by
+(fifteen minutes); *If nothing comes*, a face-up deck of prompts; how it
+works; a link to 750 Words. In **Victoria**. No stamp: nothing is filed or
+finished in a journal.
+
+**A fix the journal found.** *Newest made first* compared only `created`,
+which is a day, so two entries written today came out oldest first. The two
+"made" sorts now break a tie on `ord`, which a new object is given below
+everything else.
+
+**What the journal still wants**, and is not built: an entry does not show
+its day anywhere, because a note has no date and a list line shows none. That
+is the **Daybook** in the ledger (BENCHES §4), now wanted by the Journal too.
+
+**Migration 62** replaces the stored Brainstorm bench (a Brainstorm already
+put down is an arrangement and is left alone) and adds the Story Builder and
+the Journal by key. Tested in WebKit first (`test/safari.mjs`: each opens in
+its room; a Brainstorm line goes into Every idea and a Keep stamp puts it in
+Keepers without moving it; the Story Builder has twelve stages, three boards
+and eight archetypes; the Journal's second entry today is on top; shots 16
+to 18).

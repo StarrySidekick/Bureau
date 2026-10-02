@@ -917,10 +917,13 @@ BUILTIN_KINDS.artpiece.plan = 'pl_stock_artwork';
    Timothy: every flow has a type, so the three *Getting work done* flows are
    subtypes of a new Drawer subtype, **Workflow**. */
 const WORKFLOWS = [
-  ['brainstorming','Brainstorm',10,'sparkle','Ideas out fast, timed, with prompts to push on'],
+  ['brainstorming','Brainstorm',10,'sparkle','Ideas out fast against the clock, then stamp the ones to keep'],
   ['braindump','Brain Dump',5,'inbox','Everything out of your head, sorted later'],
   ['projectmgmt','Project Management',13,'target','Several projects at once: what is next and when'],
-  ['prioritizer','Prioritizer',13,'grid','What matters, decided by where you put it'],
+  ['prioritizer','Prioritizer',13,'grid','What matters most, ranked a swipe at a time'],
+  /* Decision 300: a story's outline, and a journal. */
+  ['storybuilder','Story Builder',7,'feather','A story outlined: the hero’s journey, then its people and its world'],
+  ['journal','Journal',6,'book','A page a day, newest on top, with a candle to write by'],
 ];
 /* Called a **Bench** in the interface (decision 295); `workflow` and `wf_*`
    stay the keys, the way a plan stayed `plan` when it was called a flow. */
@@ -1002,7 +1005,9 @@ const isCut = k => CUT_KINDS.includes(k);
    card, coin or list of benches. Nothing is deleted and nothing already on a
    desk changes; adding a key here brings one back. A paste can still name
    one, because that is Claude building on purpose. */
-const BENCH_READY = ['braindump','prioritizer','shortfilm','featurefilm'];
+const BENCH_READY = ['braindump','prioritizer','shortfilm','featurefilm',
+  // decision 300
+  'brainstorming','storybuilder','journal'];
 const stockKeyOf = id => typeof id==='string' && id.startsWith('pl_stock_') ? id.slice(9) : null;
 const isShelvedPlan = p => !!(p && p.stock && !BENCH_READY.includes(p.stock));
 const isShelved = k => { if(!KINDS[k]) return false;
@@ -2846,8 +2851,11 @@ const SORTS = {
      without a deadline sorts to the bottom rather than to Room — no urgency
      and no slack are different answers, the same way unranked is not 0. */
   urgent:   ['Most urgent first',    (a,b)=>((urgeRank(b)??-1)-(urgeRank(a)??-1)),                      'clock'],
-  made:     ['Newest made first',      (a,b)=>(b.created||'').localeCompare(a.created||''),                             'arrowR'],
-  madeup:   ['Oldest made first',      (a,b)=>(a.created||'').localeCompare(b.created||''),                             'arrowL'],
+  /* `created` is a day, so two things made today tie; `ord` breaks it,
+     because a new thing is given one below everything else (decision 300:
+     a journal's second entry today was under its first). */
+  made:     ['Newest made first',      (a,b)=>(b.created||'').localeCompare(a.created||'') || (a.ord||0)-(b.ord||0),    'arrowR'],
+  madeup:   ['Oldest made first',      (a,b)=>(a.created||'').localeCompare(b.created||'') || (b.ord||0)-(a.ord||0),    'arrowL'],
   edited:   ['Newest changed first',   (a,b)=>(b.edited||b.created||'').localeCompare(a.edited||a.created||''),         'arrowU'],
   editedup: ['Oldest changed first',   (a,b)=>(a.edited||a.created||'').localeCompare(b.edited||b.created||''),         'arrowD']
 };
