@@ -1090,7 +1090,9 @@ const SPECS = [
       'Will this matter in a year?', 'What happens if it never gets done?', 'Who is waiting on it?',
       'Is there a smaller version?', 'What would make the rest easier?', 'Is it yours to do?'])},
     {k:'hourglass', t:'Ten minutes', b:[3,11,1,2], set:{c:12, mins:10}},
-    {k:'note', t:'How it works', b:[4,11,5,2], set:{c:13, body:'Drop a thing in a square: **Do now** matters and is easy, **Plan it** matters and is hard, **Squeeze in** is small, **Let it go** is not worth it.'}}
+    {k:'note', t:'How it works', b:[4,11,5,1], set:{c:13, body:'Drop a thing in a square: **Do now** matters and is easy, **Plan it** matters and is hard, **Squeeze in** is small, **Let it go** is not worth it.'}},
+    // every board has a way out (decision 194): somewhere to give Do now a time
+    LINK('Give it a time', 'https://calendar.google.com', [4,12,5,1], 9)
   ]},
 
   // "Helps me prioritize all my projects and focus."

@@ -404,7 +404,7 @@ and the ledger of features they share are `docs/BENCHES.md`, which is where
 front) is the first feature through it: press it, then press things, and
 each carries an impression (`stamps: [{w, d, ink}]`, a record, Lift in the
 editor) until the stamp is pressed again (`S.stamping`); `@stamp` is a rule.
-**v2.87** (decision 293): **the room and zones, and three benches.** A
+**v2.87–2.88** (decision 293): **the room and zones, and three benches.** A
 container carrying `env` is a bench: it overrides the desk's settings one
 key at a time (`ENV_KEYS`), inherited downward. **Read those keys only with
 `setting(k)` and write them only with `setSetting(k, v)`**, never `S.look.k`

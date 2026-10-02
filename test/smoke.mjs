@@ -6889,8 +6889,8 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     const ps = BUREAU.plans().filter(p => p.stock);
     // ten, then the twenty-three that followed (decision 196), then the eight
-    // Timothy named in the Workshop (decision 218)
-    out.tenOfThem = ps.length === 41;
+    // Timothy named in the Workshop (decision 218), and the Prioritizer (293)
+    out.tenOfThem = ps.length === 42;
     out.everyOneSaysWhichList = ps.every(p => ['life','experience','project','work'].includes(p.sec));
     out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);
     out.everyOneHasThingsOnIt = ps.every(p => BUREAU.planSize(p) > 0);
@@ -6908,8 +6908,9 @@ const CHROME = process.env.BUREAU_CHROME;
         ? inABoard(o.desk) && inABoard(o.phone)
         : o.desk.x + o.desk.w - 1 <= 8 && o.desk.y + o.desk.h - 1 <= 14 &&
           o.phone.x + o.phone.w - 1 <= 8 && o.phone.y + o.phone.h - 1 <= 14)));
-    // and nothing on one overlaps anything else on it, per device
-    const clear = (p, dv) => { const b = boxes(p).map(o => o[dv]);
+    // and nothing on one overlaps anything else on it, per device; a zone
+    // (decision 293) lies under things the way a background does
+    const clear = (p, dv) => { const b = boxes(p).filter(o => o.kind !== 'zone').map(o => o[dv]);
       return b.every((a, i) => b.every((c, j) => i === j ||
         !(a.x < c.x + c.w && c.x < a.x + a.w && a.y < c.y + c.h && c.y < a.y + a.h))); };
     out.nothingOverlaps = ps.every(p => clear(p, 'desk') && clear(p, 'phone'));
@@ -7105,7 +7106,8 @@ const CHROME = process.env.BUREAU_CHROME;
     // a Film is its departments since decision 238: five boards, as its flow says
     // …and each of them a block of tiles: two by three of five (decision 274)
     // …or its five boards of eight by fourteen, cell by cell (decision 283)
-    out.withRoomBeside = BUREAU.boardsOf(film.id).length === (BUREAU.TILE === 1 ? 5*8*14 : 30);
+    // …and a sixth, its scene pipeline (decision 293)
+    out.withRoomBeside = BUREAU.boardsOf(film.id).length === (BUREAU.TILE === 1 ? 6*8*14 : 30);
     // a Life drawer made for Health, through the question it asks
     const pressIn = (attr, val) => { const b = document.createElement('button');
       b.dataset[attr] = val; b.style.display = 'none';

@@ -12324,7 +12324,7 @@ a bill on. That is string as signal (USES §2), later, reacting to a stamp.
 - `test/safari.mjs` presses a stamp and a task with the pointer and asserts
   the impression, and that pressing the stamp again puts it down.
 
-## 293. Benches: the room, zones, and three benches (v2.87, 2026-10-02)
+## 293. Benches: the room, zones, and three benches (v2.87–2.88, 2026-10-02)
 
 Timothy answered the bench scope (`docs/BENCHES.md` §0): seven benches, the
 five plus a Brain Dump and a Prioritizer; a bench is *"what tools are
@@ -12393,3 +12393,8 @@ pipeline, which is one feature answering two benches. Urgency stays derived
 setting stays in it, drags a task into the Prioritizer's *Do now* and checks
 its fields, checks a new thing arrives outside every zone, and checks the Film
 bench's night board.
+
+v2.88: the smoke suite's stock-flow checks were updated for the Prioritizer
+(42 flows), for zones lying under things, and for the film's sixth board; and
+the Prioritizer was given its way out (*Give it a time*, Google Calendar),
+because decision 194 says every board has one and it had none.
