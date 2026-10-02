@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.92';
+const APP_VERSION = '2.93';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1434,7 +1434,7 @@ const MIGRATIONS = [
   {v:59, up(d){
     const f = stockPlans().find(p=>p.stock==='braindump');
     (d.plans||[]).forEach(p=>{ if(!p || p.stock!=='braindump' || !f) return;
-      ['objects','of','sec','boards','start','dims','makes','life','rail','env','stamp'].forEach(k=>{
+      ['objects','of','sec','boards','start','dims','makes','life','rail','env','stamp','quick'].forEach(k=>{
         if(f[k]!==undefined) p[k] = JSON.parse(JSON.stringify(f[k])); else delete p[k]; });
     });
     (d.objects||[]).forEach(o=>{ if(!o || o.kind!=='wf_braindump') return;

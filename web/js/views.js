@@ -141,12 +141,17 @@ function gridBar(c){
        three either side of the knob, from the six there are, and a flow can
        say. `railToolsOf()` is the one reader; the default is the four the
        front has carried since decision 211. */
+    /* Brought here by a notepad in the front (decision 297): the way back,
+       named for where you were. */
+    const bt = S.backTo, back = bt && S.view==='drawer' && S.drawerId===bt.to
+      ? `<button class="backpill" data-act="goback" title="Back to where you were">${ic('chevL',13)}<span>${
+          esc(bt.view==='drawer' && bt.drawerId && byId(bt.drawerId) ? (byId(bt.drawerId).title||'Untitled') : boardName(rootObj()))}</span></button>` : '';
     RAILBAR = {
-      where: lip ? '' : where,
+      where: lip ? '' : where + back,
       left: railSide(c, 'left'),
       right: railSide(c, 'right')
     };
-    return lip ? `<div class="toplip${UNTUCK.lip?' unfold':''}"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}</div>` : '';
+    return lip ? `<div class="toplip${UNTUCK.lip?' unfold':''}"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}${back}</div>` : '';
   }
   return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
 }
@@ -176,12 +181,20 @@ function railToolsOf(cid){
    there, and a front with no room left for it would lose it (the desk keeps
    its gear whatever, because it is the only way into Settings). */
 const FRONT_SIDE = 3;
+/* A thing in the desk's front marked `frontAll` stands in every board's
+   front as well (decision 297), after that board's own. */
 const frontThings = (cid, side)=> S.objects
-  .filter(o=>(o.parent||ROOT)===cid && o.front===side && inFront(o))
-  .sort((a,b)=>(a.frontAt||0)-(b.frontAt||0));
+  .filter(o=>o.front===side && inFront(o) && ((o.parent||ROOT)===cid || (o.frontAll && (o.parent||ROOT)===ROOT)))
+  .sort((a,b)=>((a.frontAll?1:0)-(b.frontAll?1:0)) || (a.frontAt||0)-(b.frontAt||0));
 function railSide(c, side){
-  const things = frontThings(c.id, side).slice(0, FRONT_SIDE);
   let tools = railToolsOf(c.id)[side];
+  /* A thing lent by the desk's front (`frontAll`, decision 297) takes only
+     a place this board has left over: it never pushes out a board's own
+     tool, or a drawer would lose its gear to the desk's notepad. */
+  const own = frontThings(c.id, side).filter(o=>(o.parent||ROOT)===c.id);
+  const lent = frontThings(c.id, side).filter(o=>(o.parent||ROOT)!==c.id);
+  const things = own.slice(0, FRONT_SIDE)
+    .concat(lent.slice(0, Math.max(0, FRONT_SIDE - Math.min(FRONT_SIDE, own.length + tools.length))));
   if(tools.length + things.length > FRONT_SIDE){
     const keep = c.id===ROOT && tools.includes('gear') ? ['gear'] : [];
     tools = keep.concat(tools.filter(t=>!keep.includes(t))).slice(0, Math.max(keep.length, FRONT_SIDE - things.length));
@@ -232,7 +245,7 @@ function railToolsField(cid){
         title="${esc(RAIL_NAMES[t])}"><svg viewBox="0 0 40 40" aria-hidden="true">${
         (t==='lock'?TOOLART.lock(false):TOOLART[t](t==='block'?MANUAL:t==='swipe'?rigidOn():undefined))}</svg></button>`).join('')}</div></div>`;
   // what stands there besides the tools, each a press away from the board
-  const things = ['left','right'].flatMap(k=>frontThings(cid, k));
+  const things = ['left','right'].flatMap(k=>frontThings(cid, k)).filter(o=>(o.parent||ROOT)===cid);
   const stood = things.length ? `<div class="railpick"><span class="mini" style="--k:var(--brass)">Standing in it</span>
     <div class="filterbar">${things.map(o=>`<button class="fchip" data-act="frontout" data-id="${esc(o.id)}"
       title="Put it back on the board">${esc(o.title||K(o.kind).nm)} ${ic('x',11)}</button>`).join('')}</div></div>` : '';
@@ -1883,6 +1896,8 @@ function render(){
      repaints the root first, so the board is built in its own aesthetic. */
   envSync();
   if(lookSig() !== LOOKSIG.v) applyLook();
+  // the way back is only for the drawer a front notepad brought you to (297)
+  if(S.backTo && !(S.view==='drawer' && S.drawerId===S.backTo.to)) S.backTo = null;
   /* Written wholesale, so anything else living on this element has to be
      restated here or it is wiped by the next render — which for `tilting` meant
      the cavity worked until you ticked something and then silently stopped.

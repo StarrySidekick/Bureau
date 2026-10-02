@@ -38,6 +38,7 @@
    A plan is an arrangement; it is not an asset store. */
 import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.js';
 import { uid, ROOT, clamp } from './util.js';
+import { create } from './mutations.js';
 import { GRID, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
          oneShelf, boardsOf, ensureBoards, shelfAt, setShelf, nearestBoard, startOf,
          addBoard, colsOf, shelfRows, growDown, growsDown, onBoards, shelvesOf, TILE, SPAN, PAGES_MAX } from './grid.js';
@@ -378,8 +379,23 @@ function stampPlan(planId, intoId, at){
   });
   // …and you are standing on the board it opens on
   if(multi && startSpot) setShelf(home, startSpot.x, startSpot.y);
+  const qp = p.quick ? quickPad(home) : null;
+  if(qp) made.push(qp);
   return made;
 }
+/* ---- a quick way in — decision 297 ------------------------------------
+   A bench that says `quick` puts a notepad in the desk's drawer front when it
+   is made, standing in every board's front (`frontAll`) and writing into the
+   bench (`into`). Pressed from anywhere it takes you there with the line
+   ready, and a button on the lip takes you back (`writeAway()` in tiles.js).
+   Once: a desk whose front already has a notepad writing into a drawer keeps
+   that one, so a second Brain Dump does not crowd the front. */
+function quickPad(home){
+  const into = home!==ROOT && byId(home); if(!into) return null;
+  if(S.objects.some(o=>(o.parent||ROOT)===ROOT && o.front && o.frontAll && !o.done && byId(o.into))) return null;
+  return create('notepad', {parent:ROOT, into:into.id, front:'right', frontAt:Date.now(), frontAll:true});
+}
+
 /* The offset that puts every box of a plan somewhere clear on this board, or
    null. `boxOk()` asked of each would see the plan's own other boxes as
    siblings — they are already in `S.objects` — so the board's other things are

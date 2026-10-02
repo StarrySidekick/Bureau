@@ -106,7 +106,10 @@ on top and every line listed. Each line is guessed and says its guess on a
 label (tap for the next kind); swipe left deletes, right asks when; hold it
 and a tray of drawers rises above the front to carry it into. In **Aeros**
 (clear skies), nothing falling, the bars showing. Front: glass, the stamp
-(says *Filed*, blue), the coin; the spool, the gear.
+(says *Filed*, blue), the coin; the spool, the gear. Made, it puts a
+**quick add** in the desk's front, lent to every front: a notepad that takes
+you to the Brain Dump with the line ready, and a button on the lip back
+(decision 297).
 
 **2. Prioritizer** (`wf_prioritizer`). A matrix of four zones, importance
 across and effort down: **Do now** (priority 5, easy), **Plan it** (4, hard),
@@ -161,6 +164,7 @@ bench for a pipeline, and one feature answered both.
 | **Zones** (matrix, pipeline) | | x | x | x | | | | **done**, 293 |
 | **Tray** (hold a line, drag it to a drawer) | x | x | | x | | | x | **done** in inboxes, 296 |
 | **Guess label** (tap to change the kind) | x | | | | | | x | **done** in inboxes, 296 |
+| **Quick add** (a notepad in every front, there and back) | x | | | x | | | x | **done**, 297 |
 | **Lens** (show only what matches) | x | x | x | x | x | | x | to scope |
 | **Wiki links and backlinks** | | | x | x | x | | | to scope |
 | **Tear out** | x | | x | x | | | x | to scope |

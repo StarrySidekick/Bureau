@@ -644,11 +644,33 @@ function playPress(id){
    point here when it wires the frame (decision 220). A registry rather than
    an import, so this module does not reach back into the one that calls it. */
 const TOOLS = {press:null};
+/* **A notepad in the drawer front writes somewhere else** (decision 297).
+   Forty pixels is no place to type, so a press goes to the drawer it writes
+   into (`into`, or a string, or else the first inbox there is, a bench's
+   first) with its entry line ready, and remembers where you were: the lip
+   carries a button back (`S.backTo`, never saved; `goback` in wire.js). */
+const writesTo = o => intoOf(o)
+  || S.objects.find(x=>isInbox(x) && !isGone(x) && x.env)
+  || S.objects.find(x=>isInbox(x) && !isGone(x)) || null;
+function writeAway(o){
+  const to = writesTo(o);
+  if(!to){ toast('Tie this notepad to a drawer with the spool, or make a Brain Dump'); return; }
+  const here = S.view==='drawer' && S.drawerId ? S.drawerId : ROOT;
+  if(here!==to.id){
+    S.backTo = {to:to.id, view:S.view, drawerId:S.drawerId};
+    S.view='drawer'; S.drawerId=to.id; S.kindFilter=null;
+    render();
+  }
+  // in the same press, so a phone raises its keyboard for it
+  const f = document.querySelector(`#app [data-contadd="${to.id}"]`);
+  if(f) f.focus();
+}
 function tileTap(id){
   const o=byId(id); if(!o) return;
   /* A tap on a notepad is writing on it (decision 263): its field ignores the
      finger so a hold can carry the pad, and the tap hands it the caret. */
   if(shapeOf(o)==='notepad' && !S.threading && !S.stamping){
+    if(inFront(o)){ writeAway(o); return; }
     const f=document.querySelector(`#app [data-fieldfor="${id}"]`); if(f){ f.focus(); return; } }
   /* **The first tap on a thing that has not been set up asks what it is**
      (decision 229), before anything a tap would otherwise do. */

@@ -434,6 +434,13 @@ the desk; each line in an inbox carries a label saying its guessed kind
 tray** of drawers above the front to carry it into (`#tray`, `showTray()`,
 `trayTargets()`, `trayFile()` in gestures.js). Migration 59 keeps old Brain
 Dumps in their old shape.
+**v2.93** (decision 297): **the quick add.** A notepad in the drawer front
+writes somewhere else: a press goes to the drawer it writes into with the
+entry line focused (`writeAway()` in tiles.js) and the lip carries a button
+back (`S.backTo`, `.backpill`, `goback`). A thing in the desk's front can
+stand in every front (`frontAll`), taking only a place the board has left
+over; a bench saying `quick` (the Brain Dump) puts one there when it is made
+(`quickPad()` in plans.js).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

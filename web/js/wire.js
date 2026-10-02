@@ -227,7 +227,10 @@ function frontHold(id, anchor){
   if(navigator.vibrate) navigator.vibrate(8);
   openMenu(anchor, `<div class="ctxhead">${esc(o.title||K(o.kind).nm)}</div>
     <button data-act="frontout" data-id="${esc(id)}">${ic('grid',13)} Back on the board</button>
-    <button data-act="frontvoid" data-id="${esc(id)}">${ic('archive',13)} Into the Void Drawer</button>`);
+    <button data-act="frontvoid" data-id="${esc(id)}">${ic('archive',13)} Into the Void Drawer</button>${
+    /* the desk's front can lend a thing to every board's (decision 297) */
+    (o.parent||ROOT)===ROOT ? `<button data-act="frontall" data-id="${esc(id)}">${ic('grid',13)} ${
+      o.frontAll ? 'Only in the desk’s front' : 'In every drawer front'}</button>` : ''}`);
   // from the drawer front there is no below, so it stands on the wood
   const el=$('#ctx'), r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
   el.style.top = clamp(a.top - r.top - el.offsetHeight - 8, 6, Math.max(6, r.height-el.offsetHeight-6))+'px';
@@ -237,7 +240,7 @@ function frontHold(id, anchor){
 function frontOut(id){
   const o=byId(id); if(!o || !o.front) return false;
   pushSets('Out of the drawer front', [[id,'front',o.front], [id,'frontAt',o.frontAt], [id,'phone',o.phone ? {...o.phone} : o.phone]]);
-  delete o.front; delete o.frontAt;
+  delete o.front; delete o.frontAt; delete o.frontAll;
   if(o.phone && o.phone.w) o.phone = {w:o.phone.w, h:o.phone.h};
   return true;
 }
@@ -1104,6 +1107,22 @@ function act(name, el){
     case 'frontpress': {
       if(Date.now() - FRONT_HELD < 700) break;
       if(el.dataset.id) tileTap(el.dataset.id);
+      break;
+    }
+    case 'frontall': {
+      closeCtx();
+      const o = byId(el.dataset.id); if(!o) break;
+      pushSet('Every drawer front', o.id, 'frontAll', o.frontAll);
+      if(o.frontAll) delete o.frontAll; else o.frontAll = true;
+      save(); render();
+      toast(o.frontAll ? 'In every drawer front' : 'Only in the desk’s front', true);
+      break;
+    }
+    /* back to where a notepad in the front was pressed (decision 297) */
+    case 'goback': {
+      const b = S.backTo; S.backTo = null;
+      if(b){ S.view = b.view; S.drawerId = b.drawerId; S.kindFilter = null; }
+      render();
       break;
     }
     case 'frontout': {

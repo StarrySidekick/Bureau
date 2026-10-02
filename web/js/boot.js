@@ -3,7 +3,7 @@
    ============================================================ */
 import { $ } from './util.js';
 import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans.js';
-import { refreshKinds , groupTogether, groupMates, travelWith, countOf, inFront, isShelved } from './model.js';
+import { refreshKinds , groupTogether, groupMates, travelWith, countOf, inFront, isShelved, isInbox } from './model.js';
 import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, SECONDARY, MASTERS, inMaster, isCut, isPrimary, inFamily, barPct, marginOf, marginPlus,
@@ -133,7 +133,7 @@ window.BUREAU = {
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger
   // does, the zoom out to every board and the setup card (decisions 227, 229)
-  newOfKind, isShelved, tap: tileTap, dz, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS, setupAnswer, closeSetup,
+  newOfKind, isShelved, isInbox, tap: tileTap, dz, ASPECT_KINDS, openOverview, closeOverview, overviewOn, openSetup, setupOpen, SETUPS, setupAnswer, closeSetup,
   get K(){ return KINDS; },
   get shapes(){ return SHAPES; }, shapeChoices,
   // every aesthetic there is, so a test can walk them all rather than

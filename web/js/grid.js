@@ -1373,7 +1373,7 @@ function keepSize(o){
   ['desk','phone'].forEach(dv=>{ const b=o[dv]; o[dv] = b && b.w ? {w:b.w, h:b.h} : null; });
   // a drawer front belongs to its board, so a thing that leaves the board
   // leaves its front too (decision 252) — every reparent comes through here
-  delete o.front;
+  delete o.front; delete o.frontAll;
 }
 function ensureBox(o, device, parentId){
   const dv=device||dev();

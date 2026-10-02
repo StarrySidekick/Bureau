@@ -334,6 +334,14 @@ object: the bench is itself an inbox in line view with a list front on the
 desk, each line labelled with its guessed kind, and a held line raises a
 tray of drawers to drag it into.
 
+**Then, the way in from anywhere:** *"it could be like a quick add tool…
+just make it like what happens when you put the notepad into the toolbar
+instead of it being entirely new… make it look good there as a 1x1, then
+tapping it brings you to the brain dump page temporarily, so maybe a way to
+get back to where you were?"* Decision 297 (v2.93): a notepad in the drawer
+front goes to where it writes, line ready, with a button back on the lip;
+the desk's front can lend it to every front; a new Brain Dump puts one there.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

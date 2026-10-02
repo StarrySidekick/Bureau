@@ -12553,3 +12553,57 @@ Tested in WebKit first (`test/safari.mjs`: every line taken, opens as a list
 with its line on top, a label tap changes the guess, swipe left deletes,
 swipe right asks when, a held line goes into a drawer; shots 08b–08d) and the
 pipework test kept, now on a board of its own.
+
+## 297. The quick add: a notepad in every drawer front (v2.93, 2026-10-02)
+
+Timothy, on a way into the Brain Dump from anywhere: *"i guess it could be
+like a quick add tool. i guess we could just make it like what happens when
+you put the notepad into the toolbar instead of it being entirely new… make
+it look good there as a 1x1 and stuff, then tapping it brings you to the
+brain dump page temporarily, so maybe a way to get back to where you were?"*
+No new object: a **notepad**, standing in the drawer front (decision 252),
+taught three things.
+
+**A notepad in the front writes somewhere else.** Forty pixels is no place
+to type, so `tileTap()` hands a front notepad to `writeAway()` (tiles.js):
+it goes to the drawer the pad writes into (`into`, then a string, then the
+first inbox there is, a bench's first: `writesTo()`), focuses that drawer's
+entry line in the same press so a phone raises its keyboard, and remembers
+where you were in `S.backTo`. A pad with nowhere to write says how to give it
+somewhere. On the board a notepad is unchanged: a tap writes on it.
+
+**The way back is a button on the lip.** While you are in the drawer a front
+notepad brought you to, the top lip carries `.backpill` at its right, a
+chevron and the name of where you were; it puts the view and drawer back
+(`goback`), and the board's scroll comes back with it because `SCROLL` is
+kept per place. `S.backTo` is never saved, and `render()` forgets it the
+moment you are anywhere else, so the button never points back from a
+drawer it did not bring you to.
+
+**The desk can lend a thing to every front.** `frontAll` on a thing in the
+desk's front stands it in every board's front as well (`frontThings()` in
+views.js), after that board's own things. A lent thing **only takes a place
+the board has left over**: it never pushes out a board's own tool, because
+the first version did exactly that and the Brain Dump lost its gear to the
+desk's notepad. Hold it in the front for *In every drawer front* / *Only in
+the desk's front*. `frontOut()` and `keepSize()` forget it with `front`.
+
+**The Brain Dump brings one.** A stock bench may say `quick` (only the
+Brain Dump does); `stampPlan()`, the one route every bench takes (the picker,
+the setup card, a paste), then puts a notepad in the desk's right-hand front,
+lent to every front and writing into the new bench (`quickPad()` in
+plans.js). It rides the bench's own undo. Once per desk: a desk whose front
+already has a lent notepad writing into a live drawer keeps that one.
+
+**How it looks there.** The pad seen small (chrome.css, `.railobj.ro-thing
+.padtile`): the gum strip, blue rules every seven pixels, the red margin,
+and a yellow pencil lying across it as an inline SVG, so at forty pixels it
+still reads as somewhere to write. The rules use plain px stops; WebKit
+dropped the calc() and two-position stops they were first written with.
+And the Aeros aesthetic's tile gloss (a rule with six `:not()`s, so more
+specific than the notepad's own) was wiping a notepad's paper everywhere in
+Aeros, which is the Brain Dump's room; it now skips `.padtile`.
+
+Tested in WebKit first (`test/safari.mjs`: the bench puts a notepad in the
+front, pressed inside Errands it goes to the Brain Dump with the line
+focused, a line goes in, the lip's button goes back; shot 08e).

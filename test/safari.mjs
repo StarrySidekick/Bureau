@@ -320,7 +320,33 @@ out.aHeldLineGoesIntoADrawer = trayUp && await page.evaluate(k => {
   const o = BUREAU.state.objects.find(x => x.title === 'Buy a new kettle');
   return !!o && o.parent === k && !document.querySelector('#tray') && /Errands/.test(document.querySelector('.toast')?.textContent || '');
 }, bd.k);
-await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
+// ---- the quick add (decision 297): a notepad in every drawer front that
+// writes into the Brain Dump. Pressed inside Errands it goes to the Brain
+// Dump with its line ready; a line goes in; the lip's button goes back.
+const pad = await page.evaluate(async ({b, k}) => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  // the one the bench put in the desk's front when it was made
+  const p = S.objects.find(o => o.frontAll && o.front && o.into === b);
+  if (!p) return null;
+  S.view = 'drawer'; S.drawerId = k; BUREAU.render(); await nap(400);
+  return p.id;
+}, bd);
+out.theBenchPutsANotepadInTheFront = !!pad;
+const padAt = await page.evaluate(id => { const e = document.querySelector(`.deskrail [data-act="frontpress"][data-id="${id}"]`);
+  if (!e) return null; const r = e.getBoundingClientRect(); return {x: r.x + r.width / 2, y: r.y + r.height / 2}; }, pad);
+out.theQuickAddStandsInEveryFront = !!padAt;
+if (padAt) { await page.mouse.click(padAt.x, padAt.y); await nap(450); }
+out.itGoesToTheBrainDumpReadyToWrite = await page.evaluate(b => BUREAU.state.drawerId === b
+  && document.activeElement && document.activeElement.dataset.contadd === b
+  && /Errands/.test(document.querySelector('.backpill')?.textContent || ''), bd.b);
+await page.keyboard.type('Ring the plumber'); await page.keyboard.press('Enter'); await nap(300);
+await shot('08e-quick-add');
+out.aLineGoesIn = await page.evaluate(b => BUREAU.state.objects.some(o => o.parent === b && o.title === 'Ring the plumber'), bd.b);
+const backAt = await page.evaluate(() => { const r = document.querySelector('.backpill')?.getBoundingClientRect();
+  return r ? {x: r.x + r.width / 2, y: r.y + r.height / 2} : null; });
+if (backAt) { await page.mouse.click(backAt.x, backAt.y); await nap(400); }
+out.andTheButtonGoesBack = await page.evaluate(k => BUREAU.state.drawerId === k && !BUREAU.state.backTo && !document.querySelector('.backpill'), bd.k);
+await page.evaluate(id => { const S = BUREAU.state; BUREAU.del(id); S.view = 'desk'; S.drawerId = null; BUREAU.render(); }, pad);
 
 // ---- three kinds of board (decision 288): the desk is free, a new drawer
 // is one tile of 8×14, holding the wood beside it lays a second tile, a

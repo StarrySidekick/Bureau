@@ -167,6 +167,9 @@ function build(spec){
        container it is put down in, and what its drawer front's stamp says. */
     env: spec.env || undefined,
     stamp: spec.stamp || undefined,
+    /* A notepad in the desk's front, in every front, writing into it
+       (decision 297). */
+    quick: spec.quick || undefined,
     made: D.iso(D.today()),
     cols: 8,
     /* The boards it is laid out on, when there is more than one, the one it
@@ -1060,7 +1063,10 @@ const SPECS = [
       inbox, in line view, so what is inside it is only what you wrote. The
       bench is its room, its front and its stamp. Its way out is the tray of
       drawers a held line can be dragged into. */
-   inbox:false, raw:true, on:[]},
+   inbox:false, raw:true, on:[],
+   /* …and a notepad in every drawer front that writes into it (decision
+      297): the way in from anywhere, and back. */
+   quick:true},
 
   /* **The Prioritizer bench** (decision 293): a matrix of four zones, how
      much it matters across the top and how hard it is down the side. Put a

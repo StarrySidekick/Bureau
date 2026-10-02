@@ -6894,7 +6894,12 @@ const CHROME = process.env.BUREAU_CHROME;
     out.tenOfThem = ps.length === 42;
     out.everyOneSaysWhichList = ps.every(p => ['life','experience','project','work'].includes(p.sec));
     out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);
-    out.everyOneHasThingsOnIt = ps.every(p => BUREAU.planSize(p) > 0);
+    /* every one lays something out but the Brain Dump, which is itself the
+       inbox and brings only its room (decision 296) */
+    const laid = ps.filter(p => p.stock !== 'braindump');
+    out.everyOneHasThingsOnIt = laid.every(p => BUREAU.planSize(p) > 0);
+    out.theBrainDumpLaysNothingOut = ps.filter(p => !BUREAU.planSize(p)).map(p => p.stock).join() === 'braindump'
+      && !!ps.find(p => p.stock === 'braindump').quick;
     // a plan is not an object: nothing on any board answers to one
     out.stillNotObjects = !S.objects.some(o => ps.some(p => p.id === o.id));
 
@@ -6965,7 +6970,7 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.del(dated.id); BUREAU.del(elsewhere.id);
     /* **Every board has a way out**, and a Link draws as one: the host under
        its name, the whole face the press. */
-    out.everyBoardHasALink = ps.every(pp => pp.objects.some(o => o.kind === 'outlink'));
+    out.everyBoardHasALink = laid.every(pp => pp.objects.some(o => o.kind === 'outlink'));
 
     // …and they really draw, which a box being legal does not say
     S.view = 'drawer'; S.drawerId = room.id; BUREAU.render(); await nap(200);
@@ -7171,9 +7176,10 @@ const CHROME = process.env.BUREAU_CHROME;
     const S = BUREAU.state, out = {};
     const ps = BUREAU.plans().filter(p => p.stock);
     const top = p => p.objects.filter(o => o.parent === '__plan');
+    const laid = ps.filter(p => p.objects.length);   // the Brain Dump lays out nothing (296)
     // fourteen rows a board, on a flow of several boards too (decision 219)
-    out.fourteenRows = ps.every(p => Math.max(...top(p).map(o => ((o.desk.y - 1) % 14) + o.desk.h)) === 14);
-    out.theBottomIsAWayIn = ps.every(p => top(p).some(o => o.kind === 'notepad'
+    out.fourteenRows = laid.every(p => Math.max(...top(p).map(o => ((o.desk.y - 1) % 14) + o.desk.h)) === 14);
+    out.theBottomIsAWayIn = laid.every(p => top(p).some(o => o.kind === 'notepad'
       && o.desk.y === 13 && o.desk.h === 2 && o.desk.w === 8));
     // a pasted board, filled by the titles of the things on it
     const had = new Set(S.objects.map(o => o.id));
@@ -11056,7 +11062,9 @@ const CHROME = process.env.BUREAU_CHROME;
     B.newOfKind('drawer'); await nap(200);
     const wf = S.objects[S.objects.length-1];
     B.tap(wf.id); await nap(300); pick('flow'); await nap(250); pick('wf_braindump'); await nap(450);
-    out.aWayOfWorkingIsADrawer = wf.kind === 'wf_braindump' && S.objects.some(o => o.parent === wf.id);
+    // the Brain Dump bench is an inbox, and leaves a notepad in every front (296, 297)
+    out.aWayOfWorkingIsADrawer = wf.kind === 'wf_braindump' && B.isInbox(wf)
+      && S.objects.some(o => o.frontAll && o.front && o.into === wf.id);
     M.BENCH_READY.length = 0; M.BENCH_READY.push(...ready);
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     const old = B.migrated({v:46, objects:[{id:'x1', kind:'life', lifeart:'money', parent:'root', title:'Money'}],
