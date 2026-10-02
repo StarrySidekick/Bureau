@@ -11065,6 +11065,22 @@ const CHROME = process.env.BUREAU_CHROME;
     // the Brain Dump bench is an inbox, and leaves a notepad in every front (296, 297)
     out.aWayOfWorkingIsADrawer = wf.kind === 'wf_braindump' && B.isInbox(wf)
       && S.objects.some(o => o.frontAll && o.front && o.into === wf.id);
+    // a drawer turned into one takes its list, not the drawer's grid (298)
+    out.andItIsAList = wf.layout === 'list';
+    /* **An old Brain Dump is converted** (decision 298): its lines come up out
+       of the inner inbox, the scaffolding goes to the bin, a list with things
+       in it stays, and the desk gets the quick add. */
+    const ob = (id, kind, parent, extra) => Object.assign({id, kind, parent, title:'', body:'', tags:[], done:false,
+      desk:{x:1,y:1,w:2,h:1}, phone:{x:1,y:1,w:2,h:1}}, extra || {});
+    const od = B.migrated({v:59, objects:[
+      ob('bd','wf_braindump','root',{face:'front', layout:'grid', attrs:['container']}), ob('lb','label','bd'),
+      ob('ib','inbox','bd'), ob('l1','task','ib',{title:'Call mum'}), ob('p1','pipe','bd'), ob('ln','outlink','bd'),
+      ob('do','drawer','bd',{face:'list'}), ob('dk','task','do'), ob('sm','drawer','bd',{face:'list'})]});
+    const oby = id => od.objects.find(x => x.id === id);
+    out.anOldBrainDumpBecomesTheList = !oby('bd').layout && !oby('bd').attrs && !oby('bd').face
+      && oby('l1').parent === 'bd' && !oby('l1').phone.x && oby('do').parent === 'bd'
+      && ['lb','ib','p1','ln','sm'].every(id => oby(id).parent === '__bin' && oby(id).binFrom)
+      && od.objects.some(x => x.kind === 'notepad' && x.frontAll && x.into === 'bd');
     M.BENCH_READY.length = 0; M.BENCH_READY.push(...ready);
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     const old = B.migrated({v:46, objects:[{id:'x1', kind:'life', lifeart:'money', parent:'root', title:'Money'}],

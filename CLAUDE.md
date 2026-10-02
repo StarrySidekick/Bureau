@@ -441,6 +441,10 @@ back (`S.backTo`, `.backpill`, `goback`). A thing in the desk's front can
 stand in every front (`frontAll`), taking only a place the board has left
 over; a bench saying `quick` (the Brain Dump) puts one there when it is made
 (`quickPad()` in plans.js).
+**v2.94** (decision 298): every Brain Dump is the list: `becomeKind()` lets
+an unchosen layout follow the new type, and migration 60 converts an old
+Brain Dump (lines up out of its inner inbox, scaffolding to the bin, the
+quick add on the desk).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

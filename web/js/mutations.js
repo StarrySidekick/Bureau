@@ -815,7 +815,11 @@ function becomeKind(id, kind){
   const clone = v => v==null ? v : JSON.parse(JSON.stringify(v));
   pushSets(`Made a ${K(kind).nm.toLowerCase()}`, [
     [id,'kind',o.kind], [id,'attrs',clone(o.attrs)], [id,'milestones',clone(o.milestones)],
-    [id,'desk',clone(o.desk)], [id,'phone',clone(o.phone)]]);
+    [id,'desk',clone(o.desk)], [id,'phone',clone(o.phone)], [id,'layout',o.layout]]);
+  /* A layout nobody chose (the old type's own, copied in by create()) is the
+     new type's (decision 298): a drawer made into a Brain Dump from its setup
+     card stayed a grid, where the Brain Dump is a list. */
+  if(isContainer(o) && K(kind).layout && (!o.layout || o.layout===K(o.kind).layout)) o.layout = K(kind).layout;
   o.kind=kind; o.attrs=null;
   if(has(o,'progress') && !(o.milestones||[]).length)
     o.milestones=[{t:'First milestone',done:false,d:dz(30)}];
@@ -1588,7 +1592,7 @@ function dealTop(id){
    walks them: the next one, round to the first. Only the ones there are. */
 const GUESSES = ['task','idea','question','thought','note','quote','problem'];
 function rekind(id){
-  const o = byId(id); if(!o) return null;
+  const o = byId(id); if(!o || isContainer(o)) return null;
   const list = GUESSES.filter(k=>KINDS[k] && !isCut(k) && !isShelved(k));
   const next = list[(list.indexOf(o.kind)+1) % list.length];
   if(!next || !becomeKind(id, next)) return null;

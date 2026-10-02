@@ -3762,7 +3762,7 @@ function listTile(o){
   /* **In an inbox each line says what it was taken for** (decision 296): the
      guess is a guess, so its name sits at the end of the line and a tap on it
      makes it the next likely kind (`data-rekind`, wire.js). */
-  if(isInbox(container(o.parent))){
+  if(isInbox(container(o.parent)) && !isContainer(o)){   // a drawer kept there is not a guess
     const i = html.indexOf('>');
     if(i>0) html = html.slice(0,i+1) + `<i class="kindchip" data-rekind="${o.id}" role="button"
       title="Taken for a ${esc(K(o.kind).nm.toLowerCase())}: tap for another kind">${esc(K(o.kind).nm)}</i>` + html.slice(i+1);

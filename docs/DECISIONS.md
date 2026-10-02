@@ -12607,3 +12607,31 @@ Aeros, which is the Brain Dump's room; it now skips `.padtile`.
 Tested in WebKit first (`test/safari.mjs`: the bench puts a notepad in the
 front, pressed inside Errands it goes to the Brain Dump with the line
 focused, a line goes in, the lip's button goes back; shot 08e).
+
+## 298. Every Brain Dump is the list (v2.94, 2026-10-02)
+
+Timothy: *"isn't the brain dump bench supposed to be in like a list view"*.
+Two ways a Brain Dump was not one.
+
+**A drawer made into a Brain Dump kept the drawer's grid.** `create()`
+copies a type's layout onto the object, and `becomeKind()` changed the kind
+and left the layout, so the setup card's *Which bench? Brain Dump* (a drawer
+turned into the bench by `layFlow()`) opened as a grid holding a list's
+worth of lines. Now a layout nobody chose (none, or the old type's own)
+follows the new type in `becomeKind()`, inside its one undo move. A layout
+someone set by hand is kept.
+
+**The Brain Dump already on a desk was kept in its old shape** (migration
+59, decision 296), which was the wrong caution: it is the one he has.
+Migration 60 converts it. It drops the face, layout and attributes 59
+pinned, so it is the inbox list its type is; what was written into its inner
+inbox comes up into it, size kept and place dropped; the old bench's
+scaffolding (its label, pipes, Apple Notes link, the emptied inner inbox,
+the old *Add to this…* notepad, and any list with nothing in it) goes into
+the garbage bin with `binFrom` set, so Put Back returns any of it; a list
+with things filed in it stays, as a row and as a drawer the tray offers. The
+desk gets the quick add (decision 297) if its front has none.
+
+And a drawer kept inside an inbox wears **no guess label**: it is not a
+guess, and tapping one would have walked a drawer into a task (`rekind()`
+refuses a container too).

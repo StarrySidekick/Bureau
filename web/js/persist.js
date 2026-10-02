@@ -1,4 +1,4 @@
-import { D, uid, clamp, ROOT } from './util.js';
+import { D, uid, clamp, ROOT, BIN } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
 import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold } from './grid.js';
 import { toast, create, makeCompound, pushUndo } from './mutations.js';
@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.93';
+const APP_VERSION = '2.94';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 59;
+const DATA_V = 60;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1442,6 +1442,42 @@ const MIGRATIONS = [
       if(o.layout==null) o.layout = 'grid';
       if(!o.attrs) o.attrs = ['container'];
     });
+  }},
+  /* ---- …and then they are converted after all (decision 298) -------------
+     Timothy: "isn't the brain dump bench supposed to be in like a list view".
+     Keeping the old shape was the wrong caution. Each Brain Dump drops the
+     shape 59 pinned and becomes the inbox list its type is; what was written
+     into its inner inbox comes up into it, size kept and place dropped; the
+     scaffolding of the old bench (its label, pipes, Apple Notes link, the
+     emptied inbox, the old Add line, and any list with nothing in it) goes
+     into the garbage bin, from where Put Back returns any of it. A list with
+     things filed in it stays, as a row and as a drawer the tray offers. And
+     the desk gets the quick add (decision 297) if it has none. */
+  {v:60, up(d){
+    const objs = d.objects || [];
+    const kidsOf = id => objs.filter(x=>x && x.parent===id);
+    const sized = b => b && b.w ? {w:b.w, h:b.h} : null;
+    const today = D.iso(D.today());
+    objs.filter(o=>o && o.kind==='wf_braindump').forEach(bd=>{
+      if(bd.face==='front') delete bd.face;
+      delete bd.layout; delete bd.attrs;
+      const inner = kidsOf(bd.id);
+      inner.filter(x=>x.kind==='inbox').forEach(ib=>kidsOf(ib.id).forEach(x=>{
+        x.parent = bd.id; x.desk = sized(x.desk); x.phone = sized(x.phone); delete x.front; }));
+      const scaffold = inner.filter(x=>['label','pipe','outlink','notepad','inbox'].includes(x.kind)
+        || (x.face==='list' && !kidsOf(x.id).length));
+      if(!scaffold.length) return;
+      if(!objs.some(x=>x && x.id===BIN))
+        objs.push({id:BIN, kind:'bin', parent:ROOT, title:'Garbage bin', body:'', tags:[], done:false, desk:null, phone:null});
+      scaffold.forEach(x=>{
+        x.binFrom = x.parent; x.binBox = {desk:x.desk||null, phone:x.phone||null}; x.binAt = today;
+        x.parent = BIN; x.desk = sized(x.desk); x.phone = sized(x.phone); delete x.front;
+      });
+    });
+    const bd = objs.find(o=>o && o.kind==='wf_braindump' && o.parent!==BIN);
+    if(bd && !objs.some(o=>o && o.front && o.frontAll && (o.parent||ROOT)===ROOT))
+      objs.push({id:uid('o'), kind:'notepad', title:'', body:'', tags:[], parent:ROOT, done:false,
+        into:bd.id, front:'right', frontAt:Date.now(), frontAll:true, desk:null, phone:null});
   }},
 ];
 function migrate(d){

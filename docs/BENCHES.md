@@ -109,7 +109,7 @@ and a tray of drawers rises above the front to carry it into. In **Aeros**
 (says *Filed*, blue), the coin; the spool, the gear. Made, it puts a
 **quick add** in the desk's front, lent to every front: a notepad that takes
 you to the Brain Dump with the line ready, and a button on the lip back
-(decision 297).
+(decision 297). An old Brain Dump is converted to this (decision 298).
 
 **2. Prioritizer** (`wf_prioritizer`). A matrix of four zones, importance
 across and effort down: **Do now** (priority 5, easy), **Plan it** (4, hard),
