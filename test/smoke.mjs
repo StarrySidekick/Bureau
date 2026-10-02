@@ -11017,6 +11017,22 @@ const CHROME = process.env.BUREAU_CHROME;
        the setup card as their knobs, laid out with their flow and asked their
        own questions; a Workflow is a drawer; migration 47. */
     const pick = v => { const e = document.querySelector(`#setup [data-setupv="${v}"]`); if(e) e.click(); return !!e; };
+    /* **Shelved for now** (decision 295): no aspect of life is offered, the
+       drawer's card drops the question, and Which bench? has the two that
+       are ready. The rest of this block then unshelves them for itself,
+       because what it tests is the machinery under them, which is kept. */
+    const M = await import('./js/model.js'), P = await import('./js/plans.js');
+    out.theAspectsAreShelved = M.familyList('life').length === 0 && M.isShelved('lf_health');
+    B.newOfKind('drawer'); await nap(200);
+    const sd = S.objects[S.objects.length-1];
+    B.tap(sd.id); await nap(300);
+    out.theDrawerDoesNotAskAboutLife = !document.querySelector('#setup [data-setupv="life"]')
+      && !!document.querySelector('#setup [data-setupv="flow"]');
+    pick('flow'); await nap(250);
+    out.twoBenchesAreReady = [...document.querySelectorAll('#setup .suchoice')].map(e => e.dataset.setupv).join() === 'wf_braindump,wf_prioritizer';
+    B.closeSetup(); await nap(100);
+    const ready = M.BENCH_READY.slice();
+    M.BENCH_READY.push(...P.plans().filter(p => p.stock).map(p => p.stock));
     B.newOfKind('life'); await nap(200);
     const lf = S.objects[S.objects.length-1];
     B.tap(lf.id); await nap(300);
@@ -11037,6 +11053,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const wf = S.objects[S.objects.length-1];
     B.tap(wf.id); await nap(300); pick('flow'); await nap(250); pick('wf_braindump'); await nap(450);
     out.aWayOfWorkingIsADrawer = wf.kind === 'wf_braindump' && S.objects.some(o => o.parent === wf.id);
+    M.BENCH_READY.length = 0; M.BENCH_READY.push(...ready);
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     const old = B.migrated({v:46, objects:[{id:'x1', kind:'life', lifeart:'money', parent:'root', title:'Money'}],
       plans:[{id:'pl_stock_ideas', stock:'ideas', objects:[]}, {id:'pl_stock_health', stock:'health', objects:[]}]});
