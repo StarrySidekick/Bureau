@@ -921,7 +921,7 @@ const WORKFLOWS = [
   ['braindump','Brain Dump',5,'inbox','Everything out of your head, sorted later'],
   ['projectmgmt','Project Management',13,'target','Several projects at once: what is next and when'],
   ['prioritizer','Prioritizer',13,'grid','What matters most, ranked a swipe at a time'],
-  /* Decision 300: a story's outline, and a journal. */
+  /* Decision 301: a story's outline, and a journal. */
   ['storybuilder','Story Builder',7,'feather','A story outlined: the hero’s journey, then its people and its world'],
   ['journal','Journal',6,'book','A page a day, newest on top, with a candle to write by'],
 ];
@@ -1006,7 +1006,7 @@ const isCut = k => CUT_KINDS.includes(k);
    desk changes; adding a key here brings one back. A paste can still name
    one, because that is Claude building on purpose. */
 const BENCH_READY = ['braindump','prioritizer','shortfilm','featurefilm',
-  // decision 300
+  // decision 301
   'brainstorming','storybuilder','journal'];
 const stockKeyOf = id => typeof id==='string' && id.startsWith('pl_stock_') ? id.slice(9) : null;
 const isShelvedPlan = p => !!(p && p.stock && !BENCH_READY.includes(p.stock));
@@ -2852,7 +2852,7 @@ const SORTS = {
      and no slack are different answers, the same way unranked is not 0. */
   urgent:   ['Most urgent first',    (a,b)=>((urgeRank(b)??-1)-(urgeRank(a)??-1)),                      'clock'],
   /* `created` is a day, so two things made today tie; `ord` breaks it,
-     because a new thing is given one below everything else (decision 300:
+     because a new thing is given one below everything else (decision 301:
      a journal's second entry today was under its first). */
   made:     ['Newest made first',      (a,b)=>(b.created||'').localeCompare(a.created||'') || (a.ord||0)-(b.ord||0),    'arrowR'],
   madeup:   ['Oldest made first',      (a,b)=>(a.created||'').localeCompare(b.created||'') || (b.ord||0)-(a.ord||0),    'arrowL'],

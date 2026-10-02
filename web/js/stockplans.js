@@ -288,10 +288,10 @@ const SCENE_PIPELINE = at => ({at, on:[
   {k:'notepad', t:'New scene', b:[1,13,8,2], set:{genKind:'scene', c:9}}
 ], raw:true});
 /* What a list starts with, and a list that keeps its newest line on top
-   (decision 300). */
+   (decision 301). */
 const WITH = (spec, kids)=>Object.assign(spec, {kids});
 const NEWEST = spec=>(spec.set.sort = 'made', spec);
-/* **The hero's journey** (decision 300), Vogler's twelve stages of
+/* **The hero's journey** (decision 301), Vogler's twelve stages of
    Campbell's monomyth, for the Story Builder's first board. Four to a row
    and one act to a row: the departure, the initiation, the return. Each
    stage is a note that asks the question that stage answers. */
@@ -1155,7 +1155,7 @@ const SPECS = [
     ]}
   ]},
 
-  /* **The Brainstorm bench** (decision 300): out, then pick. The question on
+  /* **The Brainstorm bench** (decision 301): out, then pick. The question on
      top, every idea one line each in a list, five minutes of sand, a deck to
      cut when it runs dry, and the line along the bottom writing ideas into
      the list. Picking is the stamp: the front's says *Keep*, and the Keepers
@@ -1181,7 +1181,7 @@ const SPECS = [
     MAKES('Another idea…', 'idea', [1,13,8,2], 10, '@bsall')
   ]},
 
-  /* **The Story Builder bench** (decision 300). Timothy: *"helps with
+  /* **The Story Builder bench** (decision 301). Timothy: *"helps with
      outlining a narrative in film, game, art or written word. First there's a
      part to help build out the sections of the hero's journey, then
      describing characters, places, etc."* So three boards, swiped through
@@ -1220,7 +1220,7 @@ const SPECS = [
     ]}
   ]},
 
-  /* **The Journal bench** (decision 300). A page a day, newest on top: the
+  /* **The Journal bench** (decision 301). A page a day, newest on top: the
      line along the bottom starts today's entry in Entries, which sorts newest
      first, and a press on a line there opens it to keep writing. A candle to
      write by until it goes out, and a deck to cut when nothing comes.

@@ -544,7 +544,39 @@ await shot('15-film-bench');
 await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 out.theDeskKeepsItsOwnRoom = await page.evaluate(() => document.documentElement.dataset.style === BUREAU.state.look.style);
 
-// ---- three more benches (decision 300) -----------------------------------
+// ---- the painter's Face and 3D (decision 300): the knob and the name
+// carried anywhere on a front, a knob shape picked, kept on Done and drawn
+// there on the board; and the turning model built of its faces.
+const fc = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null; S.look.locked = false;
+  const d = BUREAU.create('drawer', {parent:'root', title:'Kitchen Things'}); delete d.setup;
+  BUREAU.render(); await nap(300); BUREAU.openPaint(d.id); await nap(300);
+  document.querySelector('[data-ptmode="face"]').click(); await nap(300);
+  return d.id;
+});
+const grab = sel => page.evaluate(sel => { const r = document.querySelector('#paint .ptface ' + sel).getBoundingClientRect();
+  const t = document.querySelector('#paint .ptface .drawer').getBoundingClientRect();
+  return {x: r.x + r.width / 2, y: r.y + r.height / 2, tx: t.x, ty: t.y, tw: t.width, th: t.height}; }, sel);
+const kn = await grab('.pull');
+await page.mouse.move(kn.x, kn.y); await page.mouse.down(); await page.mouse.move(kn.tx + kn.tw * .8, kn.ty + kn.th * .8, {steps: 8}); await page.mouse.up(); await nap(200);
+const nm = await grab('.dname');
+await page.mouse.move(nm.x, nm.y); await page.mouse.down(); await page.mouse.move(nm.tx + nm.tw * .4, nm.ty + nm.th * .75, {steps: 8}); await page.mouse.up(); await nap(200);
+await page.click('[data-ptface="kshape"][data-v="heart"]'); await nap(200);
+await shot('18-paint-face');
+await page.click('[data-ptmode="3d"]'); await nap(600);
+out.theModelIsItsFaces = await page.evaluate(() => document.querySelectorAll('#paint .p3obj .p3f').length >= 10 && !!document.querySelector('#paint .p3obj .p3face .drawer'));
+await shot('19-paint-3d');
+await page.click('[data-pt="done"]'); await nap(400);
+out.theKnobAndNameGoWhereTheyArePut = await page.evaluate(id => {
+  const o = BUREAU.state.objects.find(x => x.id === id), t = document.querySelector(`[data-drawer="${id}"]`);
+  const k = t.querySelector('.pull').getBoundingClientRect(), r = t.getBoundingClientRect();
+  return o.kshape === 'heart' && Math.abs(o.knobAt.x - .8) < .06 && Math.abs(o.knobAt.y - .8) < .06 && o.nameAt.y > .6
+    && t.classList.contains('knb-free') && t.classList.contains('nm-free')
+    && Math.abs((k.x + k.width / 2 - r.x) / r.width - o.knobAt.x) < .06 && k.width > 4;
+}, fc);
+
+// ---- three more benches (decision 301) -----------------------------------
 // Each opens in its own room. The Brainstorm's line writes ideas into Every
 // idea, and an idea stamped Keep shows in Keepers without moving. The Story
 // Builder opens on the twelve stages, then its people, then its world. The
@@ -582,7 +614,7 @@ out.aKeptIdeaRisesToKeepers = await page.evaluate(async id => {
 }, bs.id);
 await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent === id && o.kind === 'question');
   document.querySelector(`[data-row="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, bs.id); await nap(300);
-await shot('16-brainstorm');
+await shot('20-brainstorm');
 
 const sb = await bench('wf_storybuilder', 'The lighthouse');
 out.theStoryBuilderIsTheJourneyFirst = sb.style === 'stelaine'
@@ -594,8 +626,8 @@ out.itsPeopleAreTheArchetypes = await page.evaluate(id => {
   return S.objects.filter(o => o.parent === c.id && o.kind === 'character').length === 8; }, sb.id);
 await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent === id && o.title === '1. The ordinary world');
   document.querySelector(`[data-row="${t.id}"],[data-drawer="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, sb.id);
-await nap(300); await shot('17-story-journey');
-for (const [t, n] of [['Characters', '17b-story-people'], ['Places', '17c-story-world']]) {
+await nap(300); await shot('21-story-journey');
+for (const [t, n] of [['Characters', '21b-story-people'], ['Places', '21c-story-world']]) {
   await page.evaluate(({id, t}) => { const o = BUREAU.state.objects.find(o => o.parent === id && o.title === t);
     document.querySelector(`[data-row="${o.id}"],[data-drawer="${o.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, {id: sb.id, t});
   await nap(400); await shot(n);
@@ -611,7 +643,7 @@ out.newestEntryOnTop = await page.evaluate(id => {
   const k = BUREAU.kids(e.id).map(i => S.objects.find(o => o.id === i)); return k.length === 2 && k[0].title === 'The first cold morning'; }, jn.id);
 await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent === id && o.title === 'Entries');
   document.querySelector(`[data-row="${t.id}"],[data-drawer="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, jn.id); await nap(300);
-await shot('18-journal');
+await shot('22-journal');
 
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));

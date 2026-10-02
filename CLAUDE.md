@@ -451,8 +451,13 @@ matters more and left if less (a binary insertion, `ranked`/`rankAt` on the
 deck, each card's `ord` and the deck's `top` following), ending on the
 numbered order. **The Prioritizer bench is a Priorities deck** with a line
 writing cards into it; migration 61 converts an old one (zones to the bin).
+**v2.96** (decision 300): the painter has **Draw, Face and 3D** modes. Face
+moves a front's knob and name anywhere (`knobAt`/`nameAt`, fractions of the
+front, `knb-free`/`nm-free` on the tile) and edits its name, color and knob
+as a draft kept on Done; 3D turns it as a flat-shaded CSS 3D model (drawer,
+card or book). WebKit on Linux cannot composite 3D: look at it in Chromium.
 
-**v2.96** (decision 300): **three more benches**, from objects that exist:
+**v2.97** (decision 301): **three more benches**, from objects that exist:
 **Brainstorm** (ideas into a list, keepers picked with a *Keep* stamp that a
 sorting drawer collects, `@stamp`), **Story Builder** (`wf_storybuilder`: the
 hero's journey's twelve stages, then the eight archetypes, then the world, on

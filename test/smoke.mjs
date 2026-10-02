@@ -6891,7 +6891,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const ps = BUREAU.plans().filter(p => p.stock);
     // ten, then the twenty-three that followed (decision 196), then the eight
     // Timothy named in the Workshop (decision 218), the Prioritizer (293), and
-    // the Story Builder and the Journal (300)
+    // the Story Builder and the Journal (301)
     out.tenOfThem = ps.length === 44;
     out.everyOneSaysWhichList = ps.every(p => ['life','experience','project','work'].includes(p.sec));
     out.everyOneNamed = ps.every(p => p.nm && p.ic && p.c != null);

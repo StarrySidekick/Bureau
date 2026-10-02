@@ -1,11 +1,12 @@
 import { $, esc, ic } from './util.js';
-import { S, K, byId, isContainer, faceOf, shapeOf } from './model.js';
-import { pushSet, toast } from './mutations.js';
+import { S, K, byId, isContainer, faceOf, shapeOf, KNOBSIZES, knobSizeOf } from './model.js';
+import { pushSet, pushSets, toast } from './mutations.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 import { sampleTile, closePanel } from './panels.js';
-import { isActive, CARDART } from './active.js';
-import { hexOf } from './look.js';
+import { KSHAPES, kshapeOf } from './tiles.js';
+import { isActive, CARDART, backHTML } from './active.js';
+import { hexOf, objColour } from './look.js';
 import { lay } from './grid.js';
 
 /* ============================================================
@@ -258,23 +259,30 @@ function openPaint(id){
   const a = hasArt(o) ? JSON.parse(JSON.stringify(o.art)) : {w:W, h:H, s:[]};
   Object.assign(PT, {id, where, box:{w:b.w, h:b.h}, W:a.w||W, H:a.h||H, strokes:a.s, redo:[],
     tool:PT.tool||'pencil', ink:PT.ink||'#1B1712', metal:PT.metal||'gold', sizeAt:PT.sizeAt||{},
-    mirror:PT.mirror||'', decal:PT.decal||'scroll', preview:false, z:1, x:0, y:0, was:o.art||null});
+    mirror:PT.mirror||'', decal:PT.decal||'scroll', preview:false, z:1, x:0, y:0, was:o.art||null,
+    mode:'draw', face:{}, ang:-28, tilt:-14, spin:true});
   let host = $('#paint');
   if(!host){ $('#frame').insertAdjacentHTML('beforeend', '<div id="paint" class="paint"></div>'); host = $('#paint'); }
   drawPainter();
 }
 function closePaint(keep){
   const o = byId(PT.id);
+  const faced = Object.keys(PT.face||{});
   if(keep && o){
-    pushSet('Drew on it', o.id, 'art', PT.was ? JSON.parse(JSON.stringify(PT.was)) : null);
+    const clone = v => v==null ? v : JSON.parse(JSON.stringify(v));
+    pushSets(faced.length ? 'Changed its look' : 'Drew on it',
+      [[o.id, 'art', clone(PT.was)], ...faced.map(k=>[o.id, k, clone(o[k])])]);
     if(PT.strokes.length) o.art = {w:PT.W, h:PT.H, s:PT.strokes};
     else delete o.art;
+    // what the Face mode changed (decision 300); null means back to the type's
+    faced.forEach(k=>{ const v = PT.face[k]; if(v==null || v==='') delete o[k]; else o[k] = clone(v); });
     save();
   }
+  spinStop();
   PT.id = null;
   const host = $('#paint'); if(host) host.remove();
   render();
-  if(keep && o) toast(PT.strokes.length ? 'Drawn on' : 'Drawing taken off', true);
+  if(keep && o) toast(faced.length ? 'Look kept' : PT.strokes.length ? 'Drawn on' : 'Drawing taken off', true);
 }
 const widthOf = t => { const i = PT.sizeAt[t]; const s = TOOLS[t].sizes; return s[i!=null ? i : 1]; };
 
@@ -285,8 +293,9 @@ const widthOf = t => { const i = PT.sizeAt[t]; const s = TOOLS[t].sizes; return 
 function faceHTML(o, fw, fh){
   // at the corner of a board of its own, as the setup card draws one
   const at1 = b => b ? Object.assign({}, b, {x:1, y:1}) : b;
-  const c = Object.assign({}, o, {desk:at1(o.desk), phone:at1(o.phone), setup:null,
-    art: PT.preview ? {w:PT.W, h:PT.H, s:PT.strokes} : null});
+  const c = Object.assign({}, o, PT.face || {}, {desk:at1(o.desk), phone:at1(o.phone), setup:null,
+    art: PT.preview || PT.mode!=='draw' ? {w:PT.W, h:PT.H, s:PT.strokes} : null});
+  Object.keys(PT.face || {}).forEach(k=>{ if(PT.face[k]==null || PT.face[k]==='') delete c[k]; });
   return sampleTile(c, fw, fh, 40).replace(/<(\/?)button\b/g, '<$1span')
     .replace(/\sdata-(drawer|row|fieldfor)="[^"]*"/g, '')
     .replace(/<input\b[^>]*>|<textarea\b[^>]*>[\s\S]*?<\/textarea>/g, '');
@@ -303,23 +312,24 @@ function drawPainter(){
   const chip = (attr, v, label, on, extra) => `<button class="ptchip${on?' on':''}" data-${attr}="${esc(v)}"${extra||''}>${label}</button>`;
   host.innerHTML = `<div class="pthead">
       <button class="iconbtn" data-pt="cancel" title="Put it down without keeping it">${ic('x',16)}</button>
-      <b class="pttitle">${esc(o.title||K(o.kind).nm)}</b>
+      <span class="ptmodes">${MODES.filter(([k])=>k!=='face' || PT.where==='front').map(([k, nm])=>
+        `<button class="ptmode${PT.mode===k?' on':''}" data-ptmode="${k}">${nm}</button>`).join('')}</span>
       <div style="flex:1"></div>
-      <button class="iconbtn" data-pt="undo" title="Undo a stroke"${PT.strokes.length?'':' disabled'}>${ic('undo',15)}</button>
+      ${PT.mode==='draw' ? `<button class="iconbtn" data-pt="undo" title="Undo a stroke"${PT.strokes.length?'':' disabled'}>${ic('undo',15)}</button>
       <button class="iconbtn ptredo" data-pt="redo" title="Redo"${PT.redo.length?'':' disabled'}>${ic('undo',15)}</button>
-      <button class="pill${PT.preview?' on':''}" data-pt="preview" title="See it as it will be on the desk">${ic('eye',13)}<span>Preview</span></button>
-      <button class="pill" data-pt="clear" title="Take everything off">${ic('trash',13)}<span>Clear</span></button>
+      <button class="iconbtn${PT.preview?' on':''}" data-pt="preview" title="See it as it will be on the desk">${ic('eye',15)}</button>
+      <button class="iconbtn" data-pt="clear" title="Take everything off">${ic('trash',15)}</button>` : ''}
       <button class="pill ptdone" data-pt="done">${ic('check',13)}<span>Done</span></button>
     </div>
-    <div class="ptstage">
-      <div class="ptcan"></div>
-      <div class="ptzoom">
+    <div class="ptstage${PT.mode==='3d' ? ' pt3dstage' : PT.mode==='face' ? ' ptfacestage' : ''}">
+      ${PT.mode==='3d' ? '<div class="p3scene"></div>' : '<div class="ptcan"></div>'}
+      <div class="ptzoom"${PT.mode==='draw' ? '' : ' hidden'}>
         <button class="iconbtn" data-pt="zin" title="Closer">+</button>
         <button class="iconbtn" data-pt="zfit" title="The whole face">${ic('expand',13)}</button>
         <button class="iconbtn" data-pt="zout" title="Further">&minus;</button>
       </div>
     </div>
-    <div class="pttools">
+    ${PT.mode!=='draw' ? faceTools(o) : `<div class="pttools">
       <div class="ptrow">${Object.entries(TOOLS).map(([k,d])=>chip('pttool', k, `${ic(d.ic,14)}<span>${d.nm}</span>`, k===t)).join('')}</div>
       <div class="ptrow">
         <span class="ptsizes">${TOOLS[t].sizes.map((s,i)=>chip('ptsize', i, `<i style="--d:${Math.max(3, Math.min(22, s/3))}px"></i>`, widthOf(t)===s, ` title="Size ${i+1}"`)).join('')}</span>
@@ -334,9 +344,114 @@ function drawPainter(){
             (d.fits ? d.make(2,2).map(p=>p.map(([x,y])=>[x-1,y-1])) : d.make()).map(p=>`<path d="${pathOf(p)}"/>`).join('')}</svg><span>${d.nm}</span>`, PT.decal===k)).join('')}
         </div>
         <div class="ptrow"><span class="ptsay">Press the face to stamp it, in ${PT.ink==='#FFFFFF'?'white':'the ink above'}${''}. Pick Emboss first for a gold one.</span></div>` : ''}
-    </div>`;
-  drawCanvas();
+    </div>`}`;
+  if(PT.mode==='3d'){ draw3d(); spinGo(); } else { spinStop(); drawCanvas(); }
 }
+const MODES = [['draw','Draw'], ['face','Face'], ['3d','3D']];
+/* ---- the face's own settings — decision 300 ---------------------------
+   Timothy: "edit the text and knob and face settings in that visual mode as
+   well, and move the knob and text wherever." The rows the editor's Look
+   door has for a front, drawn here over the face so a change is seen on it
+   at once, in Face mode flat and in 3D turning. They write a **draft**
+   (`PT.face`), kept on Done and thrown away on Cancel, like the strokes. */
+const faceVal = (o, k) => (PT.face && k in PT.face) ? PT.face[k] : o[k];
+function faceTools(o){
+  const front = PT.where==='front';
+  const chip = (k, v, label, on, extra) => `<button class="ptchip${on?' on':''}" data-ptface="${k}" data-v="${esc(String(v))}"${extra||''}>${label}</button>`;
+  const ks = faceVal(o, 'kshape') || kshapeOf(o) || 'round', sz = faceVal(o, 'knobsize') || knobSizeOf(o);
+  const tone = faceVal(o, 'knobtone') || '', c = faceVal(o, 'c');
+  const say = PT.mode==='3d' ? 'Drag it to turn it.' : front ? 'Drag the knob or the name to put it anywhere.' : '';
+  return `<div class="pttools ptfacetools">
+    <div class="ptrow"><input class="ptname" data-ptname value="${esc(faceVal(o, 'title') || '')}" placeholder="Its name" autocomplete="off"></div>
+    <div class="ptrow ptinks">${Array.from({length:16}, (_, i)=>`<button class="ptink${+c===i?' on':''}" data-ptface="c" data-v="${i}"
+      style="--k:${hexOf(i)}" title="Color ${i+1}"></button>`).join('')}</div>
+    ${front ? `<div class="ptrow ptscroll">${Object.entries(KSHAPES).map(([k, n])=>chip('kshape', k, `<span>${esc(n.replace(/\s*\(.*\)/, ''))}</span>`, ks===k)).join('')}</div>
+    <div class="ptrow">${Object.entries(KNOBSIZES).map(([k, n])=>chip('knobsize', k, `<span>${n}</span>`, sz===k)).join('')}
+      <span class="ptgap"></span>${[['','Wood'],['light','Lighter'],['dark','Darker']].map(([k, n])=>chip('knobtone', k, `<span>${n}</span>`, tone===k)).join('')}</div>` : ''}
+    <div class="ptrow"><span class="ptsay">${say}</span>${front && PT.mode==='face' ? `<span class="ptgap"></span>${
+      chip('reset', 'knobAt', '<span>Knob back</span>', false)}${chip('reset', 'nameAt', '<span>Name back</span>', false)}` : ''}
+      ${PT.mode==='3d' ? `<span class="ptgap"></span>${chip('spin', '', `<span>${PT.spin ? 'Stop turning' : 'Turn'}</span>`, PT.spin)}` : ''}</div>
+  </div>`;
+}
+
+/* ---- the turning model — decision 300 ---------------------------------
+   Timothy: "see the drawer in 3d like a [cute] nintendo 64 model rotating."
+   A box of flat-shaded faces in CSS 3D (no library): each side is one colour
+   a step darker than the last, the way a low-poly model is lit, on a checked
+   floor under a sky, with a round shadow. A drawer is its front, a slab with
+   edges, on a box narrower than it with the top open; a card is a thin slab
+   with its back on the back; a spine is a book, covers either side and the
+   pages on top, bottom and fore-edge. The face is the face, drawing and all.
+   It turns by itself (one transform a frame on one element, never a
+   render) until a finger takes it. */
+function box3(w, h, d, fill, cls){
+  const f = (cl, fw, fh, tf, bg) => `<i class="p3f ${cl}" style="width:${fw}px;height:${fh}px;margin:${-fh/2}px 0 0 ${-fw/2}px;
+    transform:${tf};${bg}"></i>`;
+  return `<b class="p3box ${cls||''}">`
+    + f('p3r', d, h, `rotateY(90deg) translateZ(${w/2}px)`, fill.r)
+    + f('p3l', d, h, `rotateY(-90deg) translateZ(${w/2}px)`, fill.l)
+    + f('p3t', w, d, `rotateX(90deg) translateZ(${h/2}px)`, fill.t)
+    + f('p3b', w, d, `rotateX(-90deg) translateZ(${h/2}px)`, fill.b)
+    + (fill.k ? f('p3k', w, h, `rotateY(180deg) translateZ(${d/2}px)`, fill.k) : '')
+    + (fill.f ? f('p3n', w, h, `translateZ(${d/2}px)`, fill.f) : '')
+    + `</b>`;
+}
+const shade = (c, k) => `background:color-mix(in srgb, ${c} ${Math.round(k*100)}%, #000)`;
+function draw3d(){
+  const sc = $('#paint .p3scene'), o = byId(PT.id); if(!sc || !o) return;
+  const st = $('#paint .ptstage'), sw = st ? st.clientWidth : innerWidth, sh = st ? st.clientHeight : innerHeight*.6;
+  const k = Math.min(sw*.38/PT.box.w, sh*.36/PT.box.h), W = PT.box.w*k, H = PT.box.h*k;
+  let mid = 0;   // how far forward the whole model moves so it turns about its middle
+  const c = objColour(Object.assign({}, o, PT.face && 'c' in PT.face ? {c:PT.face.c} : {}));
+  const face = `<div class="p3face" style="width:${W}px;height:${H}px;margin:${-H/2}px 0 0 ${-W/2}px">${faceHTML(o, W, H)}</div>`;
+  let model;
+  if(PT.where==='front'){
+    const D = Math.min(W, H) * .9, T = Math.max(6, Math.min(W, H) * .07);
+    mid = D/2;
+    const bw = W*.88, bh = H*.84;
+    // the box behind the front, open at the top: its top face is the inside, seen down into
+    model = `<b class="p3drawer" style="transform:translateZ(${-D/2 - T/2}px)">${box3(bw, bh, D, {
+        r:shade(c, .62), l:shade(c, .5), b:shade(c, .4), k:shade(c, .55),
+        t:`background:color-mix(in srgb, ${c} 30%, #000);box-shadow:inset 0 0 0 ${Math.max(3, T*.6)}px color-mix(in srgb, ${c} 80%, #000)`}, 'p3open')}</b>`
+      + `<b class="p3slab">${box3(W, H, T, {r:shade(c, .7), l:shade(c, .6), t:shade(c, .9), b:shade(c, .45), k:shade(c, .5)})}</b>`
+      + `<b class="p3front" style="transform:translateZ(${T/2 + .5}px)">${face}</b>`;
+  } else if(PT.where==='card'){
+    const T = Math.max(3, W * .025);
+    model = `<b class="p3slab">${box3(W, H, T, {r:'background:#E8E1CF', l:'background:#D9D1BC', t:'background:#F1EBDC', b:'background:#CFC6AE',
+        // no back face: the printed back is it, and two planes that close fight
+        k:null})}</b>`
+      + `<b class="p3front" style="transform:translateZ(${T/2 + .5}px)">${face}</b>`
+      + `<b class="p3back" style="transform:rotateY(180deg) translateZ(${T/2 + .5}px)"><div class="p3face" style="width:${W}px;height:${H}px;margin:${-H/2}px 0 0 ${-W/2}px">
+          <div class="dkcard down" style="--c:${c};width:100%;height:100%">${backHTML(o.back || K(o.kind).back)}</div></div></b>`;
+  } else {
+    // a book standing: the spine is the face, the covers its sides, the pages the rest
+    const D = Math.min(H * .72, W * 5);
+    mid = 0;
+    const pages = 'background:#EFE7D2;background-image:repeating-linear-gradient(90deg, rgba(0,0,0,.07) 0 1px, transparent 1px 3px)';
+    model = `<b class="p3slab">${box3(W, H, D, {r:shade(c, .62), l:shade(c, .5), t:pages, b:pages,
+        k:'background:#E9E0C8;background-image:repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 3px)'})}</b>`
+      + `<b class="p3front" style="transform:translateZ(${D/2 + .5}px)">${face}</b>`;
+  }
+  sc.innerHTML = `<div class="p3sky"></div><div class="p3floor"></div>
+    <div class="p3stand"><i class="p3shadow" style="width:${Math.max(W, H*.6)*1.3}px;top:${H/2 + Math.min(W, H)*.35}px"></i>
+      <div class="p3obj" style="transform:rotateX(${PT.tilt}deg) rotateY(${PT.ang}deg)"><b style="transform:translateZ(${mid}px)">${model}</b></div></div>`;
+}
+const S3 = {raf:0, at:0, drag:null};
+function turn(){
+  const ob = $('#paint .p3obj'); if(ob) ob.style.transform = `rotateX(${PT.tilt}deg) rotateY(${PT.ang}deg)`;
+}
+function spinGo(){
+  if(S3.raf) return;
+  S3.at = performance.now();
+  const step = now => {
+    if(!PT.id || PT.mode!=='3d'){ S3.raf = 0; return; }
+    const dt = Math.min(64, now - S3.at); S3.at = now;
+    if(PT.spin && !S3.drag){ PT.ang = (PT.ang + dt * .03) % 360; turn(); }
+    S3.raf = requestAnimationFrame(step);
+  };
+  S3.raf = requestAnimationFrame(step);
+}
+function spinStop(){ if(S3.raf) cancelAnimationFrame(S3.raf); S3.raf = 0; S3.drag = null; }
 // the face and the strokes, without the tools round them
 function drawCanvas(){
   const can = $('#paint .ptcan'), o = byId(PT.id); if(!can || !o) return;
@@ -344,9 +459,9 @@ function drawCanvas(){
   can.style.width = fw+'px'; can.style.height = fh+'px';
   can.style.transform = `translate(${PT.x}px, ${PT.y}px) scale(${PT.z})`;
   can.innerHTML = `<div class="ptface">${faceHTML(o, fw, fh)}</div>
-    <svg class="ptart${PT.preview?' off':''}" viewBox="0 0 ${PT.W} ${PT.H}" preserveAspectRatio="none"
+    <svg class="ptart${PT.preview || PT.mode!=='draw' ?' off':''}" viewBox="0 0 ${PT.W} ${PT.H}" preserveAspectRatio="none"
       fill="none" stroke-linecap="round" stroke-linejoin="round">
-      <g class="ptstrokes">${PT.preview ? '' : strokesSVG(PT.strokes, PT.W, PT.H, null)}</g><g class="ptlive"></g>
+      <g class="ptstrokes">${PT.preview || PT.mode!=='draw' ? '' : strokesSVG(PT.strokes, PT.W, PT.H, null)}</g><g class="ptlive"></g>
       ${PT.mirror ? `<g class="ptguide">${PT.mirror.includes('v')?`<path d="M${PT.W/2} 0V${PT.H}"/>`:''}${
         PT.mirror.includes('h')?`<path d="M0 ${PT.H/2}H${PT.W}"/>`:''}</g>` : ''}
     </svg>`;
@@ -399,6 +514,27 @@ function onDown(e){
   if(!PT.id) return;
   const stage = e.target.closest('#paint .ptstage'); if(!stage || e.target.closest('.ptzoom')) return;
   e.preventDefault();
+  /* 3D: the finger turns the model; Face: it carries the knob or the name
+     (decision 300). Neither draws. */
+  if(PT.mode==='3d'){
+    try{ stage.setPointerCapture(e.pointerId); }catch(_){}
+    P.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    S3.drag = {x:e.clientX, y:e.clientY, ang:PT.ang, tilt:PT.tilt};
+    return;
+  }
+  if(PT.mode==='face'){
+    /* by where they are, not by what is under the finger: the face is a
+       sample and its insides take no pointer */
+    const near = sel => { const el = $('#paint .ptface ' + sel); if(!el) return false;
+      const r = el.getBoundingClientRect(), m = 12;
+      return e.clientX >= r.left-m && e.clientX <= r.right+m && e.clientY >= r.top-m && e.clientY <= r.bottom+m; };
+    const what = near('.pull') ? 'knobAt' : near('.dname') ? 'nameAt' : null;
+    if(!what) return;
+    try{ stage.setPointerCapture(e.pointerId); }catch(_){}
+    P.pts.set(e.pointerId, [e.clientX, e.clientY]);
+    P.carry = what;
+    return;
+  }
   // a synthetic pointer has nothing to capture, and nothing here needs it to
   try{ stage.setPointerCapture(e.pointerId); }catch(_){}
   P.pts.set(e.pointerId, [e.clientX, e.clientY]);
@@ -420,6 +556,17 @@ function onDown(e){
 function onMove(e){
   if(!PT.id || !P.pts.has(e.pointerId)) return;
   P.pts.set(e.pointerId, [e.clientX, e.clientY]);
+  if(S3.drag){
+    PT.ang = S3.drag.ang + (e.clientX - S3.drag.x) * .5;
+    PT.tilt = Math.max(-70, Math.min(30, S3.drag.tilt - (e.clientY - S3.drag.y) * .3));
+    turn(); return;
+  }
+  if(P.carry){
+    const tile = $('#paint .ptface .drawer'); if(!tile) return;
+    const r = tile.getBoundingClientRect(), cl = v => Math.round(Math.max(.04, Math.min(.96, v))*1000)/1000;
+    PT.face[P.carry] = {x:cl((e.clientX - r.left)/r.width), y:cl((e.clientY - r.top)/r.height)};
+    drawCanvas(); return;
+  }
   if(P.pinch && P.pts.size===2){
     const [a,b] = [...P.pts.values()];
     const d = Math.hypot(a[0]-b[0], a[1]-b[1]), cx = (a[0]+b[0])/2, cy = (a[1]+b[1])/2;
@@ -440,6 +587,8 @@ function onMove(e){
 function onUp(e){
   if(!PT.id || !P.pts.has(e.pointerId)) return;
   P.pts.delete(e.pointerId);
+  if(S3.drag){ S3.drag = null; return; }
+  if(P.carry){ P.carry = null; drawPainter(); return; }
   if(P.pts.size < 2) P.pinch = null;
   if(P.erasing && !P.pts.size){ P.erasing = false; drawPainter(); return; }
   if(P.stroke && !P.pts.size){
@@ -462,10 +611,20 @@ function onWheel(e){
 function onClick(e){
   if(!PT.id) return;
   const t = e.target;
-  const b = t.closest('#paint [data-pt],#paint [data-pttool],#paint [data-ptsize],#paint [data-ptmirror],#paint [data-ptink],#paint [data-ptmetal],#paint [data-ptdecal]');
+  const b = t.closest('#paint [data-pt],#paint [data-pttool],#paint [data-ptsize],#paint [data-ptmirror],#paint [data-ptink],#paint [data-ptmetal],#paint [data-ptdecal],#paint [data-ptmode],#paint [data-ptface]');
   if(!b) return;
   const d = b.dataset;
-  if(d.pttool){ PT.tool = d.pttool; if(d.pttool!=='erase' && d.pttool!=='decal') PT.lastInk = d.pttool; }
+  if(d.ptmode){ PT.mode = d.ptmode; PT.preview = false; }
+  else if(d.ptface){
+    const o = byId(PT.id);
+    if(d.ptface==='spin') PT.spin = !PT.spin;
+    else if(d.ptface==='reset') PT.face[d.v] = null;
+    else if(d.ptface==='c') PT.face.c = +d.v;
+    else PT.face[d.ptface] = d.v || null;
+    // a choice that is what it already was is no change at all
+    if(o && d.ptface!=='spin' && d.ptface!=='reset' && String(o[d.ptface] ?? '')===String(PT.face[d.ptface] ?? '')) delete PT.face[d.ptface];
+  }
+  else if(d.pttool){ PT.tool = d.pttool; if(d.pttool!=='erase' && d.pttool!=='decal') PT.lastInk = d.pttool; }
   else if(d.ptsize!=null) PT.sizeAt[PT.tool] = +d.ptsize;
   else if(d.ptmirror!=null){ const ks = Object.keys(MIRRORS); PT.mirror = ks[(ks.indexOf(PT.mirror)+1)%ks.length]; }
   else if(d.ptink) PT.ink = d.ptink;
@@ -510,7 +669,10 @@ function wirePaint(){
   document.addEventListener('pointercancel', e=>{ if(PT.id && P.pts.has(e.pointerId)) onUp(e); }, true);
   document.addEventListener('wheel', mine(onWheel), {capture:true, passive:false});
   document.addEventListener('click', mine(onClick), true);
-  addEventListener('resize', ()=>{ if(PT.id) drawCanvas(); });
+  // the name, typed: the face redraws under the field, the field stays put
+  document.addEventListener('input', e=>{ if(!PT.id || !e.target.matches || !e.target.matches('#paint [data-ptname]')) return;
+    PT.face.title = e.target.value; if(PT.mode==='3d') draw3d(); else drawCanvas(); }, true);
+  addEventListener('resize', ()=>{ if(PT.id){ if(PT.mode==='3d') draw3d(); else drawCanvas(); } });
 }
 
 export { paintTarget, hasArt, artLayer, openPaint, closePaint, paintOpen, wirePaint, onKey as paintKey,

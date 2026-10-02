@@ -350,9 +350,14 @@ artifact. Decision 299 (v2.95): a deck can rank, one card against another,
 swiped; it ends on the numbered order and the deck keeps it; the Prioritizer
 is that deck with a line writing priorities into it.
 
+**Then, the custom look:** *"see the drawer in 3d like a [cute] nintendo 64
+model rotating; edit the text and knob and face settings in that visual mode
+as well, and move the knob and text wherever."* Decision 300 (v2.96): the
+painter's Face and 3D modes.
+
 **Then, three more:** *"story builder bench… first there's a part to help
 build out the sections of the hero's journey, then describing characters,
-places, etc. journaling bench. brainstorming bench."* Decision 300 (v2.96):
+places, etc. journaling bench. brainstorming bench."* Decision 301 (v2.97):
 all three from objects that exist, no new object. The Story Builder is the
 twelve stages, then the people, then the world; the Brainstorm picks its
 keepers with the stamp; the Journal is a list of entries, newest first. The

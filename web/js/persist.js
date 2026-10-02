@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.96';
+const APP_VERSION = '2.97';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1526,7 +1526,7 @@ const MIGRATIONS = [
       });
     });
   }},
-  /* ---- three more benches (decision 300) ----------------------------------
+  /* ---- three more benches (decision 301) ----------------------------------
      The Brainstorm's stored bench is replaced with the new one (its room, its
      Keep stamp and its Keepers), the way 57 replaced the Brain Dump's; one
      already put down is an arrangement and is left alone. The Story Builder
