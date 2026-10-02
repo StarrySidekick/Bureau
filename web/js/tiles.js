@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, stampsOf, stampInk, isZone, zoneSaid, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn, setting } from './model.js';
+  groupOf, sealOf, isSealed, stampsOf, stampInk, isZone, zoneSaid, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn, setting, isInbox } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -3736,7 +3736,15 @@ function listTile(o){
   const box = {x:1, y:1, w:8, h:1};
   const sz = [sizeClass(box), 'listband', o.check && CHECKS[o.check] ? 'ck-'+o.check : '', wordStyle(o).cls,
     o.flip ? 'flipped' : ''].filter(Boolean).join(' ');
-  const html = drawTile(o, false, box, null);
+  let html = drawTile(o, false, box, null);
+  /* **In an inbox each line says what it was taken for** (decision 296): the
+     guess is a guess, so its name sits at the end of the line and a tap on it
+     makes it the next likely kind (`data-rekind`, wire.js). */
+  if(isInbox(container(o.parent))){
+    const i = html.indexOf('>');
+    if(i>0) html = html.slice(0,i+1) + `<i class="kindchip" data-rekind="${o.id}" role="button"
+      title="Taken for a ${esc(K(o.kind).nm.toLowerCase())}: tap for another kind">${esc(K(o.kind).nm)}</i>` + html.slice(i+1);
+  }
   return html.replace('class="', `class="${sz} `);
 }
 /* The board's own two colours for a list's stripes, the same ones its grid is

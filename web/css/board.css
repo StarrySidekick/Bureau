@@ -4148,3 +4148,36 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
 .acttile.act-deck .dkBody{width:calc(100% - 4px);height:calc(100% - 4px);align-self:flex-start;justify-self:flex-start;
   box-shadow:2px 2px 0 #ECE5D4, 2px 2px 0 1px rgba(0,0,0,.16), 4px 4px 0 #E6DECB, 4px 4px 0 1px rgba(0,0,0,.18),
     0 6px 14px rgba(0,0,0,.18)}
+
+/* ---- what an inbox line was taken for — decision 296 --------------------
+   A small label at the end of the line, in the line's own ink, that a tap
+   changes. It takes the press; the rest of the line is the line's. */
+.listband .kindchip{position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:6;
+  font:600 10px/1 var(--sans, system-ui);letter-spacing:.08em;text-transform:uppercase;font-style:normal;
+  padding:5px 8px;border-radius:999px;border:1px solid currentColor;opacity:.62;
+  background:color-mix(in srgb, var(--paper, #fff) 60%, transparent);cursor:pointer}
+.listband .kindchip:active{opacity:1}
+
+/* ---- the tray: drawers a held line can go into — decision 296 -----------
+   A strip that rises above the drawer front while an inbox's line is held:
+   each drawer as its own small front with its name under it, scrolled
+   sideways when there are many. Above the board, below nothing it carries. */
+#tray{position:absolute;left:8px;right:8px;z-index:950;display:flex;gap:10px;overflow-x:auto;
+  padding:10px 12px 8px;border-radius:16px;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  background:color-mix(in srgb, var(--wood, #3a2a1c) 96%, transparent);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  box-shadow:0 8px 24px rgba(0,0,0,.35);animation:trayup .18s ease-out}
+#tray::-webkit-scrollbar{display:none}
+@keyframes trayup{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+#tray .trayitem{flex:0 0 auto;width:66px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  border-radius:12px;padding:4px;transition:transform .12s, background .12s}
+#tray .trayitem > b{font:600 10px/1.15 var(--sans, system-ui);color:var(--woodink, #f4eee0);text-align:center;
+  max-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#tray .trayitem.aim{transform:scale(1.12);background:color-mix(in srgb, var(--brass, #b8913f) 45%, transparent)}
+#tray .trayempty{color:var(--woodink, #f4eee0);font:500 13px var(--sans, system-ui);opacity:.8;padding:16px 8px}
+@media (prefers-reduced-motion: reduce){ #tray{animation:none} }
+.trayghost{position:absolute;z-index:960;pointer-events:none;transform:translate(-50%, calc(-100% - 22px)) rotate(-2deg);
+  max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:8px 14px;border-radius:999px;
+  font:600 14px/1.2 var(--sans, system-ui);color:var(--ink, #2a241c);background:var(--paper, #f7f2e6);
+  box-shadow:0 8px 20px rgba(0,0,0,.35)}
+#frame .drawer.listband.traysource{opacity:.35}

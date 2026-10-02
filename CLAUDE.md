@@ -427,6 +427,13 @@ Film) is offered; every other stock bench, and a type there only to hold one,
 is **shelved** (`isShelved()`, `isShelvedPlan()` in model.js): hidden from
 pickers, setup cards, the coin and the Benches door, never deleted, still
 pasteable. Add a key to `BENCH_READY` to bring one back.
+**v2.92** (decision 296): **the Brain Dump is the inbox.** `wf_braindump`
+is itself an inbox in line view, wearing a list front with an entry line on
+the desk; each line in an inbox carries a label saying its guessed kind
+(`.kindchip`, tap for the next: `rekind()`), and holding one raises **the
+tray** of drawers above the front to carry it into (`#tray`, `showTray()`,
+`trayTargets()`, `trayFile()` in gestures.js). Migration 59 keeps old Brain
+Dumps in their old shape.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

@@ -215,8 +215,10 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
   make a `bin`: there is one garbage bin, made by the first delete.
 - **An inbox comes with its pipes from a bench.** A paste can make an `inbox`
   and a `pipe`, but cannot tie them (§5), and an untied pipe leads nowhere.
-  For a brain dump, write `{"plan": "braindump"}` and `fill` its lists; for
-  anything else, paste the inbox and say which pipes to lay by hand.
+  Paste the inbox and say which pipes to lay by hand. A **brain dump** needs
+  no pipes: `{"plan": "braindump"}` is an inbox you write into, and its lines
+  are carried to drawers by hand (decision 296), so give it `children`, not
+  `fill` (a bare string there is a task; say the type for anything else).
 - **Say what could not be pasted.** If the board needs strings, positions or
   pictures (§5), hand over the paste and say plainly what he will have to do
   by hand, or what the paste bridge would need.
@@ -443,7 +445,7 @@ Still made, still valid in a paste, never offered by a picker: what benches and 
 | `pj_device` | Device | 2×2 | yes | A thing with parts, wiring and code |
 | `workflow` | Bench | 2×2 | yes | A room set up for one way of working, with its own look and tools |
 | `wf_brainstorming` | Brainstorm | 2×2 | yes | Ideas out fast, timed, with prompts to push on |
-| `wf_braindump` | Brain Dump | 2×2 | yes | Everything out of your head, sorted later |
+| `wf_braindump` | Brain Dump | 8×6 | yes | Everything out of your head, sorted later |
 | `wf_projectmgmt` | Project Management | 2×2 | yes | Several projects at once: what is next and when |
 | `wf_prioritizer` | Prioritizer | 2×2 | yes | What matters, decided by where you put it |
 | `cp_labelled` | Labeled drawer | 4×4 |  | A drawer with a label over it saying what it is for |
@@ -499,7 +501,7 @@ Name one in `plan`. Its things are what `fill` can address by title. *Offered* i
 | `device` | Device | shelved | project | `pj_device` | What does it do?, Parts, Sketches and wiring, Stages, Sketch, Parts ordered, Breadboard, Firmware, Enclosure, Test, Done, What is not working, Where it stands, Code, Add to this… |
 | `handmade` | Handmade Object | shelved | project | `pj_handmade` | What is it, and who is it for?, Materials, References, Stages, Design, Make a test, Make it, Finish, Give it or keep it, Hours at the bench, One session, Where it stands, Supplies, Add to this… |
 | `artwork` | Artwork | shelved | project | `artpiece` | What is it about?, Studies, References, Hours making, Stages, Sketches, Materials, Underpainting, The work, Finish, Photograph it, Where it stands, A timed study, Supplies, Add to this… |
-| `braindump` | Brain Dump | **yes** | work | `wf_braindump` | Inbox, Apple Notes, Do, Someday, Questions, Keep, Add to this… |
+| `braindump` | Brain Dump | **yes** | work | `wf_braindump` |  |
 | `prioritizer` | Prioritizer | **yes** | work | `wf_prioritizer` | Do now, Plan it, Squeeze in, Let it go, Ask it, Will this matter in a year?, What happens if it never gets done?, Who is waiting on it?, Is there a smaller version?, What would make the rest easier?, Is it yours to do?, Ten minutes, How it works, Give it a time, Add to this… |
 | `projectmgmt` | Project Management | shelved | work | `wf_projectmgmt` | Now, three at most, Next, Waiting on someone, Paused, Deadlines, Google Calendar, Focus, What one thing moves it most?, What can you drop?, What is blocked, and by whom?, Finish before you start, What is due first?, Ship the smallest version, Deep work, Add to this…, Someday, maybe…, Someday, Ideas for projects, Picking the next one, Can’t choose, The rule, Finished, Shipped this year, Looking back, Weekly review, Review, What did you finish?, What stalled, and why?, What should stop?, Who needs an update?, What is next week’s one thing?, This month |
 | `brainstorming` | Brainstorm | shelved | work | `wf_brainstorming` | The question, Another idea…, Everything, no judging, The best three, Five minutes, Pick one at random, Oblique turns, Reverse it, Make it absurd, What would a child do?, Steal from another field, Make it free, Make it ten times bigger, Next step, Are.na, Add to this… |

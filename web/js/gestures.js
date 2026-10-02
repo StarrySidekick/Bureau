@@ -1,13 +1,13 @@
-import { $, $$, clamp, D, ROOT } from './util.js';
+import { $, $$, clamp, D, ROOT, BIN, esc } from './util.js';
 import { blockHold, frontHold, tileAway, tileHere } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
-  sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
+  sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia, isInbox, isGone, pipesOf, pipeTo } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom, formOf, tileRectOf, tilesOf, reachable } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt, zoneDrop } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
-  closePanel } from './panels.js';
+  closePanel, sampleTile } from './panels.js';
 import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit, setTuck } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
@@ -319,6 +319,53 @@ const ROW_MAX = 150, ROW_DO = 78;
    anything to say about this", not "has it already got a date". A container is
    out: a drawer is not owed on a day. See decision 122. */
 const canSchedule = id => { const o=byId(id); return !!o && !isContainer(o); };
+/* ---- the tray: drawers a held line can go into — decision 296 ---------
+   Timothy: *"tap and hold to add/move to something, quick display of drawers
+   come up to drag into."* In an inbox's line view, holding a line lifts it
+   and a strip of drawers rises above the drawer front; carry the line onto
+   one and it is filed there, one move with Undo on its toast. Let go anywhere
+   else and it is the reorder it always was. The drawers are the ones tied to
+   the inbox with string or a pipe first, then what is inside it, then what
+   sits beside it, then the desk's own. Drawn outside `#app`, like the swipe's
+   backing, so a render never takes it away mid-carry. */
+const trayFor = cid => isInbox(container(cid));
+function trayTargets(cid){
+  const c = byId(cid); if(!c) return [];
+  const up = new Set(); for(let p=c, i=0; p && i<40; i++){ up.add(p.id); p = p.parent && p.parent!==ROOT ? byId(p.parent) : null; }
+  const ok = d => !!d && isContainer(d) && !has(d,'magic') && !isGone(d) && !up.has(d.id) && d.id!==BIN;
+  const all = S.objects.filter(ok);
+  const tied = all.filter(d => (c.rel||[]).includes(d.id) || (d.rel||[]).includes(c.id));
+  const piped = pipesOf(c).map(pipeTo).filter(ok);
+  const inside = all.filter(d => d.parent===cid);
+  const beside = all.filter(d => (d.parent||ROOT)===(c.parent||ROOT));
+  const desk = all.filter(d => (d.parent||ROOT)===ROOT);
+  const seen = new Set();
+  return [...tied, ...piped, ...inside, ...beside, ...desk].filter(d => !seen.has(d.id) && seen.add(d.id)).slice(0, 16);
+}
+function showTray(g){
+  let el = $('#tray');
+  if(!el){ el = document.createElement('div'); el.id = 'tray'; $('#frame').appendChild(el); }
+  const ts = trayTargets(g.cid);
+  const mini = d => Object.assign({}, d, {id:d.id+'~tray', desk:{x:1,y:1,w:2,h:2}, phone:{x:1,y:1,w:2,h:2}});
+  el.innerHTML = ts.length
+    ? ts.map(d => `<span class="trayitem" data-trayto="${d.id}">${sampleTile(mini(d), 58, 58)}<b>${esc(d.title||'Untitled')}</b></span>`).join('')
+    : `<span class="trayempty">No drawers to put it in yet</span>`;
+  const rail = $('.deskrail'), fr = $('#frame').getBoundingClientRect();
+  el.style.bottom = rail ? `${Math.max(8, fr.bottom - rail.getBoundingClientRect().top + 8)}px` : '96px';
+  el.className = 'tray on';
+}
+function hideTray(){ const el = $('#tray'); if(el) el.remove();
+  document.querySelectorAll('.trayghost').forEach(x=>x.remove());
+  document.querySelectorAll('.traysource').forEach(x=>x.classList.remove('traysource')); }
+function trayFile(id, to){
+  const o = byId(id), d = byId(to);
+  if(!o || !d || !canFile(id, to)) return false;
+  pushSets('Filed', [[id,'parent',o.parent], [id,'desk',o.desk], [id,'phone',o.phone]]);
+  o.parent = d.id; keepSize(o);
+  save(); render();
+  toast(`Into ${d.title||'the drawer'}`, true);
+  return true;
+}
 function rowAction(band){
   let el=$('#rowact');
   if(!el){ el=document.createElement('i'); el.id='rowact'; $('#frame').appendChild(el); }
@@ -1109,22 +1156,25 @@ function onDown(e){
      band that never moved leaves the click alone — and a field being typed
      in keeps the finger. */
   const bandEl = e.target.closest('[data-listfor] .listband');
-  if(bandEl && !e.target.closest('[data-check],input,textarea,[contenteditable="true"]')){
+  if(bandEl && !e.target.closest('[data-check],[data-rekind],input,textarea,[contenteditable="true"]')){
     const list=bandEl.closest('[data-listfor]');
     const cid=list.dataset.listfor;
     const id=bandEl.dataset.row||bandEl.dataset.drawer;
     G={type:'band', el:bandEl, list, cid, id,
        // a sorted list arranges itself, so there is nothing to reorder on one
        canOrder: !sortOf(container(cid)),
+       // …and an inbox's line can be carried to a drawer (decision 296)
+       tray: trayFor(cid),
        sx:e.clientX, sy:e.clientY, mode:null, armed:false, at:0};
     const g0=G;
     holdTimer=setTimeout(()=>{
       holdTimer=null;
       if(G!==g0) return;
       dropSelection(); refind(G);
-      if(g0.canOrder){
+      if(g0.canOrder || g0.tray){
         G.armed=true;
         liftBand(G);
+        if(g0.tray) showTray(G);
         if(navigator.vibrate) navigator.vibrate(6);
       }
       // …and keep holding, without moving, and it is the menu — the same two
@@ -1138,6 +1188,8 @@ function onDown(e){
         if(navigator.vibrate) navigator.vibrate([4,40,10]);
         G.menu=true; G.armed=false;
         G.el.classList.remove('lifted');
+        // the tray stays up under the ring: moving on closes the ring and
+        // carries to it, letting go puts both away (decision 296)
         gestureFlags.suppressClick=true;
         openCtx(e.clientX, e.clientY, g0.id);   // the ring opens round the finger (204)
       }, MENU_AFTER);
@@ -1476,19 +1528,54 @@ function onMove(e){
     if(G.menu){
       if(Math.abs(dx)<WOBBLE && Math.abs(dy)<WOBBLE) return;
       G.menu=false; closeCtx();
-      if(G.canOrder){ G.armed=true; liftBand(G); }
+      if(G.canOrder || G.tray){ G.armed=true; liftBand(G); if(G.tray && !$('#tray')) showTray(G); }
     }
     if(!G.armed) return;             // still waiting out the hold
     if(!G.mode){
-      if(Math.abs(dy)<5) return;
+      if(Math.abs(dy)<5 && !(G.tray && Math.abs(dx)>=5)) return;
       G.mode='band'; G.el.classList.add('dragging');
       G.list.classList.add('reordering');
+    }
+    /* Carried toward the tray, the line goes both ways with the finger, and
+       over a drawer in it the gap closes: that is a filing, not a reorder. */
+    if(G.tray){
+      /* A floating copy follows the finger, outside the list, which clips
+         anything carried past its edge; the line itself stays where it was,
+         faded, until it is let go. */
+      if(!G.ghost){
+        const o = byId(G.id);
+        G.ghost = document.createElement('div'); G.ghost.className = 'trayghost';
+        G.ghost.textContent = (o && o.title) || 'Untitled';
+        $('#frame').appendChild(G.ghost); G.el.classList.add('traysource');
+      }
+      const fr = $('#frame').getBoundingClientRect(), tr = $('#tray'), tb = tr && tr.getBoundingClientRect();
+      const inTray = tb && e.clientY >= tb.top && e.clientY <= tb.bottom;
+      const half = G.ghost.offsetWidth/2 + 8;   // centred on the finger, never off the screen
+      G.ghost.style.left = Math.min(Math.max(e.clientX - fr.left, half), fr.width - half)+'px';
+      // over the tray it rides just above it, so the drawer aimed at shows
+      G.ghost.style.top = ((inTray ? tb.top + 16 : e.clientY) - fr.top)+'px';
+      G.el.style.transform='';
+      /* Near either end of the tray it scrolls itself, because the finger
+         carrying the line cannot also scroll it. */
+      if(tr){ const r = tb;
+        if(inTray){
+          if(e.clientX < r.left + 44) tr.scrollLeft -= 14;
+          else if(e.clientX > r.right - 44) tr.scrollLeft += 14; } }
+      const hit = document.elementFromPoint(e.clientX, e.clientY);
+      const over = hit && hit.closest('#tray [data-trayto]');
+      document.querySelectorAll('#tray .trayitem.aim').forEach(x=>{ if(x!==over) x.classList.remove('aim'); });
+      G.trayTo = over ? over.dataset.trayto : null;
+      if(over){ over.classList.add('aim');
+        G.to=G.from; G.sibs.forEach(el=>{ if(el!==G.el) el.style.transform=''; });
+        return; }
+      if(!G.canOrder) return;
     }
     /* The band goes with the finger, and it is the one thing here that must
        not ease: a tile that lags your thumb reads as a tile you have not
        picked up. The others do ease, and they are the whole gesture — a gap
        opening where this one will land. */
-    G.el.style.transform=`translateY(${dy}px)`;
+    if(G.tray){ if(G.ghost) G.ghost.style.opacity = '1'; }
+    else G.el.style.transform = `translateY(${dy}px)`;
     const to=clamp(G.from + Math.round(dy/G.step), 0, G.sibs.length-1);
     if(to===G.to) return;
     G.to=to;
@@ -1872,6 +1959,12 @@ function onUp(e){
 
   if(g.type==='band'){
     g.el.classList.remove('lifted','dragging');
+    hideTray();
+    // carried onto a drawer in the tray: filed there (decision 296)
+    if(g.mode==='band' && g.trayTo){
+      clearBandShift(g); gestureFlags.suppressClick=true;
+      trayFile(g.id, g.trayTo); return;
+    }
     if(g.mode==='rowswipe'){
       const act=g.act, id=g.id;
       clearRow(g);
@@ -1886,6 +1979,7 @@ function onUp(e){
     }
     if(g.mode!=='band'){ clearBandShift(g); return; }  // a tap; the click opens it
     gestureFlags.suppressClick=true;     // the drag must not also open it
+    if(!g.canOrder){ clearBandShift(g); render(); return; }   // carried, but not to a drawer
     /* Put it down in the gap. The order is read off the two indexes rather
        than off the DOM, because the DOM was never reordered — which is what
        let the bands slide instead of jump. `ord` is what childrenOf() falls
@@ -2483,7 +2577,7 @@ function onCancel(){
   cancelHold();
   camEditOff();
   if(G && G.type==='fall') gravityDrop();
-  if(G && G.type==='band'){ clearRow(G); clearBandShift(G); }
+  if(G && G.type==='band'){ clearRow(G); clearBandShift(G); hideTray(); }
   /* A cancelled page falls back against the spine. Without this, iOS taking
      the pointer away mid-turn would leave the spread stranded wherever the
      finger was, with no `pointerup` ever coming to put it back. */

@@ -324,6 +324,16 @@ and workflow a **bench**. Decision 295 (v2.90): only Brain Dump, Prioritizer,
 Short Film and Feature Film are offered; the rest are shelved, not deleted.
 Older entries in this file say "flow"; read it as bench.
 
+**Then, the Brain Dump honed:** *"central text entry place to collect
+everything, very easy to get to, listed out view of each item added,
+scrollable to see what you've added so far, guesses what kind of item it is,
+swipe left to delete, right to schedule, tap and hold to add/move to
+something, quick display of drawers come up to drag into."* And: **ask before
+making a new object**, he will approve it. Decision 296 (v2.92) used no new
+object: the bench is itself an inbox in line view with a list front on the
+desk, each line labelled with its guessed kind, and a held line raises a
+tray of drawers to drag it into.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

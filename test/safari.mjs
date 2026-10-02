@@ -233,30 +233,94 @@ out.theBinHeapsUp = await page.evaluate(async () => {
 });
 await shot('07-bin-open');
 
-// ---- the inbox and its copper pipes (decision 286): the Brain Dump flow put
-// down, four lines typed into its real input, each down its own pipe, and
-// a pipe's brass tag laid out beside its mouth rather than under it.
-const bdInbox = await page.evaluate(async () => {
-  const P = await import('./js/plans.js'), S = BUREAU.state;
-  const d = BUREAU.create('wf_braindump', {parent:'root', title:'Brain dump', noSeed:true}); delete d.setup;
-  P.stampPlan(P.plans().find(x => x.stock === 'braindump').id, d.id);
-  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await new Promise(r => setTimeout(r, 400));
-  return document.querySelector('[data-contadd]')?.dataset.contadd;
+// ---- the inbox and its copper pipes (decision 286): an inbox with a pipe
+// tied to it, a task typed into its real input going down the pipe, and a
+// pipe's brass tag laid out beside its mouth rather than under it.
+const pipeAt = await page.evaluate(async () => {
+  const S = BUREAU.state;
+  const room = BUREAU.create('drawer', {parent:'root', title:'Pipework'}); delete room.setup;
+  const ib = BUREAU.create('inbox', {parent:room.id, title:'Inbox'});
+  const doo = BUREAU.create('drawer', {parent:room.id, title:'Do'}); delete doo.setup;
+  const pp = BUREAU.create('pipe', {parent:room.id}); pp.takes = 'task'; pp.from = ib.id; pp.into = doo.id;
+  S.view = 'drawer'; S.drawerId = room.id; BUREAU.render(); await new Promise(r => setTimeout(r, 300));
+  ib.phone = {x:1, y:1, w:4, h:5}; doo.phone = {x:5, y:3, w:2, h:2}; pp.phone = {x:5, y:1, w:3, h:1};
+  BUREAU.render(); await new Promise(r => setTimeout(r, 300));
+  return ib.id;
 });
-for (const t of ['Renew the passport', 'What if the bus stop had a library?', 'Is the lease up in March?', 'The light at six was green and gold']) {
-  const f = page.locator(`[data-contadd="${bdInbox}"]`); await f.click(); await f.fill(t); await f.press('Enter'); await nap(250);
-}
-out.theInboxSendsEachDownItsPipe = await page.evaluate(() => {
-  const S = BUREAU.state, at = t => { const o = S.objects.find(x => x.title === t); return o && (S.objects.find(x => x.id === o.parent) || {}).title; };
-  return at('Renew the passport') === 'Do' && at('What if the bus stop had a library?') === 'Someday'
-    && at('Is the lease up in March?') === 'Questions' && at('The light at six was green and gold') === 'Keep';
+{ const f = page.locator(`[data-contadd="${pipeAt}"]`).first(); await f.click(); await f.fill('Renew the passport'); await f.press('Enter'); await nap(250); }
+out.theInboxSendsATaskDownItsPipe = await page.evaluate(() => {
+  const S = BUREAU.state, o = S.objects.find(x => x.title === 'Renew the passport');
+  return !!o && (S.objects.find(x => x.id === o.parent) || {}).title === 'Do';
 });
 out.aPipeTagSitsBesideItsMouth = await page.evaluate(() => {
   const t = document.querySelector('.pipetile.pipewide'); if (!t) return false;
   const m = t.querySelector('.pipemouth').getBoundingClientRect(), g = t.querySelector('.pipetag').getBoundingClientRect();
   return g.left >= m.right - 1 && g.height > m.height * 0.5;
 });
-await shot('08-brain-dump');
+await shot('08-pipes');
+
+// ---- the Brain Dump (decision 296), Timothy's process end to end: a line
+// written into its front on the desk, each guessed and labelled, a label
+// tapped for another kind, the bench opened in line view with its entry line
+// on top, a swipe left deleting, a swipe right asking for a date, and a held
+// line carried onto a drawer in the tray that rises.
+const bd = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null; S.look.locked = false;
+  const b = BUREAU.create('wf_braindump', {parent:'root', title:'Brain Dump'}); delete b.setup;
+  const k = BUREAU.create('drawer', {parent:'root', title:'Errands'}); delete k.setup;
+  BUREAU.render(); await nap(300);
+  document.querySelector(`[data-drawer="${b.id}"]`).scrollIntoView({block: 'center'}); await nap(200);
+  return {b: b.id, k: k.id};
+});
+for (const t of ['Buy a new kettle', 'Call the dentist', 'What if the shed were a studio?', 'Is the lease up in March?', 'The light at six was gold']) {
+  const f = page.locator(`[data-contadd="${bd.b}"]`).first(); await f.click(); await f.fill(t); await f.press('Enter'); await nap(200);
+}
+await shot('08b-brain-dump-front');
+out.theBrainDumpTakesEveryLine = await page.evaluate(id => {
+  const kids = BUREAU.state.objects.filter(o => o.parent === id);
+  const kind = t => (kids.find(o => o.title.startsWith(t)) || {}).kind;
+  return kids.length === 5 && kind('Buy') === 'task' && kind('Is the lease') === 'question' && kind('What if') === 'idea';
+}, bd.b);
+await page.evaluate(id => { const S = BUREAU.state; S.view = 'drawer'; S.drawerId = id; BUREAU.render(); }, bd.b);
+await nap(500);
+out.itOpensAsAListWithItsLineOnTop = await page.evaluate(id => {
+  const add = document.querySelector(`#app .quickadd [data-contadd="${id}"]`), rows = document.querySelectorAll('[data-listfor] .listband');
+  return !!add && rows.length === 5 && rows[0].getBoundingClientRect().top > add.getBoundingClientRect().bottom
+    && document.querySelectorAll('[data-listfor] .kindchip').length === 5;
+}, bd.b);
+await shot('08c-brain-dump-open');
+// a tap on a label takes the next kind
+const chipAt = await page.evaluate(() => { const r = [...document.querySelectorAll('[data-listfor] .listband')]
+  .find(e => /light at six/.test(e.textContent)).querySelector('.kindchip').getBoundingClientRect();
+  return {x: r.x + r.width / 2, y: r.y + r.height / 2}; });
+await page.mouse.click(chipAt.x, chipAt.y); await nap(300);
+out.aLabelTapChangesTheGuess = await page.evaluate(() => BUREAU.state.objects.find(o => o.title === 'The light at six was gold').kind !== 'thought');
+// a swipe left deletes, a swipe right asks when
+const rowAt = t => page.evaluate(t => { const r = [...document.querySelectorAll('[data-listfor] .listband')]
+  .find(e => e.textContent.includes(t)).getBoundingClientRect(); return {x: r.x + r.width * 0.5, y: r.y + r.height / 2}; }, t);
+const swipe = async (p, by) => { await page.mouse.move(p.x, p.y); await page.mouse.down();
+  for (let i = 1; i <= 10; i++) { await page.mouse.move(p.x + by * i / 10, p.y); await nap(16); }
+  await page.mouse.up(); await nap(400); };
+await swipe(await rowAt('Call the dentist'), -170);
+out.aSwipeLeftDeletes = await page.evaluate(id => !BUREAU.state.objects.some(o => o.parent === id && o.title === 'Call the dentist'), bd.b);
+await swipe(await rowAt('Is the lease'), 170);
+out.aSwipeRightAsksWhen = await page.evaluate(() => !!document.querySelector('#panel'));
+await page.evaluate(() => BUREAU.closePanel()); await nap(300);
+// held, the tray rises; carried onto Errands, it is filed there
+const held = await rowAt('Buy a new kettle');
+await page.mouse.move(held.x, held.y); await page.mouse.down(); await nap(450);
+const trayUp = await page.evaluate(k => !!document.querySelector(`#tray [data-trayto="${k}"]`), bd.k);
+await page.evaluate(k => document.querySelector(`#tray [data-trayto="${k}"]`)?.scrollIntoView({inline: 'center'}), bd.k);
+const into = await page.evaluate(k => { const r = document.querySelector(`#tray [data-trayto="${k}"]`)?.getBoundingClientRect();
+  return r ? {x: r.x + r.width / 2, y: r.y + r.height / 2} : null; }, bd.k);
+if (into) { await page.mouse.move(into.x, into.y, {steps: 12}); await nap(400); await shot('08d-brain-dump-tray'); }
+await page.mouse.up(); await nap(400);
+out.aHeldLineGoesIntoADrawer = trayUp && await page.evaluate(k => {
+  const o = BUREAU.state.objects.find(x => x.title === 'Buy a new kettle');
+  return !!o && o.parent === k && !document.querySelector('#tray') && /Errands/.test(document.querySelector('.toast')?.textContent || '');
+}, bd.k);
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 
 // ---- three kinds of board (decision 288): the desk is free, a new drawer
 // is one tile of 8×14, holding the wood beside it lays a second tile, a

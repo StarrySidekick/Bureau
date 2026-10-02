@@ -1055,24 +1055,12 @@ const SPECS = [
      dealt with as you go down the lists. */
   {key:'braindump', rail:{left:['glass','stamp','coin'], right:['spool','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump',
    env:{style:'aero', flow:false, gravity:false, tuck:false}, stamp:{w:'Filed', ink:'blue'},
-   makes:{only:['notepad','task','idea','question','thought','note','pipe'], sizes:[]}, on:[
-    /* **An inbox and its pipes** (decision 286): write anything into the
-       inbox; a task goes down the first pipe to Do, an idea to Someday, a
-       question to Questions, and anything else to Keep. What is waiting in
-       the inbox goes the same way when it is told to Sort. */
-    LABEL('Brain dump', [1,1,8,1], 5),
-    {k:'inbox', t:'Inbox', ref:'bdin', b:[1,2,5,5], set:{c:5}},
-    PIPE('task',     '@bdin', '@bddo',   [6,2,3,1]),
-    PIPE('idea',     '@bdin', '@bdsome', [6,3,3,1]),
-    PIPE('question', '@bdin', '@bdask',  [6,4,3,1]),
-    PIPE('',         '@bdin', '@bdkeep', [6,5,3,1]),
-    // every board has a way out (decision 194): the notes app it all came from
-    LINK('Apple Notes', 'https://www.icloud.com/notes', [6,6,3,1], 9),
-    LIST('Do', 'bddo', [1,7,4,3], 6),
-    LIST('Someday', 'bdsome', [5,7,4,3], 12),
-    LIST('Questions', 'bdask', [1,10,4,3], 9),
-    LIST('Keep', 'bdkeep', [5,10,4,3], 11)
-  ]},
+   makes:{only:['notepad','task','idea','question','thought','note','pipe'], sizes:[]},
+   /* **Nothing laid out in it** (decision 296): the Brain Dump is itself the
+      inbox, in line view, so what is inside it is only what you wrote. The
+      bench is its room, its front and its stamp. Its way out is the tray of
+      drawers a held line can be dragged into. */
+   inbox:false, raw:true, on:[]},
 
   /* **The Prioritizer bench** (decision 293): a matrix of four zones, how
      much it matters across the top and how hard it is down the side. Put a

@@ -11,7 +11,7 @@ import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, to
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
-  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal, unstamp } from './mutations.js';
+  holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal, unstamp, rekind } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
@@ -1935,7 +1935,10 @@ function wire(){
          board goes inside a container of the kind it was made for, placed
          where you pressed. Inside a drawer it is laid out where you are
          standing, as before. */
-      if(isDesk(where) && planById(pp.dataset.planput)){
+      /* …and so does a bench with nothing laid out in it, which is its type
+         and its room alone (decision 296): there is nothing to stamp. */
+      const pl0 = planById(pp.dataset.planput);
+      if(pl0 && (isDesk(where) || !(pl0.objects||[]).length)){
         pending.cell = cell;
         makeFromPlan(pp.dataset.planput, null, where);
         return; }
@@ -2201,6 +2204,9 @@ function wire(){
     // a plain click anywhere clears the selection before doing anything else
     if(S.sel.length && !t.closest('#ctx')) S.sel=[];
 
+    // the kind an inbox line was taken for, tapped for the next (decision 296)
+    const rk=t.closest('[data-rekind]');
+    if(rk){ rekind(rk.dataset.rekind); render(); return; }
     /* A line on a list front opens what it names (decision 239). Asked before
        the tile it sits in, which would otherwise open the list itself. */
     const ln=t.closest('.grid .lline[data-open]');

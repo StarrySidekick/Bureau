@@ -1583,6 +1583,19 @@ function dealTop(id){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
+/* ---- what an inbox line is taken for — decision 296 ---------------------
+   The kinds a written line is guessed as, in the order a tap on its label
+   walks them: the next one, round to the first. Only the ones there are. */
+const GUESSES = ['task','idea','question','thought','note','quote','problem'];
+function rekind(id){
+  const o = byId(id); if(!o) return null;
+  const list = GUESSES.filter(k=>KINDS[k] && !isCut(k) && !isShelved(k));
+  const next = list[(list.indexOf(o.kind)+1) % list.length];
+  if(!next || !becomeKind(id, next)) return null;
+  save(); toast(`Now a ${K(next).nm.toLowerCase()}`, true);
+  return next;
+}
+
 /* ---- put down in a zone — decision 293 -----------------------------------
    After a drop, each thing moved is given what the zone under its middle
    says, the smallest zone winning where two overlap. The writes ride the
@@ -1649,7 +1662,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

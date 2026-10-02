@@ -931,6 +931,16 @@ WORKFLOWS.forEach(([key, nm, c, ic, ds])=>{
   BUILTIN_KINDS['wf_'+key] = {nm, ic, c, ds, face:'front', attrs:['container'], layout:'grid',
     plan:'pl_stock_'+key, size:[2,2], phoneSize:[2,2], body:''};
 });
+/* **The Brain Dump bench is itself the inbox** (decision 296). Timothy's
+   process: one place to write everything, easy to reach, every line listed
+   and scrollable, each one guessed at, swiped left to delete and right to
+   schedule, held to drag into a drawer. So the bench is not a board with an
+   inbox on it: it *is* an inbox (`spawn`, `smart`), opened in line view, with
+   its entry line at the top, and on the board it sits on it wears a list front
+   with an entry line of its own, so a thought can go in without opening it.
+   Its bench still brings its room and its tools (`plan`). */
+Object.assign(BUILTIN_KINDS.wf_braindump, {face:'list', layout:'list', attrs:['container','spawn'],
+  spawnBy:'type', genKind:'smart', addbox:'show', clhead:'1', size:[4,6], phoneSize:[8,6]});
 /* ---- the major categories ----------------------------------------------
    Forty types is an inventory, not a choice. These are the twenty that answer
    "what am I putting down" nearly every time, and the picker leads with them;

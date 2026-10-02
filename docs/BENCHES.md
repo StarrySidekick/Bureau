@@ -14,6 +14,7 @@ get there. Where they disagree about order, this file is newer.
 
 **Built so far:** the environment and zones (decision 293), the rubber stamp
 (292), and three benches: **Brain Dump**, **Prioritizer**, **Film** (293).
+The Brain Dump was rebuilt as an inbox you write into, with the tray (296).
 
 ---
 
@@ -98,11 +99,14 @@ zone by itself**, because being in one is a decision.
 
 ### Built
 
-**1. Brain Dump** (`wf_braindump`, one per desk). The inbox and its four
-copper pipes (decision 286), in **Aeros** (clear skies), nothing falling,
-the bars showing. The selector makes only what a head empties into (notepad,
-task, idea, question, thought, note, pipe). Front: glass, the stamp (says
-*Filed*, blue), the coin; the spool to lay a new pipe, the gear.
+**1. Brain Dump** (`wf_braindump`, one per desk). Since decision 296 the
+bench **is the inbox**: on the desk a list front with its own entry line, so
+a thought goes in without opening it; opened, line view with the entry line
+on top and every line listed. Each line is guessed and says its guess on a
+label (tap for the next kind); swipe left deletes, right asks when; hold it
+and a tray of drawers rises above the front to carry it into. In **Aeros**
+(clear skies), nothing falling, the bars showing. Front: glass, the stamp
+(says *Filed*, blue), the coin; the spool, the gear.
 
 **2. Prioritizer** (`wf_prioritizer`). A matrix of four zones, importance
 across and effort down: **Do now** (priority 5, easy), **Plan it** (4, hard),
@@ -155,6 +159,8 @@ bench for a pipeline, and one feature answered both.
 | **Room** (`env`, `setting()`) | x | x | x | x | x | x | x | **done**, 293 |
 | **Stamp** | x | x | x | x | | x | x | **done**, 292 |
 | **Zones** (matrix, pipeline) | | x | x | x | | | | **done**, 293 |
+| **Tray** (hold a line, drag it to a drawer) | x | x | | x | | | x | **done** in inboxes, 296 |
+| **Guess label** (tap to change the kind) | x | | | | | | x | **done** in inboxes, 296 |
 | **Lens** (show only what matches) | x | x | x | x | x | | x | to scope |
 | **Wiki links and backlinks** | | | x | x | x | | | to scope |
 | **Tear out** | x | | x | x | | | x | to scope |

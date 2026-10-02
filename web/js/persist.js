@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.91';
+const APP_VERSION = '2.92';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 58;
+const DATA_V = 59;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1425,6 +1425,23 @@ const MIGRATIONS = [
     d.objects = (d.objects||[]).filter(o=>!(o && o.id==='k_generator' && (o.tags||[]).includes('sampler')));
     d.objects.forEach(turn);
     (d.plans||[]).forEach(p=>{ (p && p.objects || []).forEach(turn); });
+  }},
+  /* ---- the Brain Dump is itself the inbox (decision 296) -----------------
+     Its stored bench is replaced with the new, empty one. A Brain Dump
+     already on a desk was laid out as a board holding an inbox, pipes and
+     lists; it is pinned to that shape (a front, a grid, a plain container) so
+     nothing in it moves or starts routing. A new one is the new kind. */
+  {v:59, up(d){
+    const f = stockPlans().find(p=>p.stock==='braindump');
+    (d.plans||[]).forEach(p=>{ if(!p || p.stock!=='braindump' || !f) return;
+      ['objects','of','sec','boards','start','dims','makes','life','rail','env','stamp'].forEach(k=>{
+        if(f[k]!==undefined) p[k] = JSON.parse(JSON.stringify(f[k])); else delete p[k]; });
+    });
+    (d.objects||[]).forEach(o=>{ if(!o || o.kind!=='wf_braindump') return;
+      if(o.face==null) o.face = 'front';
+      if(o.layout==null) o.layout = 'grid';
+      if(!o.attrs) o.attrs = ['container'];
+    });
   }},
 ];
 function migrate(d){

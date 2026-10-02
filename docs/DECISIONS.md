@@ -12473,3 +12473,83 @@ museum), checks the shelving itself and unshelves for the aspects test; and
 the coin test counts a compound as one thing, which it is (a toss that made
 one had been failing it at random since compounds joined the coin).
 `BUREAU.isShelved` is exposed for the tests.
+
+## 296. The Brain Dump is the inbox, a list you write into (v2.92, 2026-10-02)
+
+Timothy, on what the Brain Dump bench should be: *"central text entry place
+to collect everything, very easy to get to, listed out view of each item
+added, scrollable to see what you've added so far, guesses what kind of item
+it is, swipe left to delete, right to schedule, tap and hold to add/move to
+something, quick display of drawers come up to drag into."* And: ask before
+making a new object. Nothing here is a new object; every piece is an existing
+one given a job.
+
+**The bench is the inbox.** Decision 293's Brain Dump was a board holding an
+inbox, four copper pipes and four lists, which made the dump a sorting
+machine to look at rather than a place to write. Now `wf_braindump` is itself
+an inbox (`attrs:['container','spawn']`, `genKind:'smart'`, so `isInbox()` is
+true and every line is guessed by `guessKind()`), it opens in **line view**
+(`layout:'list'`) with its entry line on top, and on the board it sits on it
+wears a **list front** with an add box of its own (`face:'list'`,
+`addbox:'show'`), so a thought goes in from the desk without opening it. That
+is the "very easy to get to": it is on the desk, with a field. Its stock
+bench lays out nothing (`on:[]`, `inbox:false`, `raw:true`) and still brings
+the room (Aeros), the stamp and the front. A bench with nothing in it is made
+whole by `makeFromPlan()` wherever it is put down, not only on the desk
+(wire.js, `planput`), because there is nothing to stamp onto a board.
+
+| What he asked for | What answers it |
+| --- | --- |
+| one place to write | the inbox's entry line, inside and on its front |
+| easy to get to | a list front with an add box, on the desk |
+| a scrollable list | line view: each line the 8×1 strip it would be on a grid |
+| guesses the kind | `guessKind()`, and a **label on each line** saying the guess |
+| swipe left, right | the list's own gestures (decision 168): delete, and *Dates…* |
+| hold to move it | **the tray** of drawers rising from the front |
+
+**The label.** In an inbox every line ends in its kind's name
+(`.kindchip`, drawn by `listTile()` only when `isInbox()` of its container).
+A guess should be visible and cheap to overrule, so a tap on the label walks
+it to the next likely kind (`rekind()` in mutations.js: task, idea, question,
+thought, note, quote, problem, round again, skipping any cut or shelved),
+through `becomeKind()` with an Undo on its toast. A band's press ignores the
+label, so tapping it is never the start of a swipe or a hold.
+
+**The tray.** Holding a line in an inbox (the band's 300ms hold) lifts it and
+raises **a strip of drawers** above the drawer front (`#tray`, `showTray()`
+in gestures.js), each drawn as its own miniature through `sampleTile()`.
+Carrying the line onto one files it there (`trayFile()`: one `pushSets`, an
+Undo on the toast, `keepSize()` so it is placed fresh). Which drawers, in
+order (`trayTargets()`): ones tied to the inbox with string, the drawers its
+pipes lead to, drawers inside it, drawers beside it, then the desk's; never a
+sorting drawer, the bin, anything thrown away, or the inbox and what holds
+it; sixteen at most. Built so it is not a second way of doing what a drop
+does:
+
+- **A floating label follows the finger** (`.trayghost`), because the list
+  scroller clips a band carried past its edge. The line itself stays where it
+  was, faded (`.traysource`, `#frame`-prefixed to beat the band's own
+  opacity). The label is clamped to the screen and, over the tray, rides
+  just above it so the drawer aimed at shows.
+- **The tray scrolls itself** when the finger is near either end, since the
+  finger carrying the line cannot also scroll it.
+- **Under Manual the same hold still reorders**; over the tray the gap
+  closes, because that is a filing, not a reorder. Under any other sort it
+  only files.
+- **The longer hold's ring opens over the tray rather than replacing it.**
+  Hiding the tray for the ring and rebuilding it when the finger moved on
+  made it flicker out and fade back in (WebKit showed it as a tray that was
+  not there at all in the screenshot). Letting go puts both away.
+
+**Old Brain Dumps keep their shape.** Migration 59 replaces the stored stock
+bench with the new empty one, and pins any `wf_braindump` already on a desk to
+what it was (`face:'front'`, `layout:'grid'`, `attrs:['container']`), so its
+inbox, pipes and lists neither move nor start routing. A new one, from the
+Benches door or the picker, is the new kind. The inbox-and-pipes machinery
+(decision 286) is unchanged and still a thing anyone can build; the Brain
+Dump just is not that any more.
+
+Tested in WebKit first (`test/safari.mjs`: every line taken, opens as a list
+with its line on top, a label tap changes the guess, swipe left deletes,
+swipe right asks when, a held line goes into a drawer; shots 08b–08d) and the
+pipework test kept, now on a board of its own.
