@@ -452,29 +452,83 @@ const benchAt = await page.evaluate(async () => {
 out.aSettingInABenchStaysInIt = benchAt.inside.env === '{"flow":"rigid"}' && benchAt.inside.rigid
   && benchAt.inside.desk === '' && benchAt.outside === false;
 out.benchAt = JSON.stringify(benchAt);
+// a zone, on a board of its own: a task carried into it takes its priority
 const pz = await page.evaluate(async () => {
   const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
-  const d = BUREAU.create('wf_prioritizer', {parent:'root', title:'This week'}); delete d.setup;
+  const d = BUREAU.create('drawer', {parent:'root', title:'Matrix'}); delete d.setup;
+  const z = BUREAU.create('zone', {parent:d.id, title:'Do now', writes:{prio:5, diff:2},
+    desk:{x:1, y:1, w:4, h:4}, phone:{x:1, y:1, w:4, h:4}});
   S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await nap(400);
-  const z = S.objects.find(o => o.parent === d.id && o.title === 'Do now');
   const t = BUREAU.create('task', {parent:d.id, title:'Send the invoice'}); delete t.setup;
   BUREAU.render(); await nap(300);
   // a new thing arrives outside every zone: being in one is a decision
-  const z2 = S.objects.filter(o => o.parent === d.id && o.kind === 'zone');
-  const inZone = z2.some(q => t.phone.y >= q.phone.y && t.phone.y < q.phone.y + q.phone.h
-    && t.phone.x < q.phone.x + q.phone.w && t.phone.x + t.phone.w > q.phone.x);
+  const inZone = t.phone.y >= z.phone.y && t.phone.y < z.phone.y + z.phone.h
+    && t.phone.x < z.phone.x + z.phone.w && t.phone.x + t.phone.w > z.phone.x;
   const el = id => document.querySelector(`#drawergrid [data-row="${id}"]`);
   el(z.id).scrollIntoView({block: 'start'}); await nap(300);
   const a = el(t.id).getBoundingClientRect(), b = el(z.id).getBoundingClientRect();
-  return { d: d.id, t: t.id, inZone, style: document.documentElement.dataset.style,
+  return { d: d.id, t: t.id, inZone,
     from: {x: a.x + a.width / 2, y: a.y + a.height / 2}, to: {x: b.x + b.width / 2, y: b.y + b.height / 2 + 20} };
 });
 await page.mouse.move(pz.from.x, pz.from.y); await page.mouse.down(); await nap(400);
 await page.mouse.move(pz.to.x, pz.to.y, {steps: 10}); await nap(100); await page.mouse.up(); await nap(400);
-await shot('14-prioritizer');
+await shot('14-zone');
 out.aNewThingArrivesOutsideTheZones = !pz.inZone;
-out.aZoneGivesWhatItSays = pz.style === 'golf97' && await page.evaluate(id => {
+out.aZoneGivesWhatItSays = await page.evaluate(id => {
   const o = BUREAU.state.objects.find(x => x.id === id); return o.prio === 5 && o.diff === 2; }, pz.t);
+
+// ---- the Prioritizer (decision 299): priorities written on its line go into
+// the deck as cards; pressed, the deck opens full screen and is ranked a swipe
+// at a time; it ends on the order, and the deck's top card is the first.
+const WANT = ['Finish the film', 'Call the landlord', 'Learn the chords', 'Fix the bike', 'Sort the garage'];
+const pr = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null;
+  const d = BUREAU.create('wf_prioritizer', {parent:'root', title:'This week'}); delete d.setup;
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await nap(400);
+  const deck = S.objects.find(o => o.parent === d.id && o.kind === 'deck');
+  const pad = S.objects.find(o => o.parent === d.id && o.kind === 'notepad');
+  return { d: d.id, deck: deck && deck.id, pad: pad && pad.id, rank: deck && deck.deckTap, into: pad && pad.into === deck.id,
+    style: document.documentElement.dataset.style };
+});
+out.thePrioritizerIsADeckThatRanks = !!pr.deck && pr.rank === 'rank' && pr.into && pr.style === 'golf97';
+for (const t of ['Sort the garage', 'Learn the chords', 'Finish the film', 'Fix the bike', 'Call the landlord']) {
+  await page.evaluate(id => document.querySelector(`[data-row="${id}"]`)?.scrollIntoView({block: 'center'}), pr.pad);
+  const f = page.locator(`[data-fieldfor="${pr.pad}"]`).first();
+  await f.evaluate(e => e.focus()); await f.fill(t); await f.press('Enter'); await nap(150);
+}
+out.eachLineIsACardInTheDeck = await page.evaluate(id => {
+  const k = BUREAU.state.objects.filter(o => o.parent === id); return k.length === 5 && k.every(o => o.kind === 'card'); }, pr.deck);
+await page.evaluate(id => document.querySelector(`[data-drawer="${id}"],[data-row="${id}"]`)?.scrollIntoView({block: 'center'}), pr.deck);
+await nap(250); await shot('15b-prioritizer');
+const deckAt = await page.evaluate(id => { const r = document.querySelector(`#drawergrid [data-drawer="${id}"],#drawergrid [data-row="${id}"]`).getBoundingClientRect();
+  return {x: r.x + r.width / 2, y: r.y + r.height / 2}; }, pr.deck);
+await page.mouse.click(deckAt.x, deckAt.y); await nap(500);
+out.pressedItOpensFullScreen = await page.evaluate(() => !!document.querySelector('#rank .rkcard'));
+let swipes = 0, shotMid = false;
+for (; swipes < 30; swipes++) {
+  const q = await page.evaluate(() => {
+    const c = document.querySelector('#rank .rkface .dkword b'), p = document.querySelector('#rank .rkpivot .dkword b');
+    const r = document.querySelector('#rank .rkcard')?.getBoundingClientRect();
+    return c && p && r ? {c: c.textContent, p: p.textContent, x: r.x + r.width / 2, y: r.y + r.height / 2} : null; });
+  if (!q) break;
+  const by = WANT.indexOf(q.c) < WANT.indexOf(q.p) ? 170 : -170;
+  await page.mouse.move(q.x, q.y); await page.mouse.down();
+  for (let i = 1; i <= 8; i++) { await page.mouse.move(q.x + by * i / 8, q.y); await nap(16); }
+  if (!shotMid) { await shot('16-rank-swipe'); shotMid = true; }
+  await page.mouse.up(); await nap(420);
+}
+await shot('17-rank-order');
+out.itEndsOnTheOrder = await page.evaluate(n => document.querySelectorAll('#rank .rklist li').length === n, WANT.length);
+out.inFewerSwipesThanEveryPair = swipes > 0 && swipes <= 8;
+out.andTheDeckIsInThatOrder = await page.evaluate(({id, want}) => {
+  const S = BUREAU.state, d = S.objects.find(o => o.id === id);
+  const titles = (d.ranked || []).map(r => S.objects.find(o => o.id === r).title);
+  return titles.join('|') === want.join('|') && S.objects.find(o => o.id === d.top).title === want[0];
+}, {id: pr.deck, want: WANT});
+await page.evaluate(() => document.querySelector('#rank [data-rk="close"]')?.click()); await nap(400);
+out.doneCloses = await page.evaluate(() => !document.querySelector('#rank'));
+
 out.theFilmBenchIsANightRoom = await page.evaluate(async () => {
   const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
   S.view = 'desk'; S.drawerId = null; BUREAU.render();

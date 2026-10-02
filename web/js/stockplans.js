@@ -1068,28 +1068,23 @@ const SPECS = [
       297): the way in from anywhere, and back. */
    quick:true},
 
-  /* **The Prioritizer bench** (decision 293): a matrix of four zones, how
-     much it matters across the top and how hard it is down the side. Put a
-     thing in a quadrant and that is its priority and its effort, written onto
-     it, so every board's "most important first" agrees with the decision. The
-     way in along the bottom is where things to weigh arrive; the deck asks
-     the questions and the hourglass keeps it short. Golf 97, desktop gray.
-     `raw`, so the two empty rows where new things arrive are not filled. */
-  {key:'prioritizer', raw:true, rail:{left:['glass','block','stamp'], right:['lock','gear']}, sec:'work', inbox:'task', nm:'Prioritizer', ic:'grid', c:13, of:'wf_prioritizer',
+  /* **The Prioritizer bench** (decisions 293, 299): a deck of priorities you
+     rank by swiping. Each line written along the bottom goes into the deck as
+     a card; a press on the deck opens it full screen, one card against
+     another, right if it matters more and left if less (rank.js), and ends on
+     the order, most important first. The deck keeps that order, so its top
+     card is your first priority wherever it sits. The zone matrix it was is
+     still a thing any board can be given (decision 293); this bench is the
+     deck. Golf 97, desktop gray. `raw`, so the rows left empty stay empty. */
+  {key:'prioritizer', raw:true, rail:{left:['glass','block','stamp'], right:['lock','gear']}, sec:'work', inbox:false, nm:'Prioritizer', ic:'grid', c:13, of:'wf_prioritizer',
    env:{style:'golf97', flow:false, gravity:false}, stamp:{w:'Done', ink:'green'},
-   makes:{only:['task','note','card','zone'], sizes:[]}, on:[
-    ZONE('Do now', {prio:5, diff:2}, [1,1,4,4], 6),
-    ZONE('Plan it', {prio:4, diff:4}, [5,1,4,4], 9),
-    ZONE('Squeeze in', {prio:2, diff:1}, [1,5,4,4], 12),
-    ZONE('Let it go', {prio:0, diff:5}, [5,5,4,4], 11),
-    // rows 9 and 10 are left empty: what is added arrives here, outside every zone
-    {k:'deck', t:'Ask it', b:[1,11,2,2], set:{c:10}, kids:CARDS([
-      'Will this matter in a year?', 'What happens if it never gets done?', 'Who is waiting on it?',
-      'Is there a smaller version?', 'What would make the rest easier?', 'Is it yours to do?'])},
-    {k:'hourglass', t:'Ten minutes', b:[3,11,1,2], set:{c:12, mins:10}},
-    {k:'note', t:'How it works', b:[4,11,5,1], set:{c:13, body:'Drop a thing in a square: **Do now** matters and is easy, **Plan it** matters and is hard, **Squeeze in** is small, **Let it go** is not worth it.'}},
-    // every board has a way out (decision 194): somewhere to give Do now a time
-    LINK('Give it a time', 'https://calendar.google.com', [4,12,5,1], 9)
+   makes:{only:['card','task','note','deck'], sizes:[]}, on:[
+    {k:'deck', t:'Priorities', ref:'pdeck', b:[1,1,4,6], set:{c:10, deckTap:'rank', faceup:true}},
+    {k:'note', t:'How it works', b:[5,1,4,4], set:{c:13, body:'**Write** a priority on the line below. **Press the deck** and swipe: right if it matters more, left if less. The deck ends up in order, the first on top.'}},
+    {k:'hourglass', t:'Ten minutes', b:[5,5,1,2], set:{c:12, mins:10}},
+    // every board has a way out (decision 194): somewhere to give the first one a time
+    LINK('Give it a time', 'https://calendar.google.com', [5,7,4,1], 9),
+    MAKES('Add a priority…', 'card', [1,13,8,2], 13, '@pdeck')
   ]},
 
   // "Helps me prioritize all my projects and focus."

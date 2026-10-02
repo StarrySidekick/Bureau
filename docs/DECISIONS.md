@@ -12635,3 +12635,60 @@ desk gets the quick add (decision 297) if its front has none.
 And a drawer kept inside an inbox wears **no guess label**: it is not a
 guess, and tapping one would have walked a drawer into a task (`rekind()`
 refuses a container too).
+
+## 299. The Prioritizer is a deck you rank by swiping (v2.95, 2026-10-02)
+
+Timothy: *"every priority in a deck of cards we can swipe left and right to
+rank… a deck of card object that you can tap to pull up full screen style and
+do the swiping, then someplace you can then read the priority list from most
+to least."* The model he pointed at is the **Counterweight** artifact
+(https://claude.ai/artifact/DMWAwoYwLcJ7K1NkjyaZae): life priorities ranked by
+"which matters more?" between two cards, a merge sort replayed from a log of
+answers, tapped rather than swiped, ending on a numbered list with the top
+three set larger. No new object: the **deck** and the **card** (decision
+269) are what this is made of.
+
+**A deck can rank.** `deckTap: 'rank'` is a fourth thing a deck's press does
+(beside shuffle, deal and open), offered on its ring as *Ranks its cards*.
+The press opens **`#rank`** (`rank.js`), full screen on the room's paper,
+beside `#app` the way the setup card is, answering its own pointer and clicks
+the way the painter does.
+
+**One card against one other.** The card being placed is big; the card it is
+weighed against sits above it, smaller, under *Does this matter more than*.
+Swipe right for more, left for less: the card follows the finger and leans,
+*More* or *Less* is stamped on its corner as it goes, and past a third of its
+width (or flicked) it is answered, the state changing and the next card drawn
+at once while a copy flies off over the result (decision 38). Buttons do the
+same for anyone not swiping, the arrow keys on a Mac, and Undo takes back an
+answer. Each answer halves the window the card can still land in: a **binary
+insertion**, about log₂ of the deck in swipes per card (five cards took six
+in the test, against ten for every pair). Insertion rather than
+Counterweight's merge sort because a deck of priorities is alive: a card
+added next week is asked about alone and nothing already settled is asked
+again, where a merge sort starts over.
+
+**The order is the deck's.** `ranked` on the deck is the ids, most important
+first; `rankAt` is the card being placed and its window, so stopping half way
+loses nothing. Each card's `ord` follows the ranking (so the deck read as a
+list is in order) and `top` is the first, so **the deck on the board shows
+your first priority**. The last screen is *Your priorities, in order*:
+numbered, the top three larger, each with a button to rank that one again,
+*Keep ranking* while any wait, and *Start over*.
+
+**The Prioritizer bench is the deck.** Its board is a **Priorities** deck
+that ranks, a note saying how, the ten-minute hourglass, *Give it a time*,
+and along the bottom a notepad, *Add a priority…*, writing into the deck as
+cards (`into`, `genKind: 'card'`). The zone matrix it was is still a feature
+any board can carry (decision 293, and the Film bench's pipeline); the
+WebKit check now tests a zone on a drawer of its own. **Migration 61**
+replaces the stored bench and converts a Prioritizer already on a desk, as 60
+did the Brain Dump: a ranking Priorities deck is put in it, what was on its
+board goes into the deck (priority and effort kept), a drawer someone put
+there stays, the bottom line writes into the deck, the four zones and the
+deck of questions go to the garbage bin, and the note is rewritten.
+
+Tested in WebKit first (`test/safari.mjs`: the bench is a deck that ranks,
+each line written is a card in it, pressed it opens full screen, swiping to
+the end gives the order wanted in at most eight swipes for five cards, the
+deck's `ranked` and `top` agree, Done closes; shots 15b, 16 and 17).

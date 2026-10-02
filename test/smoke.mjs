@@ -11081,6 +11081,18 @@ const CHROME = process.env.BUREAU_CHROME;
       && oby('l1').parent === 'bd' && !oby('l1').phone.x && oby('do').parent === 'bd'
       && ['lb','ib','p1','ln','sm'].every(id => oby(id).parent === '__bin' && oby(id).binFrom)
       && od.objects.some(x => x.kind === 'notepad' && x.frontAll && x.into === 'bd');
+    /* **An old Prioritizer becomes the deck** (decision 299): a Priorities
+       deck that ranks, what was on its board inside it, the line writing into
+       it, the zones and the question deck in the bin, a drawer left alone. */
+    const pd = B.migrated({v:60, objects:[
+      ob('pr','wf_prioritizer','root'), ob('z1','zone','pr'), ob('qd','deck','pr',{title:'Ask it'}),
+      ob('t1','task','pr',{title:'Send it', prio:5}), ob('np','notepad','pr',{title:'Add to this…'}),
+      ob('hg','hourglass','pr'), ob('dr','drawer','pr')]});
+    const pby = id => pd.objects.find(x => x.id === id);
+    const pdeck = pd.objects.find(x => x.kind === 'deck' && x.parent === 'pr' && x.deckTap === 'rank');
+    out.anOldPrioritizerBecomesTheDeck = !!pdeck && pby('t1').parent === pdeck.id && pby('t1').prio === 5
+      && pby('np').into === pdeck.id && pby('np').genKind === 'card' && pby('hg').parent === 'pr' && pby('dr').parent === 'pr'
+      && pby('z1').parent === '__bin' && pby('qd').parent === '__bin';
     M.BENCH_READY.length = 0; M.BENCH_READY.push(...ready);
     S.view = 'desk'; S.drawerId = null; B.render(); await nap(200);
     const old = B.migrated({v:46, objects:[{id:'x1', kind:'life', lifeart:'money', parent:'root', title:'Money'}],

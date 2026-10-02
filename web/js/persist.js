@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.94';
+const APP_VERSION = '2.95';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 60;
+const DATA_V = 61;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1478,6 +1478,53 @@ const MIGRATIONS = [
     if(bd && !objs.some(o=>o && o.front && o.frontAll && (o.parent||ROOT)===ROOT))
       objs.push({id:uid('o'), kind:'notepad', title:'', body:'', tags:[], parent:ROOT, done:false,
         into:bd.id, front:'right', frontAt:Date.now(), frontAll:true, desk:null, phone:null});
+  }},
+  /* ---- the Prioritizer is a deck you rank by swiping (decision 299) -------
+     The stored bench is replaced with the new one. A Prioritizer already on a
+     desk is converted the way 60 converted the Brain Dump: a Priorities deck
+     that ranks is put in it, everything somebody put on its board goes into
+     that deck (its priority and effort kept), the line along the bottom
+     writes into the deck as cards, and the old scaffolding (the four zones and
+     the deck of questions) goes to the garbage bin, from where Put Back
+     returns it. The note, the hourglass and the link stay; the note is
+     rewritten to say how it works now. */
+  {v:61, up(d){
+    const f = stockPlans().find(p=>p.stock==='prioritizer');
+    (d.plans||[]).forEach(p=>{ if(!p || p.stock!=='prioritizer' || !f) return;
+      ['objects','of','sec','boards','start','dims','makes','life','rail','env','stamp','quick'].forEach(k=>{
+        if(f[k]!==undefined) p[k] = JSON.parse(JSON.stringify(f[k])); else delete p[k]; });
+    });
+    const objs = d.objects || [];
+    const kidsOf = id => objs.filter(x=>x && x.parent===id);
+    const sized = b => b && b.w ? {w:b.w, h:b.h} : null;
+    const today = D.iso(D.today());
+    const fnote = f && f.objects.find(o=>o.kind==='note' && o.title==='How it works');
+    objs.filter(o=>o && o.kind==='wf_prioritizer' && o.parent!==BIN).forEach(pr=>{
+      const inner = kidsOf(pr.id);
+      if(inner.some(x=>x.kind==='deck' && x.deckTap==='rank')) return;
+      const deck = {id:uid('d'), kind:'deck', parent:pr.id, title:'Priorities', body:'', tags:[], done:false,
+        c:10, deckTap:'rank', faceup:true, desk:{w:4, h:6}, phone:{w:4, h:6}};
+      const scaffold = inner.filter(x=>x.kind==='zone' || (x.kind==='deck' && x.title==='Ask it'));
+      const kept = x => ['hourglass','outlink','notepad'].includes(x.kind) || (x.kind==='note' && x.title==='How it works');
+      inner.forEach(x=>{
+        if(scaffold.includes(x)) return;
+        if(kept(x)){
+          if(x.kind==='notepad'){ x.into = deck.id; x.genKind = 'card'; x.title = 'Add a priority…'; }
+          if(x.kind==='note' && fnote) x.body = fnote.body;
+          return; }
+        // a drawer someone put there stays on the board: a deck holds cards
+        if(KINDS[x.kind] && kindHas(x.kind, 'container')) return;
+        x.parent = deck.id; x.desk = sized(x.desk); x.phone = sized(x.phone); delete x.front;
+      });
+      objs.push(deck);
+      if(!scaffold.length) return;
+      if(!objs.some(x=>x && x.id===BIN))
+        objs.push({id:BIN, kind:'bin', parent:ROOT, title:'Garbage bin', body:'', tags:[], done:false, desk:null, phone:null});
+      scaffold.forEach(x=>{
+        x.binFrom = x.parent; x.binBox = {desk:x.desk||null, phone:x.phone||null}; x.binAt = today;
+        x.parent = BIN; x.desk = sized(x.desk); x.phone = sized(x.phone); delete x.front;
+      });
+    });
   }},
 ];
 function migrate(d){

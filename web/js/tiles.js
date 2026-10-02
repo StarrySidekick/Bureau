@@ -26,6 +26,7 @@ import { objectPanel, schedulePanel } from './panels.js';
 import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ, CAMERA } from './motion.js';
 import { save } from './persist.js';
 import { needsSetup, openSetup } from './setup.js';
+import { openRank } from './rank.js';
 
 /* ============================================================
    7 · rendering — drawers
@@ -782,6 +783,8 @@ function tileTap(id){
         if(c){ render(); reveal(c.id); toast('Dealt', true); }
         return;
       }
+      // …or rank what is in it, full screen, a swipe at a time (decision 299)
+      if(actOf(o)==='deck' && deckTapOf(o)==='rank'){ openRank(id); return; }
       if(actOf(o)==='deck' && deckTapOf(o)==='open'){
         openTile(id, ()=>{ S.view='drawer'; S.drawerId=id; S.kindFilter=null; render(); });
         return;

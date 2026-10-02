@@ -111,13 +111,15 @@ and a tray of drawers rises above the front to carry it into. In **Aeros**
 you to the Brain Dump with the line ready, and a button on the lip back
 (decision 297). An old Brain Dump is converted to this (decision 298).
 
-**2. Prioritizer** (`wf_prioritizer`). A matrix of four zones, importance
-across and effort down: **Do now** (priority 5, easy), **Plan it** (4, hard),
-**Squeeze in** (2, trivial), **Let it go** (0, punishing). Two empty rows
-under it where new things arrive, a deck that asks the questions, a
-ten-minute hourglass, and the way in along the bottom. In **Golf 97**. Front:
-glass, block (sort), the stamp (says *Done*, green). Because the zone writes
-real fields, every board's *Most important first* agrees with the decision.
+**2. Prioritizer** (`wf_prioritizer`). Since decision 299, **a deck of
+priorities you rank by swiping**: write a priority on the line along the
+bottom and it goes into the **Priorities** deck as a card; press the deck and
+it opens full screen, one card against another, right if it matters more and
+left if less, until it ends on *Your priorities, in order*. The deck keeps
+the order, so its top card is your first priority. A note, a ten-minute
+hourglass, *Give it a time*. In **Golf 97**. Front: glass, block (sort), the
+stamp (says *Done*, green). (It was a matrix of four zones, decision 293;
+zones are still a feature any board can carry.)
 
 **3. Film** (`film`, `pj_featurefilm`, one per film). The film benches with
 their departments, plus a **scene pipeline** board: four zones a scene card
@@ -165,6 +167,7 @@ bench for a pipeline, and one feature answered both.
 | **Tray** (hold a line, drag it to a drawer) | x | x | | x | | | x | **done** in inboxes, 296 |
 | **Guess label** (tap to change the kind) | x | | | | | | x | **done** in inboxes, 296 |
 | **Quick add** (a notepad in every front, there and back) | x | | | x | | | x | **done**, 297 |
+| **Ranking deck** (swipe to order, read the order) | | x | x | x | x | | x | **done**, 299 |
 | **Lens** (show only what matches) | x | x | x | x | x | | x | to scope |
 | **Wiki links and backlinks** | | | x | x | x | | | to scope |
 | **Tear out** | x | | x | x | | | x | to scope |

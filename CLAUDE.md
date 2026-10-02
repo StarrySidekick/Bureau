@@ -445,6 +445,12 @@ over; a bench saying `quick` (the Brain Dump) puts one there when it is made
 an unchosen layout follow the new type, and migration 60 converts an old
 Brain Dump (lines up out of its inner inbox, scaffolding to the bin, the
 quick add on the desk).
+**v2.95** (decision 299): **a deck can rank** (`deckTap:'rank'`): pressed,
+it opens `#rank` (`rank.js`), one card against another, swipe right if it
+matters more and left if less (a binary insertion, `ranked`/`rankAt` on the
+deck, each card's `ord` and the deck's `top` following), ending on the
+numbered order. **The Prioritizer bench is a Priorities deck** with a line
+writing cards into it; migration 61 converts an old one (zones to the bin).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

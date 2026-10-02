@@ -342,6 +342,14 @@ get back to where you were?"* Decision 297 (v2.93): a notepad in the drawer
 front goes to where it writes, line ready, with a button back on the lip;
 the desk's front can lend it to every front; a new Brain Dump puts one there.
 
+**Then, the Prioritizer the same way:** *"every priority in a deck of cards
+we can swipe left and right to rank… a deck of card object that you can tap
+to pull up full screen style and do the swiping, then someplace you can then
+read the priority list from most to least."* The model is the Counterweight
+artifact. Decision 299 (v2.95): a deck can rank, one card against another,
+swiped; it ends on the numbered order and the deck keeps it; the Prioritizer
+is that deck with a line writing priorities into it.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

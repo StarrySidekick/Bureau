@@ -1,5 +1,6 @@
 import { $, $$, esc, ic, uid, D, ROOT, clamp, pastTense, outURL } from './util.js';
 import { SETUPS, setupOpen, closeSetup, setupAnswer, setupNext, setupBack, setupSkip } from './setup.js';
+import { rankKey } from './rank.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
@@ -2930,6 +2931,8 @@ function wire(){
   document.addEventListener('keydown', e=>{
     // the painter is a surface of its own and answers its own keys first
     if(paintKey(e)) return;
+    // …and so does a deck being ranked (decision 299)
+    if(rankKey(e)){ e.preventDefault(); return; }
     const typing = /input|textarea/i.test(document.activeElement.tagName);
     if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openCmd(); return; }
     if(e.key==='Escape'){

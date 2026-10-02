@@ -418,7 +418,7 @@ const faceUp = o => { const v = o.faceup!=null ? o.faceup : K(o.kind).faceup;
 /* What a press on a deck does (decision 269): shuffle, deal the top card
    out, or open it onto a board of all of them. Said on the deck; unsaid, it
    is what it always was — a shuffle face up and a deal face down. */
-const DECK_TAPS = ['shuffle','deal','open'];
+const DECK_TAPS = ['shuffle','deal','open','rank'];
 const deckTapOf = o => DECK_TAPS.includes(o && o.deckTap) ? o.deckTap : (faceUp(o) ? 'shuffle' : 'deal');
 const azRing = (id, key, opts, cur) => `<div class="azrow">${opts.map(([v,n])=>
   `<button class="azchip${String(v)===String(cur)?' on':''}" data-aset="${id}:${key}:${esc(String(v))}"
@@ -753,11 +753,11 @@ const ACTIVE = {
       const kids = deckCards(o), n = kids.length, top = deckTop(o);
       if(!n) return 'Empty — add some';
       const does = deckTapOf(o);
-      const press = does==='deal' ? 'press to deal one' : does==='open' ? 'press to open it' : 'press to shuffle';
+      const press = does==='deal' ? 'press to deal one' : does==='open' ? 'press to open it' : does==='rank' ? 'press to rank them' : 'press to shuffle';
       return faceUp(o) ? `Card ${kids.indexOf(top)+1} of ${n} — ${press}` : `${n} card${n===1?'':'s'}, face down — ${press}`;
     },
     zoom: o => azSay('What a press does')
-      + azRing(o.id, 'deckTap', [['','Shuffles, or deals when face down'],['shuffle','Shuffles'],['deal','Deals the top card'],['open','Opens it']], o.deckTap||'')
+      + azRing(o.id, 'deckTap', [['','Shuffles, or deals when face down'],['shuffle','Shuffles'],['deal','Deals the top card'],['open','Opens it'],['rank','Ranks its cards']], o.deckTap||'')
       + azSay('Which way up the top card sits')
       + azRing(o.id, 'faceup', [[1,'Face up'],[0,'Face down']], faceUp(o) ? 1 : 0)
       + azSay('The back')
