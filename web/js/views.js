@@ -6,13 +6,13 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   spanOf, coversDay, lastDay, boardLocked,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
-  URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL, STAMP_WORDS, STAMP_INKS, stampOf, stampInk } from './model.js';
+  URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL, STAMP_WORDS, STAMP_INKS, stampOf, stampInk, setting, setSetting, unsetSetting, envSync, benchHere, decidedBy, isBench, ENV_KEYS, ENV_NAMES } from './model.js';
 import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, PLACED, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
   isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN, formOf, tilesOf } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
-  palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs } from './look.js';
+  palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs, LOOKSIG, lookSig } from './look.js';
 import { gridOfContainer, gridTile, listTile, boardVarsOf, bookView, calSpan, calFront } from './tiles.js';
 import { gravitySync } from './gravity.js';
 import { openPanel, closePanel, panelKey, repositionPanel, plansPanel, boardRow, objectPanelBody, objBackTo, sampleTile } from './panels.js';
@@ -256,16 +256,16 @@ let RAILBAR = null;
    "a more full screen view"). A flick down on the front pushes both off the
    screen and leaves the knob floating, faint, where the front was, because the
    knob is still the way home and into the Void Drawer. A flick down on that
-   knob, or holding it, brings the furniture back. `S.look.tuck`, one setting
+   knob, or holding it, brings the furniture back. `setting('tuck')`, one setting
    for every board, kept across launches; a Mac has no furniture to put away.
    `UNTUCK` is one render's worth of "this just came back", so the lip and the
    front slide in rather than appear; it is cleared as soon as it is drawn and
    never holds anything up. */
-const tucked = () => S.device==='phone' && !!(S.look && S.look.tuck);
+const tucked = () => S.device==='phone' && !!(S.look && setting('tuck'));
 const UNTUCK = {lip:false, rail:false};
 function setTuck(on){
-  if(!!(S.look && S.look.tuck) === !!on) return;
-  if(on) S.look.tuck = true; else { delete S.look.tuck; UNTUCK.lip = UNTUCK.rail = true; }
+  if(!!(S.look && setting('tuck')) === !!on) return;
+  setSetting('tuck', on ? true : null); if(!on) UNTUCK.lip = UNTUCK.rail = true;
   save(); render();
   UNTUCK.lip = UNTUCK.rail = false;
 }
@@ -844,11 +844,46 @@ function toggleSettings(){
   here ? settingsPanel('board', S.drawerId) : settingsPanel();
 }
 
+/* ---- a bench's room, in its Board settings — decision 293 ---------------
+   What the bench you are in decides, each with the way back to the desk's
+   (*Desk's*) and the way to make it the desk's too (*Everywhere*). Inside a
+   bench every setting below writes the bench, so this list is how you see
+   what it has taken over. The aesthetic is here as well as in Global
+   Settings, because walking into a bench may change it. */
+const ENV_SAID = {
+  style: v => (STYLES[v]||{}).nm || v, flow: v => v==='rigid' ? 'Rigid swipe' : 'Smooth scroll',
+  tuck: v => v ? 'Tucked away' : 'Showing', gravity: v => GRAVITIES[v] || 'Off',
+  surface: v => SURFACES[v] || SURFACES.grid, dark: v => DARKMODES[v] || v,
+  pinned: v => v ? 'Pinned' : 'Laid flat', gravitytilt: v => v ? 'Wherever the phone leans' : 'Down the board',
+  boardAlpha: v => Math.round((v==null?1:v)*100)+'%'};
+function benchSection(cid){
+  const c = byId(cid); if(!c) return '';
+  const b = benchHere();
+  const head = `<div class="section-h" style="margin-top:18px"><h2>Bench</h2><div class="rule"></div></div>`;
+  if(!b) return head + `<div class="field" style="margin-top:8px">
+      <button class="pill" data-bench="make:${esc(cid)}">${ic('sparkle',13)} Make this a bench</button>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">A bench has a room of its own: its aesthetic, its board, how you move down it, its bars and its gravity. Once it is a bench, the settings you change in here stay in here, and the desk keeps its own.</div></div>`;
+  const keys = ENV_KEYS.filter(k=>decidedBy(k));
+  const rows = keys.map(k=>{ const by = decidedBy(k), v = setting(k);
+    return `<div class="benchrow"><span><b>${esc(ENV_NAMES[k])}</b> ${esc(ENV_SAID[k] ? ENV_SAID[k](v) : 'its own')}${
+      by.id!==b.id ? ` <i>from ${esc(by.title||'the bench')}</i>` : ''}</span>
+      <button class="fchip" data-bench="unset:${k}" title="Let the desk decide this again">Desk's</button>
+      <button class="fchip" data-bench="every:${k}" title="Make this the desk's too">Everywhere</button></div>`; }).join('');
+  return head + `<div class="field" style="margin-top:8px">
+    <div class="mini" style="--k:var(--brass);margin-bottom:6px">${b.id===cid
+      ? `This is a bench. What you change in here stays in here.`
+      : `Inside the ${esc(b.title||'')} bench: what you change in here changes the bench.`}</div>
+    ${rows || `<div class="mini" style="--k:var(--brass)">It decides nothing yet: everything is the desk's.</div>`}
+    <label style="display:block;margin-top:12px">Aesthetic in this bench</label>${stylePicker()}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${b.id===cid
+      ? `<button class="pill" data-bench="drop:${esc(cid)}">Stop being a bench</button>`
+      : `<button class="pill" data-bench="make:${esc(cid)}">Make this its own bench</button>`}</div></div>`;
+}
 /* Every aesthetic, as a swatch of itself, at the head of Global Settings
    (decision 213). It was in two doors, Board settings and Aesthetics; it is
    the whole desk's, so it is in the one door that is about the whole desk. */
 const stylePicker = ()=> `<div class="stylegrid">${Object.entries(STYLES).map(([k,st])=>
-      `<button class="styletile${(S.look.style||'victorian')===k?' on':''}" data-style3="${k}">
+      `<button class="styletile${(setting('style')||'victorian')===k?' on':''}" data-style3="${k}">
         <span class="stpv" style="background:${st.cols[0]};border-color:${st.cols[2]}">${
           [3,5,6,9,11,12].map(i=>`<i style="background:${st.cols[i]}"></i>`).join('')}</span>
         <b>${st.nm}</b><i>${st.ds}</i></button>`).join('')}</div>
@@ -892,6 +927,7 @@ function settingsBody(sec, cid){
     </div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
     at('board') ? `<div class="woven">${objectPanelBody(inside ? cid : ROOT, null)}</div>
+    ${inside ? benchSection(cid) : ''}
     <div class="section-h" style="margin-top:18px"><h2>Board settings</h2><div class="rule"></div></div>
     <div class="section-h"><h2>The board</h2><div class="rule"></div></div>
     ${inside ? boardRow(cid, byId(cid), false) : `
@@ -900,7 +936,7 @@ function settingsBody(sec, cid){
         [['#EFEADA|#DDE5CE','Green baize'],['#EFEADA|#E4DCC6','Sand'],['#EDE6D4|#D9E2E4','Slate'],
          ['#F0EBDC|#E8DAD2','Clay'],['#EEE9DA|#E2E2DA','Ash'],['#EFEADA|#EFEADA','Plain']].map(([v,nm])=>{
         const [a,b]=v.split('|');
-        /* `lookVal`, not `S.look.board`: a board is stored per theme as
+        /* `lookVal`, not `setting('board')`: a board is stored per theme as
            {paper, walnut}, and comparing the object to a string marks nothing
            as chosen. This read only ever worked because applyLook() used to
            collapse the object on its way past — see decision 91. */
@@ -912,8 +948,8 @@ function settingsBody(sec, cid){
       </div>
       <label class="rangerow"><span>Board strength</span>
         <input type="range" min="0" max="100" step="5" data-lookrange="boardAlpha"
-               value="${Math.round((S.look.boardAlpha==null?1:S.look.boardAlpha)*100)}">
-        <b>${Math.round((S.look.boardAlpha==null?1:S.look.boardAlpha)*100)}%</b></label>
+               value="${Math.round((setting('boardAlpha')==null?1:setting('boardAlpha'))*100)}">
+        <b>${Math.round((setting('boardAlpha')==null?1:setting('boardAlpha'))*100)}%</b></label>
       ${lookVal('board')?`<button class="pill" style="margin-top:6px" data-look="board" data-val="">Reset</button>`:''}
     </div>
 
@@ -933,7 +969,7 @@ function settingsBody(sec, cid){
 
     <div class="field" style="margin-top:12px"><label>Board Background Type</label>
       <div class="filterbar">${Object.entries(SURFACES).map(([v,n])=>
-        `<button class="fchip${(S.look.surface||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
+        `<button class="fchip${(setting('surface')||'grid')===v?' on':''}" data-surface="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Graph paper</b> is the checkerboard, two cells to a square, and it is what arranging is done on. <b>Plain</b> is the same color with nothing drawn on it. <b>The carcass</b> is the wood the bar above and the drawer along the bottom are made of, so the whole screen reads as one piece of furniture. The board's own color is still the board's own color — this only says what is drawn on it.</div>
     </div>
 
@@ -941,14 +977,14 @@ function settingsBody(sec, cid){
           scrolling is the default, and snaps to the cells when it stops. */''}
     <div class="field" style="margin-top:12px"><label>Moving Down a Board</label>
       <div class="filterbar">${[['','Smooth scroll'],['rigid','Rigid swipe']].map(([v,n])=>
-        `<button class="fchip${(['page','rigid'].includes(S.look.flow)?S.look.flow:'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
+        `<button class="fchip${(['page','rigid'].includes(setting('flow'))?setting('flow'):'')===v?' on':''}" data-flow="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Smooth scroll</b> moves every way, and when you stop it settles on the nearest row of cells. <b>Rigid swipe</b> does not scroll at all: the board follows your finger and a swipe moves exactly one screenful, up, down or sideways. The swipe switch, a tool for the drawer front or the board, flips between smooth and rigid.</div>
     </div>
 
     ${/* Full screen on a phone (2026-09-30): the lip and the front put away. */''}
     <div class="field" style="margin-top:12px"><label>Top and Bottom Bars</label>
       <div class="filterbar">${[['','Showing'],['tuck','Tucked away']].map(([v,n])=>
-        `<button class="fchip${(S.look.tuck?'tuck':'')===v?' on':''}" data-tuck="${v}">${n}</button>`).join('')}</div>
+        `<button class="fchip${(setting('tuck')?'tuck':'')===v?' on':''}" data-tuck="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px"><b>Tucked away</b> takes the name off the top and the drawer front off the bottom, so the board fills the phone's screen. The knob stays, faint, at the bottom: tap it for home and pull it up as before. Flick the drawer front down to tuck it away; flick the knob down, or hold it, to bring it back.</div>
     </div>
 
@@ -969,7 +1005,7 @@ function settingsBody(sec, cid){
       ${gravityOn() && S.device!=='desk' ? `
       <label class="rangerow" style="margin-top:12px"><span>Which way is down</span><b></b></label>
       <div class="filterbar">${[['','Down the board'],['1','Wherever the phone leans']].map(([v,n])=>
-        `<button class="fchip${(S.look.gravitytilt?'1':'')===v?' on':''}" data-gravitytilt="${v}">${n}</button>`).join('')}</div>
+        `<button class="fchip${(setting('gravitytilt')?'1':'')===v?' on':''}" data-gravitytilt="${v}">${n}</button>`).join('')}</div>
       <div class="mini" style="--k:var(--brass);margin-top:6px">Where down actually is, the whole circle of it. Roll the phone and the heap runs to the low edge; turn it right over and everything falls to the top of the screen; lay it flat on a table and nothing moves at all, because a tray held level is not tipping anything anywhere. Half a tilt is half the pull. It asks iPhone for the motion sensor the first time, and it is the same one the cavity reads.</div>` : ''}
     </div>
 
@@ -1002,7 +1038,7 @@ function settingsBody(sec, cid){
           return `<label class="slot${cls?' chrome':''}" title="${slotName(i)}">
             <b style="background:${c}"><input type="color" data-slot="${i}" value="${c}"></b>
             <span>${slotName(i)}</span></label>`;}).join('')}</div>`).join('')}
-      ${(S.look.slots&&S.look.slots[S.look.style||'victorian'])
+      ${(setting('slots')&&setting('slots')[setting('style')||'victorian'])
         ? `<button class="pill" style="margin-top:8px" data-act="resetslots">${ic('undo',13)} Back to ${esc(styleNow().nm)}&rsquo;s own sixteen</button>` : ''}
     </div>
     <div class="section-h"><h2>The room</h2><div class="rule"></div></div>
@@ -1828,7 +1864,7 @@ function renderSoon(){
    stylesheet owns it, and two copies drift. */
 let BARKEY = null, BARMETA;
 function paintStatusBar(frame, wood){
-  const key = (wood||'') + '|' + ((S.look&&S.look.style)||'');
+  const key = (wood||'') + '|' + ((S.look&&setting('style'))||'');
   if(key === BARKEY) return;
   BARKEY = key;
   const c = (wood || getComputedStyle(frame).getPropertyValue('--wood') || '').trim();
@@ -1842,6 +1878,11 @@ function render(){
   const frame=$('#frame');
   const wasKey=SCROLL.key, wasEl=$('#app .scroll');
   if(wasEl){ SCROLL.top=wasEl.scrollTop; SCROLL.left=wasEl.scrollLeft; }
+  /* The room you are standing in (decision 293), worked out before anything
+     reads a setting; walking into or out of a bench that looks different
+     repaints the root first, so the board is built in its own aesthetic. */
+  envSync();
+  if(lookSig() !== LOOKSIG.v) applyLook();
   /* Written wholesale, so anything else living on this element has to be
      restated here or it is wiped by the next render — which for `tilting` meant
      the cavity worked until you ticked something and then silently stopped.
@@ -2073,7 +2114,7 @@ function wireSnap(){
   document.addEventListener('touchcancel', rigidBack, {passive:true});
 }
 /* ---- the rigid swipe — decision 274 ------------------------------------
-   With `S.look.flow==='rigid'` the phone's scroller does not pan (its
+   With `setting('flow')==='rigid'` the phone's scroller does not pan (its
    overflow is hidden and the grid refuses the touch, in chrome.css), and one
    finger is read here instead: the board follows it along whichever axis it
    set off on, and on letting go it glides to the next tile that way — past a

@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
-  sortOf, sortCycleOf, SORT_FACES, inFront, isCut, stampOf } from './model.js';
+  sortOf, sortCycleOf, SORT_FACES, inFront, isCut, stampOf, setting, setSetting, putLook, unsetSetting, envSync } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
@@ -804,8 +804,8 @@ function act(name, el){
       o.margin=next; box.value='';
       save(); refreshPanel(); render(); break; }
     case 'resetslots': {
-      const k=(S.look.style)||'victorian';
-      if(S.look.slots) delete S.look.slots[k];
+      const k=(setting('style'))||'victorian';
+      if(setting('slots')){ const all = Object.assign({}, setting('slots')); delete all[k]; setSetting('slots', all); }
       applyLook(); save(); render(); refreshPanel(); toast('Back to the style\u2019s own colors'); break;
     }
     case 'stopedit': S.layoutEdit=null; render(); break;
@@ -1179,9 +1179,9 @@ function act(name, el){
     /* The swipe switch (decision 274): the Board settings row as a press.
        Smooth is the default and is deleted rather than stored. */
     case 'swipetoggle': {
-      if(S.look.flow==='rigid') delete S.look.flow; else S.look.flow = 'rigid';
+      setSetting('flow', setting('flow')==='rigid' ? null : 'rigid');
       save(); render(); refreshPanel();
-      toast(S.look.flow==='rigid' ? 'Rigid swipe · a tile at a time' : 'Smooth scroll');
+      toast(setting('flow')==='rigid' ? 'Rigid swipe · a tile at a time' : 'Smooth scroll');
       break;
     }
     case 'randomobject': {
@@ -1767,7 +1767,7 @@ function wire(){
     // page by page or one smooth scroll down a phone board (decision 209):
     // the default is deleted, not stored
     const flw=t.closest('button[data-flow]');
-    if(flw){ const v = flw.dataset.flow; if(v==='page' || v==='rigid') S.look.flow=v; else delete S.look.flow;
+    if(flw){ const v = flw.dataset.flow; setSetting('flow', v==='page' || v==='rigid' ? v : null);
       save(); render(); refreshPanel(); return; }
     /* A board's tiles each their own colours, or all the same (decision
        274). The same is the default and is deleted rather than stored. */
@@ -1780,7 +1780,7 @@ function wire(){
       save(); render(); refreshPanel(); return; }
     const srf=t.closest('button[data-surface]');
     if(srf){ const v=srf.dataset.surface;
-      if(v && v!=='grid') S.look.surface = v; else delete S.look.surface;
+      setSetting('surface', v && v!=='grid' ? v : null);
       applyLook(); save(); render(); refreshPanel(); return; }
 
     const chk=t.closest('button[data-checks]');
@@ -1812,7 +1812,7 @@ function wire(){
       const v=grv.dataset.gravity;
       // off is the default, so it is deleted rather than stored — a key that
       // means "no" in every backup is a key nobody needed
-      if(v && v!=='off') S.look.gravity=v; else delete S.look.gravity;
+      setSetting('gravity', v && v!=='off' ? v : null);
       save(); gravityApply(); refreshPanel(); return;
     }
     /* Down the board, or wherever the phone is leaning. Same shape as the
@@ -1825,7 +1825,7 @@ function wire(){
         if(want && !(await askTilt())){
           toast('iPhone would not give Bureau its motion sensor');
         } else {
-          if(want) S.look.gravitytilt = true; else delete S.look.gravitytilt;
+          setSetting('gravitytilt', want ? true : null);
           save();
         }
         applyTilt(); gravityWake(); refreshPanel();
@@ -1835,7 +1835,7 @@ function wire(){
 
     // laid flat on the board, or pinned to it — see decision 75
     const pnb=t.closest('[data-pinned]');
-    if(pnb){ S.look.pinned = !!pnb.dataset.pinned;
+    if(pnb){ setSetting('pinned', pnb.dataset.pinned ? true : null);
       save(); render(); refreshPanel(); return; }
 
     const st3=t.closest('[data-style3]');
@@ -1861,6 +1861,26 @@ function wire(){
     /* A tool on or off one side of a board's drawer front (decision 220). One
        side at most: pressing it on the left takes it off the right. Three a
        side, and a fourth says so rather than pushing one off. */
+    /* What a zone gives (decision 293). */
+    const zw=t.closest('[data-zonew]');
+    if(zw){ const [id,k,v]=zw.dataset.zonew.split(':'); const z=byId(id); if(!z) return;
+      pushSet('Zone', id, 'writes', z.writes ? {...z.writes} : undefined);
+      z.writes = Object.assign({}, z.writes); if(v==='') delete z.writes[k]; else z.writes[k] = +v;
+      save(); render(); refreshPanel(); return; }
+    /* A bench's room (decision 293): make one, stop one, give a setting back
+       to the desk, or make it the desk's too. */
+    const bch=t.closest('[data-bench]');
+    if(bch){
+      const [what,arg]=bch.dataset.bench.split(':');
+      if(what==='make'){ const c=byId(arg); if(!c) return;
+        pushSet('Made a bench', arg, 'env', c.env); c.env = {};
+        toast(`${c.title||'This'} is a bench: what you change in here stays in here`, true); }
+      else if(what==='drop'){ const c=byId(arg); if(!c) return;
+        pushSet('Not a bench', arg, 'env', c.env); delete c.env; toast('Back to the desk\u2019s settings', true); }
+      else if(what==='unset'){ unsetSetting(arg); toast('The desk decides that again'); }
+      else if(what==='every'){ setSetting(arg, setting(arg), true); toast('Everywhere now'); }
+      envSync(); save(); render(); refreshPanel();
+      return; }
     /* What the drawer front's stamp says, and its ink (decision 292). */
     const rst=t.closest('[data-railstamp]');
     if(rst){
@@ -2465,6 +2485,14 @@ function wire(){
        browser's own time field rather than two steppers — a phone gives you
        its wheel and a Mac gives you a typed field, and both are better than
        anything worth writing here. An empty value clears it. */
+    // the tag a zone gives (decision 293)
+    if(e.target.dataset.zonetag!=null){
+      const z=byId(e.target.dataset.zonetag); if(!z) return;
+      pushSet('Zone', z.id, 'writes', z.writes ? {...z.writes} : undefined);
+      const tag = e.target.value.trim().replace(/^#/,'');
+      z.writes = Object.assign({}, z.writes); if(tag) z.writes.tag = tag; else delete z.writes.tag;
+      save(); render(); return;
+    }
     // a word of your own for a stamp (decision 292)
     if(e.target.dataset.astampw!=null){
       const w = e.target.value.trim().slice(0, 18);
@@ -2527,7 +2555,7 @@ function wire(){
       syncSize(); renderPreview(); return;
     }
     const lr=e.target.dataset.lookrange;
-    if(lr){ S.look[lr]=(+e.target.value)/100; applyLook();
+    if(lr){ putLook(lr, (+e.target.value)/100); applyLook();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'%'; return; }
     /* The same thing in px rather than in hundredths. It is separate from
        `lookrange` because that one divides by a hundred, and a slider that
@@ -2539,14 +2567,14 @@ function wire(){
        actually differ. A render per pixel of slider is a board rebuilt sixty
        times a second for a number that mostly does not change the layout. */
     const lp=e.target.dataset.lookpx;
-    if(lp){ S.look[lp]=+e.target.value; applyLook(); sizeGrid();
+    if(lp){ putLook(lp, +e.target.value); applyLook(); sizeGrid();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=e.target.value+'px'; return; }
     /* And for a number that is neither a share nor a length — an amount, with
        a unit of its own. It only writes the readout here; the release below
        saves and renders, because a day's work changes what every tile on the
        board says about itself. */
     const ln=e.target.dataset.looknum;
-    if(ln){ S.look[ln]=+e.target.value;
+    if(ln){ putLook(ln, +e.target.value);
       const b=e.target.parentElement.querySelector('b');
       if(b) b.textContent=e.target.value+(e.target.dataset.unit||'');
       return; }
@@ -2558,7 +2586,7 @@ function wire(){
          property. Without this a slider dragged off zero did nothing until you
          let go, which reads as a broken control rather than a cheap one. */
       const was=+(S.look[lq]||0), now=+e.target.value;
-      S.look[lq]=now; applyLook();
+      putLook(lq, now); applyLook();
       const b=e.target.parentElement.querySelector('b'); if(b) b.textContent=now+'%';
       if((was>0) !== (now>0)) render();
       return; }
@@ -2638,7 +2666,7 @@ function wire(){
     /* Light or dark. Not a theme switch: it chooses which of a style's sets of
        sixteen is showing, and `auto` hands the question to the phone. */
     if(e.target.dataset.darkmode!=null){
-      S.look.dark=e.target.value; applyLook(); save(); render(); refreshPanel(); return;
+      setSetting('dark', e.target.value); applyLook(); save(); render(); refreshPanel(); return;
     }
     if(e.target.dataset.ksort2!=null){ const d=draft(); if(d) d.sortBy=e.target.value; return; }
     if(e.target.dataset.kplan!=null){ const d=draft(); if(d) d.plan=e.target.value; return; }

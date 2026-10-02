@@ -7,7 +7,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   rootObj, containers, isContainer, isAncestor, childrenOf, has, kindHas,
   attrsOf, allTags, everyTag, tagsOf, habitPlan, HABIT_MAX_TIMES, measureOf, placeOf, deskList, deskOf, isDesk, spanOf, heldObjects,
   dev, takesTyping, genKindOf, genSaid, ANY, SMART, ctlOf, barOf,
-  PRIMARY, SECONDARY, MASTER_HOLDS, inMaster, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate, stampsOf, stampInk,
+  PRIMARY, SECONDARY, MASTER_HOLDS, inMaster, isPrimary, inFamily, familyList, finishedThings, answered, marginOf, isLate, stampsOf, stampInk, isZone, zoneWrites,
   PRIOS, prioOf, prioName, DIFFS, diffOf, diffName, REPEAT_UNITS, repeatOf, repeats, repeatSaid,
   relatedTo, backlinksTo, streak, goalPct,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, KNOBSIZES, knobSizeOf,
@@ -1928,6 +1928,17 @@ function objectPanelBody(id, sec){
         + `<textarea class="pfield" data-margin="${id}" placeholder="${ms.length?'Add to the margin':'Write in the margin'}"></textarea>`
         + `<button class="pill" data-act="margin" data-id="${id}">Add</button>`,
         'Dated as it is written, and never rewritten.'));
+    }
+    /* What a zone gives what is put in it (decision 293): a priority, an
+       effort, a tag. Any or none; the tag is the zone's own on its board. */
+    if(isZone(o)){
+      const w = zoneWrites(o);
+      const chips = (k, list) => `<div class="filterbar"><button class="fchip${w[k]==null?' on':''}" data-zonew="${id}:${k}:">None</button>${
+        list.map(([n,nm])=>`<button class="fchip${w[k]===n?' on':''}" data-zonew="${id}:${k}:${n}" title="${esc(nm)}">${n} ${esc(nm)}</button>`).join('')}</div>`;
+      f.push(prow('Gives a priority', chips('prio', PRIOS)));
+      f.push(prow('Gives an effort', chips('diff', DIFFS)));
+      f.push(prow('Gives a tag', `<input class="pfield" data-zonetag="${id}" value="${esc(w.tag||'')}" placeholder="shot, written, waiting…">`,
+        'Moving a thing to another zone on this board takes this one\u2019s tag off.'));
     }
     /* What it has been stamped (decision 292), each a record printed in its
        own ink, newest first. Lift is the one way back from a stamp on the

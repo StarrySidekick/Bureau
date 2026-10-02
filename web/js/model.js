@@ -373,7 +373,7 @@ const BUILTIN_KINDS = {
      through it. One press in from Decoration rather than a tile of its own in
      a list that is already long. */
   decoration:{shape:'decor', nm:'Decoration', ic:'plant', c:6, key:'', ds:'Something to stand on the shelf — a plant, a bookend, a little figure', attrs:['decor','media'], size:[4,5], phoneSize:[2,3], mediaType:'image', onclick:'none', decor:'plant',
-     family:['plant','ornament','painting','window','background','mat'], famSub:'What is standing there?', body:'' },
+     family:['plant','ornament','painting','window','background','mat','zone'], famSub:'What is standing there?', body:'' },
   /* **Decoration's subtypes** (decision 218, from the Workshop): a Plant, a
      Physical Object, the Painting and the Window. The first two are the
      photographed ornaments split by the `plant` mark on each in decor.js, and
@@ -397,6 +397,12 @@ const BUILTIN_KINDS = {
      background does, so they stand on it and the board under it already
      counts its cells, and moving it carries whatever lies wholly on it
      (`carries`). In the code it is `mat`, since `board` is taken. */
+  /* **A zone** (decision 293): a place on a board that means something.
+     What is put down in it is given what the zone says (`writes`): a
+     priority, an effort, a tag that is the zone's alone on this board. Four
+     of them are a matrix, a row of them a pipeline; the bench decides. It
+     lies under things like a Board does and carries what is on it. */
+  zone:    {nm:'Zone', ic:'target', c:9, ds:'A place on the board that means something: what you put in it is given its priority, its effort or its tag', attrs:['backdrop'], size:[4,4], phoneSize:[4,4], onclick:'none', fill:'zone', carries:true, zone:true, body:'' },
   mat:     {nm:'Board', ic:'grid', c:12, ds:'A board on the board: things go on it and move with it', attrs:['backdrop'], size:[8,8], phoneSize:[6,6], onclick:'none', fill:'board', carries:true, body:'' },
   background:{nm:'Background', ic:'layers', c:12, ds:'A color, a check or a weave laid under other things', attrs:['backdrop'], size:[8,6], phoneSize:[4,4], onclick:'none', fill:'solid', variants:'fills', body:'' },
   /* Sound and moving pictures are things you put on a desk, not a corner of
@@ -914,6 +920,7 @@ const WORKFLOWS = [
   ['brainstorming','Brainstorm',10,'sparkle','Ideas out fast, timed, with prompts to push on'],
   ['braindump','Brain Dump',5,'inbox','Everything out of your head, sorted later'],
   ['projectmgmt','Project Management',13,'target','Several projects at once: what is next and when'],
+  ['prioritizer','Prioritizer',13,'grid','What matters, decided by where you put it'],
 ];
 BUILTIN_KINDS.workflow = {nm:'Workflow', ic:'target', c:5, face:'front', setup:'workflow',
   ds:'A drawer laid out for a way of working', attrs:['container'], layout:'grid',
@@ -1120,6 +1127,7 @@ const WORKSHOP_SIZES = {
   ornament:{size:[2,2], range:[[1,4],[1,6]], phone:null},
   background:{size:[4,4], range:[[1,8],[1,14]], phone:null},
   mat:{size:[8,8], range:[[2,24],[2,24]], phone:null},
+  zone:{size:[4,4], range:[[2,8],[2,14]], phone:null},
   anything:{size:[2,2], range:[[1,8],[1,14]], phone:null},
   button:{size:[1,1], range:[[1,8],[1,2]], phone:null},
   notepad:{size:[4,1], range:[[2,8],[1,4]], phone:null},
@@ -1576,6 +1584,72 @@ const rootObj = ()=> Object.assign({id:ROOT, kind:'drawer', title:deskTitle(), c
 const container = id => (id===ROOT||!id) ? rootObj() : byId(id);
 // The desk's own settings aren't on an object, so writes have to go to deskCfg.
 const cfgOf = id => (id===ROOT||!id) ? S.deskCfg : (byId(id)||{});
+/* ---- a bench's room — decision 293 ---------------------------------------
+   A **bench** is a container carrying `env`: the settings that hold while you
+   are inside it, overriding the desk's (`S.look`) one key at a time, so an
+   aesthetic from one place, a board from another and a rigid swipe can be
+   mixed in a single bench. It inherits downward: a drawer inside a bench wears
+   the bench's room unless it is a bench itself, and the innermost wins.
+
+   **One reader and one writer.** `setting(k)` is what every place that used to
+   read `S.look.k` for one of `ENV_KEYS` reads instead; `setSetting(k, v)` is
+   the one way those keys are written, and inside a bench it writes the bench.
+   Explicit rather than a proxy over `S.look`, so a save can never write a
+   bench's room into the desk's. `HERE_ENV` is the merged room for the board
+   you are on, worked out by `envSync()` at the top of every render (and by
+   applyLook()), so a read is a property lookup and not a walk.
+
+   Inside a bench "off" is stored as `false` rather than deleted, because a
+   deleted key means "the desk decides", which is a different answer. Like
+   the desk's own settings, a bench's room is outside the undo stack. */
+const ENV_KEYS = ['style','slots','board','boardAlpha','dark','surface','flow','tuck','gravity','gravitytilt','words','pinned'];
+const ENV_NAMES = {style:'Aesthetic', slots:'Palette', board:'Board color', boardAlpha:'Board strength',
+  dark:'Light and dark', surface:'Board background', flow:'Moving down a board', tuck:'Top and bottom bars',
+  gravity:'Gravity', gravitytilt:'Which way is down', words:'Words defaults', pinned:'Pinned'};
+const ENV = {here:null, bench:null, chain:[]};
+const isBench = o => !!(o && o.env && typeof o.env==='object');
+function envSync(){
+  const at = (S.view==='drawer' && S.drawerId) || null;
+  const chain = at ? chainOf(at).filter(isBench) : [];
+  ENV.chain = chain;
+  ENV.bench = chain.length ? chain[chain.length-1].id : null;
+  ENV.here = chain.length ? Object.assign({}, ...chain.map(o=>o.env)) : null;
+  return ENV.here;
+}
+const setting = k => (ENV.here && k in ENV.here) ? ENV.here[k] : (S.look||{})[k];
+const benchHere = ()=> ENV.bench ? byId(ENV.bench) : null;
+// the whole look as it holds here, for the one reader that wants every key
+const lookNow = ()=> ENV.here ? Object.assign({}, S.look, ENV.here) : S.look;
+/* Which bench decides `k` here, or null for the desk. */
+const decidedBy = k => { for(let i=ENV.chain.length-1;i>=0;i--) if(k in ENV.chain[i].env) return ENV.chain[i]; return null; };
+function setSetting(k, v, everywhere){
+  const b = !everywhere && benchHere();
+  if(b){
+    b.env = Object.assign({}, b.env, {[k]: v==null ? false : v});
+  } else {
+    if(v==null || v===false) delete S.look[k]; else S.look[k] = v;
+    // *everywhere* is the desk's, and the bench stops disagreeing with it
+    if(everywhere) ENV.chain.forEach(o=>{ if(k in o.env){ o.env = Object.assign({}, o.env); delete o.env[k]; } });
+  }
+  envSync();
+}
+// a slider's key may or may not be one a bench can hold
+const putLook = (k, v)=>{ if(ENV_KEYS.includes(k)) setSetting(k, v); else S.look[k] = v; };
+/* Let the desk decide again: the bench forgets one key. */
+function unsetSetting(k){
+  const b = decidedBy(k); if(!b) return;
+  b.env = Object.assign({}, b.env); delete b.env[k];
+  envSync();
+}
+/* The room you are standing in, set aside for a moment: the specimen book
+   draws every aesthetic by writing the desk's, and a bench's would win. */
+function withoutEnv(fn){
+  const was = ENV.here, chain = ENV.chain; ENV.here = null; ENV.chain = [];
+  try { return fn(); } finally { ENV.here = was; ENV.chain = chain; }
+}
+/* How deep in the chain of benches `k` is decided, or -1 for the desk. An
+   aesthetic set deeper than the board brings its own board with it. */
+const envDepth = k => { for(let i=ENV.chain.length-1;i>=0;i--) if(k in ENV.chain[i].env) return i; return -1; };
 const isContainer = o => !!o && has(o,'container');
 /* A face is how a container draws itself on its parent's board. A layout is
    how it arranges its children once opened. They used to be one property,
@@ -2047,7 +2121,7 @@ const TSIZES = [['0.8','Smaller'],['1','Normal'],['1.25','Larger'],
 /* Your default for a type, or for every written thing, sits between the
    object and the type's own (decision 247) — the same four layers words.js
    reads every other setting of how a thing is printed through. */
-const wordLayer = (o, key) => { const w=S.look&&S.look.words; if(!w||!o) return null;
+const wordLayer = (o, key) => { const w=S.look&&setting('words'); if(!w||!o) return null;
   const t=w[o.kind]&&w[o.kind][key]; if(t!=null&&t!=='') return t;
   const a=!has(o,'container')&&has(o,'text')&&w['*']&&w['*'][key]; return a!=null&&a!==''&&a!==false?a:null; };
 const textSizeOf = o => +(((o && o.tsize) || wordLayer(o,'tsize') || K(o&&o.kind).tsize || 1)) || 1;
@@ -2078,10 +2152,27 @@ const isBackdrop = o => has(o,'backdrop');
 const FILLS = { solid:{nm:'Solid'}, check:{nm:'Checkerboard'}, gingham:{nm:'Gingham'},
   stripe:{nm:'Stripes'}, dots:{nm:'Polka dots'}, linen:{nm:'Linen'}, felt:{nm:'Felt'}, cork:{nm:'Cork'} };
 const FILL_KEYS = Object.keys(FILLS);
-const fillOf = o => { const f = (o && o.fill) || K(o && o.kind).fill; return FILLS[f] || f==='board' ? f : 'solid'; };
+const fillOf = o => { const f = (o && o.fill) || K(o && o.kind).fill; return FILLS[f] || f==='board' || f==='zone' ? f : 'solid'; };
 /* What moves with a thing when it is dragged: whatever lies wholly on a
    Board (decision 288). Ask this, never the type. */
 const carriesOf = o => !!o && !!K(o.kind).carries;
+/* ---- what a zone writes — decision 293 ---------------------------------
+   `writes` on the zone, else its type's: `prio` (0 to 5), `diff` (1 to 5)
+   and `tag`. Each field comes with the trait that shows it, so a task put in
+   a priority zone is given a priority and shows one. A tag is the zone's own
+   on its board: moving a thing to the next zone along takes the last one's
+   off, which is what makes a row of zones a pipeline. */
+const isZone = o => !!o && !!K(o.kind).zone;
+const ZONE_TRAITS = {prio:'priority', diff:'difficulty'};
+const zoneWrites = z => { const w = Object.assign({}, K(z && z.kind).writes, z && z.writes);
+  if(w.tag) w.tag = String(w.tag).trim().replace(/^#/,''); return w; };
+function zoneSaid(z){
+  const w = zoneWrites(z), out = [];
+  if(w.prio!=null && PRIOS[w.prio]) out.push(PRIOS[w.prio][1]);
+  if(w.diff!=null){ const d = DIFFS.find(x=>x[0]===w.diff); if(d) out.push(d[1]); }
+  if(w.tag) out.push('#'+w.tag);
+  return out.join(' \u00b7 ');
+}
 /* …and the other two. Audio and Video were real types with a mark, a size and a
    place in the picker, and the file input was `accept="image/*"` — so they
    existed in order to tell you they were not implemented, which is a promise
@@ -2397,7 +2488,7 @@ const GRAVITIES = {off:'Off', sand:'Sand', tumble:'Tumbling'};
 const gravityMode = ()=>{
   // the bin's board always lets go: a heap is what a bin is (decision 285)
   if(S.view==='drawer' && S.drawerId===BIN) return 'tumble';
-  const g = S.look && S.look.gravity;
+  const g = S.look && setting('gravity');
   return GRAVITIES[g] && g!=='off' ? g : 'off';
 };
 const gravityOn = ()=> gravityMode()!=='off';
@@ -2405,7 +2496,7 @@ const gravityOn = ()=> gravityMode()!=='off';
    then it is wherever the phone is leaning — the same sensor the shelf's own
    cavity reads, so a desk with both on slides and pours together. A Mac has no
    gyroscope, so it is a phone answer and says so by simply not being one. */
-const gravityTilts = ()=> gravityOn() && !!(S.look && S.look.gravitytilt) && S.device!=='desk';
+const gravityTilts = ()=> gravityOn() && !!(S.look && setting('gravitytilt')) && S.device!=='desk';
 
 /* ---- the holding space --------------------------------------------------
    A drawer along the bottom of a phone that holds things while you carry them
@@ -3690,11 +3781,11 @@ function marginPlus(o, text){
 
 export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
-  deskTitle, rootObj, container, cfgOf, isContainer, FACES, faceOf, layoutOf, SHAPES,
+  deskTitle, rootObj, container, cfgOf, ENV_KEYS, ENV_NAMES, isBench, envSync, setting, setSetting, putLook, unsetSetting, benchHere, lookNow, decidedBy, withoutEnv, envDepth, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,
   shapeOf, READS, readOf, spreadOf, OPENINGS, openingOf, gathersOf, gatherKind, containers,
   deskIds, deskList, isDesk, deskOf, deskHere,
-  placeOf, carriesOf, isHeld, isGone, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo, pipesOf, pipeFor, inFront, heldObjects, heldCount,
+  placeOf, carriesOf, isZone, ZONE_TRAITS, zoneWrites, zoneSaid, isHeld, isGone, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo, pipesOf, pipeFor, inFront, heldObjects, heldCount,
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses,
   GRAVITIES, gravityMode, gravityOn, gravityTilts, shelfDepth, bookDepth, standsProud, shelfTurn, FACE_CUES, faceCue, anyFaceCue, CUE_DIR, cueFlipped, cueSign,
   spanOf, coversDay, lastDay, lateOn, isLate,

@@ -3732,6 +3732,19 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .drawer.otile.bgtile > .dpanel,.drawer.otile.bgtile > .dgrain,.drawer.otile.bgtile > .dside{display:none}
 @media (hover:hover){.drawer.otile.bgtile:hover{filter:brightness(1.03)}}
 .grid.locked .bgtile{pointer-events:none}
+/* ---- a zone — decision 293 ---------------------------------------------
+   A wash of its colour, a dashed edge in it, and its name and what it gives
+   in small capitals along the top, where a thing put in it does not cover. */
+.drawer.otile.bgtile.zonetile{background-color:color-mix(in srgb, var(--c) 14%, transparent);
+  border:2px dashed color-mix(in srgb, var(--c) 62%, transparent);border-radius:calc(var(--radius) + 4px);
+  display:block;text-align:left;overflow:hidden}
+.zonetile .zonelab{position:absolute;left:6px;top:4px;right:6px;display:flex;flex-direction:column;gap:1px;
+  pointer-events:none;line-height:1.1;color:color-mix(in srgb, var(--c) 78%, #000)}
+.zonetile .zonelab b{font:700 11px/1.1 var(--sans, system-ui);letter-spacing:.07em;text-transform:uppercase;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.zonetile .zonelab i{font:500 10px/1.1 var(--sans, system-ui);font-style:normal;opacity:.8;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html[data-theme="walnut"] .zonetile .zonelab{color:color-mix(in srgb, var(--c) 55%, #fff)}
 /* **A Board** (decision 288): the board's own checkerboard, lined up with
    the squares under it, in a wooden rim so it reads as a board set down on
    the board rather than a patch of it. */

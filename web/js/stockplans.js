@@ -160,6 +160,10 @@ function build(spec){
     /* The tools in its drawer front, up to three each side of the knob
        (decision 220), given to the container the flow is put down in. */
     rail: spec.rail || undefined,
+    /* **A bench's room** (decision 293): the settings that hold inside the
+       container it is put down in, and what its drawer front's stamp says. */
+    env: spec.env || undefined,
+    stamp: spec.stamp || undefined,
     made: D.iso(D.today()),
     cols: 8,
     /* The boards it is laid out on, when there is more than one, the one it
@@ -256,6 +260,27 @@ const AGAIN = (t, every, unit, from)=>({k:'task', t,
 const CARDS = list => list.map(t=>({k:'note', t}));
 /* The stages of a piece of work, a checklist its progress bar reads
    (decision 238): ticking a stage is the whole of keeping the bar true. */
+/* A zone (decision 293): a place that gives what is put in it a priority,
+   an effort or a tag. `w` is what it writes. */
+const ZONE = (t, w, b, c)=>({k:'zone', t, b, set:{c, writes:w}});
+/* ---- the Film bench (decision 293) ----------------------------------------
+   A film's board in a screening room: the night-sky aesthetic, a rigid swipe
+   from one department to the next, and a scene pipeline, four zones a scene
+   card walks across, each giving its tag and taking the last one's. The
+   front's stamp says Approved. Shared by the short and the feature. */
+const FILM_BENCH = {env:{style:'starry', flow:'rigid'}, stamp:{w:'Approved', ink:'red'},
+  rail:{left:['glass','stamp','spool'], right:['block','gear']},
+  makes:{only:['scene','character','image','note','task','zone'], sizes:[]}};
+const SCENE_PIPELINE = at => ({at, on:[
+  ZONE('Written', {tag:'written'}, [1,1,2,12], 12),
+  ZONE('Prepped', {tag:'prepped'}, [3,1,2,12], 8),
+  ZONE('Shot',    {tag:'shot'},    [5,1,2,12], 6),
+  ZONE('Cut',     {tag:'cut'},     [7,1,2,12], 13),
+  {k:'scene', t:'Scene 1', b:[1,3,2,2], set:{c:9, tags:['written']}},
+  {k:'scene', t:'Scene 2', b:[1,5,2,2], set:{c:9, tags:['written']}},
+  {k:'scene', t:'Scene 3', b:[1,7,2,2], set:{c:9, tags:['written']}},
+  {k:'generator', t:'New scene', b:[1,13,8,2], set:{genKind:'scene', c:9}}
+], raw:true});
 const STAGES = (ref, list, b, c)=>({k:'checklist', t:'Stages', ref, b, set:{c}, kids:list.map(t=>({k:'task', t}))});
 /* **A film is its departments** (Timothy: "casting, storyboard, props,
    locations, script"), a board each round the one the film opens on: casting
@@ -694,7 +719,7 @@ const SPECS = [
      is, and the way out to where the work is done. Each is the flow of its
      own type (decision 236). */
 
-  {key:'shortfilm', sec:'project', nm:'Short Film', ic:'clapper', c:9, of:'film', on:[
+  {key:'shortfilm', ...FILM_BENCH, sec:'project', nm:'Short Film', ic:'clapper', c:9, of:'film', on:[
     {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@sfstages'}},
     STAGES('sfstages', ['Logline','Script locked','Cast','Crew','Locations','Shot list','Shoot','Picture lock','Sound and color','Festivals'], [1,2,4,6], 9),
     {k:'question', t:'What is it about?', b:[5,2,4,3], set:{c:10, sref:'logline'}},
@@ -704,9 +729,9 @@ const SPECS = [
     {k:'appt', t:'First shoot day', b:[1,10,4,2], set:{c:8, sref:'shoot'}},
     LINK('Call sheets', 'https://www.studiobinder.com', [1,12,4,1], 9),
     LINK('Festivals', 'https://filmfreeway.com', [5,12,4,1], 9)
-  ], boards: FILM_DEPARTMENTS(9)},
+  ], boards: FILM_DEPARTMENTS(9).concat([SCENE_PIPELINE([2,1])])},
 
-  {key:'featurefilm', sec:'project', nm:'Feature Film', ic:'clapper', c:9, of:'pj_featurefilm', on:[
+  {key:'featurefilm', ...FILM_BENCH, sec:'project', nm:'Feature Film', ic:'clapper', c:9, of:'pj_featurefilm', on:[
     {k:'progressbar', t:'Where it stands', b:[1,1,8,1], set:{c:13, tracks:'@ffstages'}},
     STAGES('ffstages', ['Treatment','First draft','Rewrite','Financing','Casting','Crew','Locations','Schedule','Shoot','Edit','Sound and music','Color','Festivals and distribution'], [1,2,4,7], 9),
     {k:'question', t:'What is it about?', b:[5,2,4,3], set:{c:10, sref:'logline'}},
@@ -716,7 +741,7 @@ const SPECS = [
     {k:'appt', t:'First shoot day', b:[5,10,4,2], set:{c:8, sref:'shoot'}},
     LINK('Schedule and budget', 'https://www.studiobinder.com', [1,12,4,1], 9),
     LINK('Festivals', 'https://filmfreeway.com', [5,12,4,1], 9)
-  ], boards: FILM_DEPARTMENTS(9)},
+  ], boards: FILM_DEPARTMENTS(9).concat([SCENE_PIPELINE([2,1])])},
 
   {key:'tvshow', sec:'project', nm:'TV Show', ic:'film', c:9, of:'pj_tvshow', on:[
     {k:'question', t:'What is the show?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
@@ -1021,7 +1046,13 @@ const SPECS = [
 
 
   // "Allows you to easily add anything to a bucket and helps you sort it."
-  {key:'braindump', rail:{left:['glass','block','coin'], right:['lock','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump', on:[
+  /* **The Brain Dump bench** (decision 293): clear skies (Aeros), nothing
+     falling, the bars showing, and a selector that makes only the things a
+     head empties into. The front's stamp says Filed, for marking what is
+     dealt with as you go down the lists. */
+  {key:'braindump', rail:{left:['glass','stamp','coin'], right:['spool','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump',
+   env:{style:'aero', flow:false, gravity:false, tuck:false}, stamp:{w:'Filed', ink:'blue'},
+   makes:{only:['notepad','task','idea','question','thought','note','pipe'], sizes:[]}, on:[
     /* **An inbox and its pipes** (decision 286): write anything into the
        inbox; a task goes down the first pipe to Do, an idea to Someday, a
        question to Questions, and anything else to Keep. What is waiting in
@@ -1038,6 +1069,28 @@ const SPECS = [
     LIST('Someday', 'bdsome', [5,7,4,3], 12),
     LIST('Questions', 'bdask', [1,10,4,3], 9),
     LIST('Keep', 'bdkeep', [5,10,4,3], 11)
+  ]},
+
+  /* **The Prioritizer bench** (decision 293): a matrix of four zones, how
+     much it matters across the top and how hard it is down the side. Put a
+     thing in a quadrant and that is its priority and its effort, written onto
+     it, so every board's "most important first" agrees with the decision. The
+     way in along the bottom is where things to weigh arrive; the deck asks
+     the questions and the hourglass keeps it short. Golf 97, desktop gray.
+     `raw`, so the two empty rows where new things arrive are not filled. */
+  {key:'prioritizer', raw:true, rail:{left:['glass','block','stamp'], right:['lock','gear']}, sec:'work', inbox:'task', nm:'Prioritizer', ic:'grid', c:13, of:'wf_prioritizer',
+   env:{style:'golf97', flow:false, gravity:false}, stamp:{w:'Done', ink:'green'},
+   makes:{only:['task','note','card','zone'], sizes:[]}, on:[
+    ZONE('Do now', {prio:5, diff:2}, [1,1,4,4], 6),
+    ZONE('Plan it', {prio:4, diff:4}, [5,1,4,4], 9),
+    ZONE('Squeeze in', {prio:2, diff:1}, [1,5,4,4], 12),
+    ZONE('Let it go', {prio:0, diff:5}, [5,5,4,4], 11),
+    // rows 9 and 10 are left empty: what is added arrives here, outside every zone
+    {k:'deck', t:'Ask it', b:[1,11,2,2], set:{c:10}, kids:CARDS([
+      'Will this matter in a year?', 'What happens if it never gets done?', 'Who is waiting on it?',
+      'Is there a smaller version?', 'What would make the rest easier?', 'Is it yours to do?'])},
+    {k:'hourglass', t:'Ten minutes', b:[3,11,1,2], set:{c:12, mins:10}},
+    {k:'note', t:'How it works', b:[4,11,5,2], set:{c:13, body:'Drop a thing in a square: **Do now** matters and is easy, **Plan it** matters and is hard, **Squeeze in** is small, **Let it go** is not worth it.'}}
   ]},
 
   // "Helps me prioritize all my projects and focus."

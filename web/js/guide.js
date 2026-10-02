@@ -45,7 +45,7 @@
 import { $, esc, ic } from './util.js';
 import { railObj } from './views.js';
 import { S, KEYS, K, SHAPES, FACES, PROJ_COVERS, isCategory, familyOf,
-         isContainer, PRIMARY } from './model.js';
+         isContainer, PRIMARY, setting, withoutEnv } from './model.js';
 import { STYLES, palNow, applyLook, styleNow, famSlots, FAMS, ROLES, OBJ0,
          CHECKS, isDark } from './look.js';
 import { sampleObject, sampleTile, kindSample } from './panels.js';
@@ -111,7 +111,10 @@ function chromePatch(){
    all the way back at the end — never `applyStyle()`, which also lays down the
    board, the alpha and the defaults a new drawer is born with, and would leave
    the desk repainted after a visit to the bookshelf. */
-function survey(draw){
+function survey(draw){ return withoutEnv(()=>surveyAll(draw)); }
+/* With a bench's room set aside (decision 293): its aesthetic would win over
+   the one being surveyed, and `was` is the desk's own, put back as it was. */
+function surveyAll(draw){
   const was = S.look.style, out = [];
   for(const key of styleKeys()){
     S.look.style = key; applyLook();
@@ -452,7 +455,7 @@ function guideBody(){
   </section>`;
 
   const tiles = (list, note) => `${note?`<p class="gx-note">${note}</p>`:''}
-    <div class="gx-plate gx-tiles" data-sty="${A(S.look.style||'victorian')}">${
+    <div class="gx-plate gx-tiles" data-sty="${A(setting('style')||'victorian')}">${
       list.map(t=>`<div class="gx-cell">${t.html}
         <span class="gx-cap"><b>${A(t.nm)}</b><u>${A(t.key)}</u></span></div>`).join('')}</div>`;
 
@@ -551,7 +554,7 @@ function guideBody(){
          the rest sit behind <em>Every other type</em>. Drawn in ${A(here)}.</p></header>
     ${['Drawers','Objects'].map(g=>`
       <h3 class="gx-sub">${g}</h3>
-      <div class="gx-plate gx-tiles" data-sty="${A(S.look.style||'victorian')}">${
+      <div class="gx-plate gx-tiles" data-sty="${A(setting('style')||'victorian')}">${
         types.filter(t=>t.cat===g).map(t=>`<div class="gx-cell">${t.html}
           <span class="gx-cap"><b>${A(t.nm)}</b><u>${A(t.key)}${t.major?' &middot; major':''}${
             t.fam?' &middot; a '+A(t.fam.of||'family'):''}</u></span></div>`).join('')}</div>`).join('')}

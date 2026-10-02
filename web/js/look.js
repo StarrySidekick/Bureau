@@ -2,7 +2,7 @@ import { S, K, defaultLook, PANELS, PANEL_SLOTS, KNOBS, KNOB_SLOTS,
   PLATES, PLATE_SLOTS, plateOf,
   BINDINGS, BINDING_SLOTS, BORDER_SLOTS, TEXTURE_SLOTS, STOCKS, STOCK_SLOTS,
   slotKey, slotRaw, slotSrc, borderOf, textureOf, panelOf, knobOf, bindingOf, stockOf,
-  shelfDepth, bookDepth, shelfTurn, faceCue, CUE_DIR, cueSign } from './model.js';
+  shelfDepth, bookDepth, shelfTurn, faceCue, CUE_DIR, cueSign, setting, setSetting, lookNow, envDepth, benchHere } from './model.js';
 import { save } from './persist.js';
 import { render } from './views.js';
 
@@ -15,19 +15,27 @@ const themeNow = ()=> isDark(palNow()[0]) ? 'walnut' : 'paper';
 /* Custom colours are stored per theme. They used to be single values written
    inline on <html>, which beat both theme blocks — so a background chosen in
    Paper stayed put when you switched to Walnut and the theme looked broken. */
+/* **An aesthetic brings its own board** (decision 293). A bench that says
+   Starful Gothic and nothing about the board would otherwise lay a night sky
+   over the desk's cream squares. So where a bench decides the aesthetic more
+   closely than it decides the board, the board and its strength are that
+   aesthetic's own; a bench that also says a board keeps the one it said. */
+const styleOwns = key => { const s = envDepth('style'); return s >= 0 && envDepth(key) < s; };
 function lookVal(key){
-  const v=(S.look||{})[key];
+  if(key==='board' && styleOwns('board')) return (STYLES[setting('style')]||{}).board || null;
+  const v=setting(key);
   if(v && typeof v==='object') return v[themeNow()]||null;
   // a plain string is the old single-value shape: it was chosen under Paper,
   // so it applies there and nowhere else
   return (typeof v==='string' && themeNow()==='paper') ? v : null;
 }
 function setLookVal(key, val){
-  const cur=(S.look||{})[key];
-  const obj = (cur && typeof cur==='object') ? cur : {};
+  const cur=setting(key);
+  // a copy, because the desk's object and a bench's must never be the same one
+  const obj = Object.assign({}, (cur && typeof cur==='object') ? cur : {});
   if(cur && typeof cur==='string') obj.paper=cur;   // migrate on first write
   obj[themeNow()] = val || null;
-  S.look[key]=obj;
+  setSetting(key, obj);
 }
 
 /* ---- the five that dress the app -------------------------------------
@@ -107,8 +115,14 @@ const checkNow = () => CHECKS[(S.look||{}).check] ? S.look.check
   : (CHECKS[styleNow().check] ? styleNow().check : 'circle');
 
 /* Appearance: the style's five, then whatever the user overrode on top. */
+/* What applyLook() last put on the root, so a render that walks into or out
+   of a bench whose room looks different knows to apply it again (293). */
+const LOOKSIG = {v:''};
+const lookSig = ()=> JSON.stringify([setting('style'), setting('dark'), setting('slots'), setting('board'),
+  setting('boardAlpha'), setting('surface')]);
 function applyLook(){
-  const el=document.documentElement, L=S.look||defaultLook();
+  const el=document.documentElement, L=S.look ? lookNow() : defaultLook();
+  LOOKSIG.v = lookSig();
   const cols=palNow();
   el.dataset.style = L.style||'victorian';
   // the style writes the whole chrome set; a stale override from a style that
@@ -208,7 +222,8 @@ function applyLook(){
     el.style.setProperty('--paper-2', mix(bg, 91, '#fff'));
     el.style.setProperty('--paper-3', isDark(bg) ? mix(bg, 84, '#fff') : mix(bg, 92, '#000'));
   }
-  el.style.setProperty('--board-alpha', L.boardAlpha==null?1:L.boardAlpha);
+  const alpha = styleOwns('boardAlpha') ? (STYLES[L.style]||{}).boardAlpha : L.boardAlpha;
+  el.style.setProperty('--board-alpha', alpha==null?1:alpha);
   if(board){ const [a,b]=String(board).split('|');
     el.style.setProperty('--board-1', a); el.style.setProperty('--board-2', b||a); }
   else { el.style.removeProperty('--board-1'); el.style.removeProperty('--board-2'); }
@@ -460,7 +475,7 @@ const plateSlots  = ()=> famSlots('pl');
    The chrome — panels, buttons, the bar, the typeface, the wood — stays on
    `html[data-style]`, because none of it is a slot and nothing about it can
    be pinned. See decision 98. */
-const styleKey = ()=> STYLES[(S.look&&S.look.style)] ? S.look.style : 'victorian';
+const styleKey = ()=> STYLES[(S.look&&setting('style'))] ? setting('style') : 'victorian';
 const styleFor = pin => (pin && STYLES[pin]) ? pin : styleKey();
 // the class pair for one family on one object: `pn-fielded pnsty-carca`
 const dress = (o, fam)=>
@@ -670,13 +685,13 @@ const STYLES = {
       // than Trebuchet, which belongs to the version before this one.
       '--serif':'"Segoe UI","Lucida Grande","Lucida Sans Unicode",Tahoma,sans-serif'}}
 };
-const styleNow = ()=> STYLES[(S.look&&S.look.style)] || STYLES.victorian;
+const styleNow = ()=> STYLES[(S.look&&setting('style'))] || STYLES.victorian;
 
 /* ---- light and dark ---------------------------------------------------
    There is still no theme switch in the old sense: light or dark is a fact
    about the style you are in, and a style that has only one answer keeps it.
    What an aesthetic *may* now carry is a second set of sixteen — Victoria's walnut
-   — and which of the two is showing is `S.look.dark`:
+   — and which of the two is showing is `setting('dark')`:
 
      auto    whatever the phone is set to, which is the answer you want
      light   this style's daylight sixteen
@@ -687,28 +702,29 @@ const styleNow = ()=> STYLES[(S.look&&S.look.style)] || STYLES.victorian;
    A style with no dark set simply ignores all three. */
 const DARKMODES = {auto:'Follow this device', light:'Always light', dark:'Always dark'};
 const systemDark = ()=> window.matchMedia('(prefers-color-scheme: dark)').matches;
-const darkMode = ()=> (S.look&&S.look.dark) || 'auto';
+const darkMode = ()=> (S.look&&setting('dark')) || 'auto';
 const wantsDark = ()=> { const m=darkMode(); return m==='dark' || (m==='auto' && systemDark()); };
 // whether the choice means anything here — Starry is night and nothing else
 const hasDark = ()=> !!styleNow().dark;
 const darkNow = ()=> hasDark() && wantsDark();
 
 /* The sixteen showing right now. A slot the user repainted is stored per style
-   in `S.look.slots`, so overriding Victoria's rust doesn't follow you to Aeros
+   in `setting('slots')`, so overriding Victoria's rust doesn't follow you to Aeros
    — the override belongs to the style, exactly as the colour it replaces does.
    The override is per style and not per light-or-dark: a colour you insisted on
    is a colour you insisted on. */
 function palNow(){
-  const st=styleNow(), own=((S.look&&S.look.slots)||{})[(S.look&&S.look.style)||'victorian'];
+  const st=styleNow(), own=((S.look&&setting('slots'))||{})[(S.look&&setting('style'))||'victorian'];
   const base = darkNow() ? st.dark : st.cols;
   if(!own) return base;
   return base.map((c,i)=> own[i] || c);
 }
 function setSlot(i, hex){
-  const key=(S.look&&S.look.style)||'victorian';
-  S.look.slots = S.look.slots || {};
-  const own = S.look.slots[key] = S.look.slots[key] || {};
+  const key=(S.look&&setting('style'))||'victorian';
+  const all = JSON.parse(JSON.stringify(setting('slots') || {}));
+  const own = all[key] = all[key] || {};
   if(hex) own[i]=hex; else delete own[i];
+  setSetting('slots', all);
 }
 /* A stored colour is a slot number or a literal hex. Numbers travel between
    styles; literals are somebody insisting, and stay put. */
@@ -751,8 +767,11 @@ const objSlots = ()=> Array.from({length:OBJN}, (_,i)=>[OBJ0+i, slotName(OBJ0+i)
 
 function applyStyle(key){
   const st=STYLES[key]; if(!st) return;
-  S.look.style=key;
-  setLookVal('board', st.board); S.look.boardAlpha=st.boardAlpha;
+  setSetting('style', key);
+  setLookVal('board', st.board); setSetting('boardAlpha', st.boardAlpha);
+  /* Chosen inside a bench, the aesthetic's board is the bench's board, so a
+     board the bench's own drawer was born with steps aside (decision 293). */
+  const b = benchHere(); if(b && b.board) delete b.board;
   S.look.styleDefaults=st.defaults;
   applyLook(); save(); render();
 }
@@ -767,7 +786,7 @@ const BACKDROPS = [
   ['#DED3B6','Kraft'],['#F1EDE0','Chalk'],['#D9D2BE','Linen']
 ];
 
-export { themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
+export { LOOKSIG, lookSig, themeNow, lookVal, setLookVal, applyLook, applyStyle, styleDefaults,
   DARKMODES, darkMode, hasDark, darkNow, systemDark,
   randomFront, randomBoard, randomLook, STYLES, BACKDROPS, SURFACES,
   SLOTS, OBJ0, OBJN, ROLES, slotName, styleNow, palNow, setSlot,

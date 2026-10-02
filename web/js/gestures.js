@@ -3,7 +3,7 @@ import { blockHold, frontHold, tileAway, tileHere } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia } from './model.js';
 import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom, formOf, tileRectOf, tilesOf, reachable } from './grid.js';
-import { toast, gather, del, pushSets, holdIt, unholdIt } from './mutations.js';
+import { toast, gather, del, pushSets, holdIt, unholdIt, zoneDrop } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
@@ -2094,8 +2094,11 @@ function onUp(e){
     if(packs){ render(); return; }
     if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });
     else if(d && g.cand && g.ok) d[dev()]={...g.cand};
+    // put down in a zone, it is given what the zone says (decision 293)
+    const zoned = d && g.ok ? zoneDrop(g.moved ? g.moved.map(m=>m.id) : [d.id], g.parent || d.parent || ROOT) : null;
     save(); render();
     if(d && g.cand && !g.ok) toast('No room there');
+    else if(zoned) toast(`Into ${zoned}`, true);
     return;
   }
 

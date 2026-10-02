@@ -12323,3 +12323,73 @@ a bill on. That is string as signal (USES §2), later, reacting to a stamp.
   stamped Paid; the lens will read the same field.
 - `test/safari.mjs` presses a stamp and a task with the pointer and asserts
   the impression, and that pressing the stamp again puts it down.
+
+## 293. Benches: the room, zones, and three benches (v2.87, 2026-10-02)
+
+Timothy answered the bench scope (`docs/BENCHES.md` §0): seven benches, the
+five plus a Brain Dump and a Prioritizer; a bench is *"what tools are
+available and what affordances are immediately present"*, not only what is on
+the board; aesthetics per bench, *"the more custom the better, as long as it
+can be mixed and matched"*; a bench is a workflow, so there can be several of
+one; and the Day bench waits while the Brain Dump and two others are built.
+
+**The room is `env` on a container**, overriding the desk's settings one key
+at a time (`ENV_KEYS`: style, slots, board, boardAlpha, dark, surface, flow,
+tuck, gravity, gravitytilt, words, pinned), inherited downward, innermost
+winning. Overriding one key at a time is the mixing and matching.
+
+- **One reader and one writer, explicitly.** Every read of those keys was
+  rewritten from `S.look.k` to `setting(k)`, and every write goes through
+  `setSetting(k, v)`, which inside a bench writes the bench. A proxy over
+  `S.look` would have caught every site for free and was rejected: a save
+  that serialised it would have written a bench's room into the desk's, and
+  the bug would be silent. `envSync()` runs at the top of `render()`;
+  `ENV.here` is the merged room, so a read is a lookup.
+- Inside a bench "off" is stored as `false`, never deleted, because a deleted
+  key means *the desk decides*, which is a different answer.
+- **Walking in or out repaints the root first.** `applyLook()` records what it
+  applied (`LOOKSIG`), and a render whose room looks different reapplies it
+  before the board is built.
+- **An aesthetic brings its own board.** A bench that said Starful Gothic and
+  nothing about the board laid a night sky over the desk's cream squares, with
+  white text on near-white. Where a bench decides the aesthetic more closely
+  than the board (`envDepth()`), the board and its strength are the
+  aesthetic's, and a board the container was born with is dropped when a
+  bench's aesthetic is set, by its flow or in its Bench section.
+- The specimen book surveys every aesthetic with the room set aside
+  (`withoutEnv()`), or a bench's aesthetic would win over the one surveyed.
+- Like the desk's own settings, a room is outside the undo stack; making and
+  unmaking a bench is a move.
+- **Board settings → Bench**, inside any container: *Make this a bench*, the
+  keys it decides with *Desk's* and *Everywhere*, the aesthetic picker, *Stop
+  being a bench*.
+
+**Zones** (`zone`, a backdrop that carries what lies on it, like the Board
+object): a thing dropped with its middle in a zone is given the zone's
+`writes`: `prio`, `diff` and an exclusive `tag` (`zoneDrop()` in
+mutations.js, called from the drop in gestures.js). A field arrives with its
+trait, so a task given a priority shows one; the writes ride the drop's
+*Moved* undo move. **A new thing never lands in a zone** (`freeSpotIn()`
+counts zones as taken in both passes), because being in one is a decision;
+a drop still goes in freely. Four zones are a matrix and a row of them a
+pipeline, which is one feature answering two benches. Urgency stays derived
+(decision 120): the matrix is importance by effort, both stored fields.
+
+**Three benches.** Flows now carry `env` and `stamp` beside `rail` and
+`makes`, given to the container they are laid in and kept by a captured flow.
+- *Brain Dump*: Aeros, the inbox and pipes, a selector of capture types, the
+  stamp saying Filed.
+- *Prioritizer* (`wf_prioritizer`, new): Golf 97, the four-zone matrix, two
+  empty rows for arrivals (`raw`, so `fillRows()` leaves them), a deck of
+  questions, a ten-minute hourglass, the stamp saying Done.
+- *Film* (short and feature): Starful Gothic, rigid swipe, the stamp saying
+  Approved, and a scene pipeline board (Written, Prepped, Shot, Cut) at
+  `[2,1]`.
+- Migration 57 replaces the stored copies of the three flows and adds the
+  Prioritizer; boards already put down are left as they are, and any of them
+  can be made a bench from its Bench section.
+
+`test/safari.mjs` makes a drawer a bench through its own settings and checks a
+setting stays in it, drags a task into the Prioritizer's *Do now* and checks
+its fields, checks a new thing arrives outside every zone, and checks the Film
+bench's night board.

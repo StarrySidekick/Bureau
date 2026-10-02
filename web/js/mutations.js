@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, stampsOf, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid } from './model.js';
+  placeOf, cfgOf, isHeld, stampsOf, isZone, zoneWrites, zoneSaid, ZONE_TRAITS, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid, setting, setSetting } from './model.js';
 import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -1061,13 +1061,13 @@ const CONTROLS = {
   shadows:  {nm:'Shadows',   ic:'sun',   ds:'Whether what stands on a surface casts one',
              on:()=>!!S.look.shadows, flip(){ S.look.shadows=!S.look.shadows; applyLook(); }},
   pinned:   {nm:'Pinned',    ic:'pin',   ds:'Tiles pinned to the board rather than laid flat',
-             on:()=>!!S.look.pinned,  flip(){ S.look.pinned=!S.look.pinned; }},
+             on:()=>!!setting('pinned'),  flip(){ setSetting('pinned', !setting('pinned') || null); }},
   style:    {nm:'Aesthetic', ic:'brush', ds:'Walks the aesthetics',
              cycle:()=>Object.keys(STYLES), get:()=>styleKey(),
              said:v=>(STYLES[v]||{}).nm||v, set(v){ applyStyle(v); }},
   dark:     {nm:'Light',     ic:'eye',   ds:'Follow the device, or insist',
-             cycle:()=>Object.keys(DARKMODES), get:()=>S.look.dark||'auto',
-             said:v=>DARKMODES[v]||v, set(v){ S.look.dark=v; applyLook(); }},
+             cycle:()=>Object.keys(DARKMODES), get:()=>setting('dark')||'auto',
+             said:v=>DARKMODES[v]||v, set(v){ setSetting('dark', v); applyLook(); }},
   check:    {nm:'Checkbox',  ic:'check', ds:'Which box every check in the app is drawn in',
              cycle:()=>Object.keys(CHECKS), get:()=>CHECKS[S.look.check]?S.look.check:'square',
              said:v=>CHECKS[v]||v, set(v){ S.look.check=v; applyLook(); }},
@@ -1085,7 +1085,7 @@ const CONTROLS = {
   gravity:  {nm:'Gravity',   ic:'drop',  ds:'The shelf lets go, and everything on it falls',
              cycle:()=>Object.keys(GRAVITIES), get:()=>gravityMode(),
              said:v=>GRAVITIES[v]||v,
-             set(v){ if(v && v!=='off') S.look.gravity=v; else delete S.look.gravity; }},
+             set(v){ setSetting('gravity', v && v!=='off' ? v : null); }},
   /* ---- the ones that are a number ------------------------------------
      A switch is on or off and a dial walks a list; these are neither — they
      are a quantity, and the thing that reads a quantity on a real desk is a
@@ -1583,6 +1583,45 @@ function dealTop(id){
 
 // toggleHabit isn't exported — a streak reaches it through toggleDone, which is
 // the one door, so nothing outside has to know a habit ticks differently.
+/* ---- put down in a zone — decision 293 -----------------------------------
+   After a drop, each thing moved is given what the zone under its middle
+   says, the smallest zone winning where two overlap. The writes ride the
+   drop's own undo move when there is one, so one Undo takes the thing back
+   out of the zone and puts its fields back as they were. */
+function zoneUnder(o, parent){
+  const b = lay(o); if(!b || !b.w) return null;
+  const cx = b.x + (b.w-1)/2, cy = b.y + (b.h-1)/2;
+  return S.objects.filter(z=>z!==o && isZone(z) && (z.parent||ROOT)===parent)
+    .map(z=>[z, lay(z)]).filter(([z,r])=>r && r.w && cx>=r.x && cx<=r.x+r.w-1 && cy>=r.y && cy<=r.y+r.h-1)
+    .sort((a,b)=>a[1].w*a[1].h - b[1].w*b[1].h).map(([z])=>z)[0] || null;
+}
+function zoneDrop(ids, parent){
+  const steps = [], said = [];
+  const zoneTags = S.objects.filter(z=>isZone(z) && (z.parent||ROOT)===parent).map(z=>zoneWrites(z).tag).filter(Boolean);
+  ids.forEach(id=>{
+    const o = byId(id); if(!o || isZone(o) || isBackdrop(o) || isDecor(o)) return;
+    const z = zoneUnder(o, parent); if(!z) return;
+    const w = zoneWrites(z), was = steps.length;
+    const set = (k, v)=>{ steps.push({set:{id, k, v:o[k] && typeof o[k]==='object' ? o[k].slice() : o[k]}}); o[k] = v; };
+    Object.entries(ZONE_TRAITS).forEach(([k, trait])=>{
+      if(w[k]==null || o[k]===w[k]) return;
+      if(!has(o, trait)) set('attrs', attrsOf(o).concat(trait));
+      set(k, w[k]);
+    });
+    if(w.tag){
+      const tags = (o.tags||[]).filter(t=>t===w.tag || !zoneTags.includes(t));
+      if(!tags.includes(w.tag)) tags.push(w.tag);
+      if(tags.join('|')!==(o.tags||[]).join('|')) set('tags', tags);
+    }
+    if(steps.length>was) said.push(z.title || zoneSaid(z) || 'the zone');
+  });
+  if(!steps.length) return null;
+  const top = S.undo[S.undo.length-1];
+  if(top && top.label==='Moved' && Date.now()-top.at < 2000) top.steps.push(...steps);
+  else pushUndo('Put in a zone', steps);
+  return [...new Set(said)].join(', ');
+}
+
 /* ---- the rubber stamp — decision 292 -------------------------------------
    One impression, on one thing: the stamp's word, today's date and its ink,
    appended to `stamps`. A record, so it is added and not edited; the same
@@ -1610,7 +1649,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

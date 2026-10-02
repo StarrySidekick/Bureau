@@ -342,6 +342,64 @@ await press(stampAt.a);
 out.andIsPutDownByPressingItAgain = await page.evaluate(id => !BUREAU.state.stamping
   && BUREAU.state.view === 'desk' && BUREAU.state.objects.find(x => x.id === id).stamps.length === 1, stampAt.t);
 
+// ---- benches (decision 293): a drawer made a bench from its own Board
+// settings, a setting changed inside it stays in it, and the desk keeps its
+// own; then the Prioritizer, where a task carried into a zone takes its
+// priority; and the Film bench, whose night sky brings its own board.
+const benchAt = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null; S.look.locked = false; BUREAU.render();
+  const d = BUREAU.create('drawer', {parent:'root', title:'Workroom'}); delete d.setup;
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await nap(300);
+  document.querySelector('[data-act="appsettings"]').click(); await nap(400);
+  document.querySelector('[data-bench^="make:"]')?.click(); await nap(300);
+  document.querySelector('[data-flow="rigid"]')?.click(); await nap(300);
+  const inside = { env: JSON.stringify(d.env), rigid: document.querySelector('#frame').classList.contains('rigid'), desk: S.look.flow || '' };
+  document.querySelector('[data-act="panelclose"]')?.click();
+  S.view = 'desk'; S.drawerId = null; BUREAU.render(); await nap(300);
+  return { inside, outside: document.querySelector('#frame').classList.contains('rigid') };
+});
+out.aSettingInABenchStaysInIt = benchAt.inside.env === '{"flow":"rigid"}' && benchAt.inside.rigid
+  && benchAt.inside.desk === '' && benchAt.outside === false;
+out.benchAt = JSON.stringify(benchAt);
+const pz = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  const d = BUREAU.create('wf_prioritizer', {parent:'root', title:'This week'}); delete d.setup;
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await nap(400);
+  const z = S.objects.find(o => o.parent === d.id && o.title === 'Do now');
+  const t = BUREAU.create('task', {parent:d.id, title:'Send the invoice'}); delete t.setup;
+  BUREAU.render(); await nap(300);
+  // a new thing arrives outside every zone: being in one is a decision
+  const z2 = S.objects.filter(o => o.parent === d.id && o.kind === 'zone');
+  const inZone = z2.some(q => t.phone.y >= q.phone.y && t.phone.y < q.phone.y + q.phone.h
+    && t.phone.x < q.phone.x + q.phone.w && t.phone.x + t.phone.w > q.phone.x);
+  const el = id => document.querySelector(`#drawergrid [data-row="${id}"]`);
+  el(z.id).scrollIntoView({block: 'start'}); await nap(300);
+  const a = el(t.id).getBoundingClientRect(), b = el(z.id).getBoundingClientRect();
+  return { d: d.id, t: t.id, inZone, style: document.documentElement.dataset.style,
+    from: {x: a.x + a.width / 2, y: a.y + a.height / 2}, to: {x: b.x + b.width / 2, y: b.y + b.height / 2 + 20} };
+});
+await page.mouse.move(pz.from.x, pz.from.y); await page.mouse.down(); await nap(400);
+await page.mouse.move(pz.to.x, pz.to.y, {steps: 10}); await nap(100); await page.mouse.up(); await nap(400);
+await shot('14-prioritizer');
+out.aNewThingArrivesOutsideTheZones = !pz.inZone;
+out.aZoneGivesWhatItSays = pz.style === 'golf97' && await page.evaluate(id => {
+  const o = BUREAU.state.objects.find(x => x.id === id); return o.prio === 5 && o.diff === 2; }, pz.t);
+out.theFilmBenchIsANightRoom = await page.evaluate(async () => {
+  const S = BUREAU.state, nap = n => new Promise(r => setTimeout(r, n));
+  S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const d = BUREAU.create('film', {parent:'root', title:'Low Tide'}); delete d.setup;
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); await nap(400);
+  const g = document.querySelector('#drawergrid');
+  // the aesthetic's own night board, with no board of its birth over it
+  return document.documentElement.dataset.style === 'starry'
+    && getComputedStyle(g).getPropertyValue('--board-1').trim().toUpperCase() === '#07080C'
+    && S.objects.filter(o => o.parent === d.id && o.kind === 'zone').length === 4;
+});
+await shot('15-film-bench');
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
+out.theDeskKeepsItsOwnRoom = await page.evaluate(() => document.documentElement.dataset.style === BUREAU.state.look.style);
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

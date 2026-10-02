@@ -148,6 +148,8 @@ function planFrom(cid, nm){
        plan and is given to the container the plan is put down in. Kind names
        only — nothing in it is an id to re-point. See decision 199. */
     makes: c.makes ? JSON.parse(JSON.stringify(c.makes)) : undefined,
+    env: c.env ? JSON.parse(JSON.stringify(c.env)) : undefined,
+    stamp: c.stampw ? {w:c.stampw, ink:c.stampink} : undefined,
     /* The orders its letter block steps through, and the one it is on
        (decision 215): a flow says how its boards sort as much as what is on
        them. */
@@ -181,7 +183,12 @@ function stampPlan(planId, intoId, at){
     if(Array.isArray(p.sorts) && !hb.sortCycle) hb.sortCycle = p.sorts.slice();
     if(p.sort && !hb.sort) hb.sort = p.sort;
     // …and what its drawer front carries, onto a board that has not said (220)
-    if(p.rail && !hb.rail) hb.rail = JSON.parse(JSON.stringify(p.rail)); }
+    if(p.rail && !hb.rail) hb.rail = JSON.parse(JSON.stringify(p.rail));
+    // …and its room, so a bench arrives with it (decision 293)
+    if(p.env && !hb.env){ hb.env = JSON.parse(JSON.stringify(p.env));
+      // an aesthetic brings its own board, so the one it was born with steps aside
+      if(p.env.style) delete hb.board; }
+    if(p.stamp && !hb.stampw){ hb.stampw = p.stamp.w; hb.stampink = p.stamp.ink; } }
   /* **A plan is an arrangement, so the drawer grows to hold it.** Since
      decision 188 a container's board is its own tile, four cells to a cell —
      so a plan authored eight cells across and twelve down no longer fits a

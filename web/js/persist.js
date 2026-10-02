@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.86';
+const APP_VERSION = '2.87';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +267,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 56;
+const DATA_V = 57;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1392,6 +1392,22 @@ const MIGRATIONS = [
   {v:56, up(d){
     if(d.deskCfg) delete d.deskCfg.boards;
     (d.objects || []).forEach(o=>{ if(o && o.boards) delete o.boards; });
+  }},
+  /* ---- benches (decision 293) -------------------------------------------
+     The Brain Dump and the two film flows are benches now: each carries its
+     room (`env`), its stamp and, for the films, a scene pipeline. Their stored
+     copies are replaced, as 55 did; boards already put down from the old ones
+     are arrangements and are left alone. The Prioritizer is added by key. */
+  {v:57, up(d){
+    d.plans = d.plans || [];
+    const fresh = {}; stockPlans().forEach(p=>{ fresh[p.stock] = p; });
+    d.plans.forEach(p=>{ if(!p || !['braindump','shortfilm','featurefilm'].includes(p.stock)) return;
+      const f = fresh[p.stock]; if(!f) return;
+      ['objects','of','sec','boards','start','dims','makes','life','rail','env','stamp'].forEach(k=>{
+        if(f[k]!==undefined) p[k] = JSON.parse(JSON.stringify(f[k])); else delete p[k]; });
+    });
+    const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
+    if(!have.has('prioritizer') && fresh.prioritizer) d.plans.push(fresh.prioritizer);
   }},
 ];
 function migrate(d){

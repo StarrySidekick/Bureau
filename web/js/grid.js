@@ -1,6 +1,6 @@
 import { wordOf } from './words.js';
 import { clamp, ROOT, BIN } from './util.js';
-import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront, isInbox } from './model.js';
+import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront, isInbox, setting, isZone } from './model.js';
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -921,7 +921,7 @@ function shelfOrigin(cid, device){
   // a Mac draws its whole board, so its shift is only ever the pad (274)
   return (device||dev())!=='phone' || flows(device) ? {x: -g.padX, y: -g.pad} : {x: at.x*g.shelfW, y: at.y*g.shelfH};
 }
-/* **A phone board can scroll instead of paging** (decision 209). `S.look.flow`
+/* **A phone board can scroll instead of paging** (decision 209). `setting('flow')`
    — unset is the rigid swipe, a shelf at a time; `'scroll'` draws the whole
    column of shelves the phone is standing in and lets the scroller carry you
    down it, the way a Mac's board has always been reached. Sideways is still
@@ -930,13 +930,13 @@ function shelfOrigin(cid, device){
    you have scrolled to. One question, asked here, so the window, the drawn
    rows and every reader of the shift cannot disagree about it. */
 /* **Always, since decision 272.** A phone is one geometry now: the column of
-   tiles in a scroller fourteen rows tall. *A tile at a time* (`S.look.flow ===
+   tiles in a scroller fourteen rows tall. *A tile at a time* (`setting('flow') ===
    'page'`) is not a second layout any more — it is where the scroll settles,
    a whole tile centred rather than the nearest row of cells (`snapBoard()` in
    views.js). An eight-row tile paged on a fourteen-row screen was six rows of
    bare wood. */
 const flows = device => (device||dev())==='phone';
-const byTile = () => !!(S.look && S.look.flow==='page');
+const byTile = () => !!(S.look && setting('flow')==='page');
 /* **Drawn with a tile's pad round it**: a phone that scrolls, since 272,
    and since decision 274 a Mac **zoomed out**, because the zoom out to every
    tile is gone and the plus on an empty slot is how a tile is added. At no
@@ -993,7 +993,7 @@ function setZoom(cid, z){
    finger and a swipe moves exactly one tile, which is decision 141's paging
    given back as an option now that a tile is not the screen. The setting is
    the app's (`rigidOn`); it only does anything on a phone (`rigidSwipe`). */
-const rigidOn = () => !!(S.look && S.look.flow==='rigid');
+const rigidOn = () => !!(S.look && setting('flow')==='rigid');
 const rigidSwipe = device => (device||dev())==='phone' && rigidOn();
 
 // Tolerate a drawer that predates x/y, or one hand-edited into nonsense.
@@ -1133,7 +1133,9 @@ function freeSpotIn(w,h,device,parentId,prefer,clearOnly){
   const floats = d => has(d,'decor') || has(d,'backdrop') || wordOf(d,'layer')==='above';
   childrenOf(container(home)).forEach(d=>{
     if(inFront(d) || !hasBox(d, dv)) return;
-    const b = lay(d, dv, home), hit = [!has(d,'backdrop'), !floats(d)];
+    /* A zone is a decision (decision 293): a new thing never lands in one by
+       itself, so it is taken in both passes. A drop still goes in freely. */
+    const b = lay(d, dv, home), hit = [!has(d,'backdrop') || isZone(d), !floats(d) || isZone(d)];
     for(let j=0; j<(b.h||1); j++) for(let i=0; i<b.w; i++){
       const k = (b.x+i)+','+(b.y+j);
       if(hit[0]) taken.true.add(k);

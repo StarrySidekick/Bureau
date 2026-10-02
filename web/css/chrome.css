@@ -6968,3 +6968,8 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 /* two cells of event: the leaf was 44px of 98 and the name had 32 */
 .drawer.otile.sh-event.sz-narrow .evleaf{width:clamp(36px, 22cqw, 96px);padding-inline:3px}
 .drawer.otile.sh-event.sz-narrow .evbody{padding-left:6px;padding-right:5px}
+
+/* ---- a bench's room, in Board settings — decision 293 ------------------ */
+.benchrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid color-mix(in srgb, var(--ink-3) 25%, transparent)}
+.benchrow > span{flex:1;min-width:150px;font-size:13px}
+.benchrow > span i{font-style:normal;opacity:.6;font-size:12px}

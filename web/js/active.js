@@ -1,6 +1,6 @@
 import { esc } from './util.js';
 import { S, byId, K, SORT_FACES, MANUAL, sortOf, container, boardLocked, SUITS, suitOf,
-  STAMP_WORDS, STAMP_INKS, stampOf, stampInk } from './model.js';
+  STAMP_WORDS, STAMP_INKS, stampOf, stampInk, setting } from './model.js';
 import { objColour } from './look.js';
 import { save } from './persist.js';
 
@@ -465,7 +465,7 @@ const ACTIVE = {
         + azRing(o.id, 'stampink', Object.entries(STAMP_INKS).map(([k,[n]])=>[k, n]), st.ink)
         + azSay('Press it, then press things to stamp them. Press it again to put it down.'); }
   }),
-  tswipe: tool('swipe', 'Swipe switch', 'Smooth scroll or a rigid swipe', ()=>!!(S.look && S.look.flow==='rigid')),
+  tswipe: tool('swipe', 'Swipe switch', 'Smooth scroll or a rigid swipe', ()=>!!(S.look && setting('flow')==='rigid')),
   /* ---- the metronome ---------------------------------------------------
      A wedge with a scale up it and a bar that swings. The swing is a CSS
      animation whose duration is the beat, so the pendulum keeps time with the

@@ -10,7 +10,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   isPicture, isMedia, isPlayable, isDecor, isBackdrop, fillOf, mediaTypeOf, loopOf, frameOf, isWindow,
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
-  groupOf, sealOf, isSealed, stampsOf, stampInk, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn } from './model.js';
+  groupOf, sealOf, isSealed, stampsOf, stampInk, isZone, zoneSaid, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn, setting } from './model.js';
 import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
@@ -1667,7 +1667,7 @@ function drawTileFace(o, arr, box, persp){
      attribute — so a branch of drawTile() nobody has thought about gets it too,
      the same way --tscale does. The stylesheet only uses it under `.pinboard`;
      off, the two custom properties sit there costing nothing. */
-  const tilt = S.look.pinned ? tiltOf(o.id) : null;
+  const tilt = setting('pinned') ? tiltOf(o.id) : null;
   /* The slot's three numbers, folded into `place` for the same reason
      `--tscale` is: it is the tail of every tile's style attribute, so a branch
      of drawTile() nobody has thought about gets them too. They are written only
@@ -2645,6 +2645,15 @@ function drawTileFace(o, arr, box, persp){
      edge and no hardware, only its fill in its own colour. Below the other
      tiles by `z-index`, and on a locked board it takes no taps, so the things
      standing on it are what you press. */
+  /* **A zone** (decision 293): a place that means something, so unlike a
+     background it says so: its name and what it gives, along its top edge,
+     over a wash of its colour inside a dashed edge. */
+  if(isZone(o)){
+    const said = zoneSaid(o);
+    return `<button class="drawer otile bgtile zonetile fill-zone${sel}" data-row="${o.id}"
+      title="${esc(o.title||'Zone')}${said?' · '+esc(said):''}" style="--c:${colour};${place}">
+      <span class="zonelab"><b>${esc(o.title||'Zone')}</b>${said?`<i>${esc(said)}</i>`:''}</span>${handles}</button>`;
+  }
   if(isBackdrop(o)){
     // a Board's squares line up with the board's own (two cells a period)
     const par = fillOf(o)==='board' ? `--mx:${((box.x-1)%2+2)%2};--my:${((box.y-1)%2+2)%2};` : '';
@@ -3566,7 +3575,7 @@ function gridOfContainer(cid){
   const crosses = vacant ? '' : tileCrosses(c.id, g, shift, cols, rows);
   const zk = zoomOf(c.id);
   return `<div class="grid g-${dv}${zk!==1?' zoomed':''}${narrow?' narrowboard':''}${vacant?' vacant':''}${
-      dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${show?' showcase':''}${sorted?' sorted':''}${S.look.pinned?' pinboard':''}${gravityOn()?' falling':''}"
+      dv!=='phone' && cols > GRID.desk.cols ? ' wideboard' : ''}${arr===true?' arranging':''}${boardLocked()?' locked':''}${show?' showcase':''}${sorted?' sorted':''}${setting('pinned')?' pinboard':''}${gravityOn()?' falling':''}"
        id="drawergrid" data-gridfor="${c.id}"${zk!==1 ? ` data-zk="${zk.toFixed(4)}"` : ''}
        style="${boardVars}${zk!==1 ? `--zk:${zk.toFixed(4)};--rowb:${(g.rowh/zk).toFixed(3)}px;` : ''}--cols:${cols};--rowh:${g.rowh}px;--checkerx:${2*colw}px;--checkery:${2*g.rowh}px;grid-auto-rows:${g.rowh}px;grid-template-rows:repeat(${Math.max(rows,1)},${g.rowh}px)">${papers}${vacant?'':tiles+lights+strings}${holes.html}${crosses}
   </div>`;

@@ -1,4 +1,4 @@
-import { S, K, has, isContainer } from './model.js';
+import { S, K, has, isContainer, setting, setSetting } from './model.js';
 import { hexOf, bestInk } from './look.js';
 
 /* ============================================================
@@ -12,8 +12,8 @@ import { hexOf, bestInk } from './look.js';
    whatever you were reading, and ink could not be chosen at all.
 
    **Four layers, first answer wins:** the object's own field, then what you
-   said for every object of its type (`S.look.words[kind]`), then what you said
-   for every written thing on the desk (`S.look.words['*']`), then the type's
+   said for every object of its type (`setting('words')[kind]`), then what you said
+   for every written thing on the desk (`setting('words')['*']`), then the type's
    built-in table (`words` on a kind). Kept in `S.look` rather than as a copy
    of the kind in `S.kinds`, because an overridden kind moves to *Yours* in the
    picker and takes every other field of the type with it.
@@ -111,7 +111,7 @@ const WORD_KEYS = ['tfont','hfont','ink','paperc','tweight','titalic','tcase','t
 const set = v => v!=null && v!=='';
 /* The layer under the object: your type default, then your desk default. */
 function layerOf(o, key){
-  const w = S.look && S.look.words;
+  const w = S.look && setting('words');
   if(!w || !o) return null;
   if(w[o.kind] && set(w[o.kind][key])) return w[o.kind][key];
   if(w['*'] && set(w['*'][key])) return w['*'][key];
@@ -128,7 +128,7 @@ function wordOf(o, key){
 function wordFrom(o, key){
   if(!o) return '';
   if(set(o[key])) return 'its own';
-  const w = S.look && S.look.words;
+  const w = S.look && setting('words');
   if(w && w[o.kind] && set(w[o.kind][key])) return 'every '+K(o.kind).nm.toLowerCase();
   if(w && w['*'] && set(w['*'][key])) return 'every written thing';
   const k = K(o.kind).words;
@@ -198,21 +198,23 @@ const wordKey = o => { const w=wordStyle(o); return w.cls+'|'+w.vars; };
 function wordsToType(o, scope){
   if(!o) return 0;
   const key = scope==='*' ? '*' : o.kind;
-  S.look.words = S.look.words || {};
-  const into = Object.assign({}, S.look.words[key]);
+  // a copy written back whole, so a bench's defaults stay the bench's (293)
+  const all = Object.assign({}, setting('words') || {});
+  const into = Object.assign({}, all[key]);
   let n=0;
   WORD_KEYS.forEach(k=>{ if(set(o[k])){ into[k]=o[k]; n++; } });
-  S.look.words[key]=into;
+  all[key]=into;
+  setSetting('words', all);
   return n;
 }
 function clearTypeWords(kind){
-  if(S.look.words) delete S.look.words[kind];
+  if(setting('words')){ const all = Object.assign({}, setting('words')); delete all[kind]; setSetting('words', all); }
 }
 function clearOwnWords(o){
   const was={}; WORD_KEYS.forEach(k=>{ if(o[k]!==undefined){ was[k]=o[k]; delete o[k]; } });
   return was;
 }
-const typeHasWords = kind => !!(S.look.words && S.look.words[kind] && Object.keys(S.look.words[kind]).length);
+const typeHasWords = kind => !!(setting('words') && setting('words')[kind] && Object.keys(setting('words')[kind]).length);
 const ownWords = o => !!o && WORD_KEYS.some(k=>set(o[k]));
 
 export { FONTS, INKS, PAPERS, WEIGHTS, CASES, TRACKS, ALIGNS, VALIGNS, LEADS, SHOWS, HALOS, LAYERS,

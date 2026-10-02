@@ -307,6 +307,15 @@ and the order, and it is where "what now" is read from. Its §6 has five
 questions for him. The rubber stamp was the first feature through it
 (decision 292, v2.86).
 
+**Then, his answers (same day):** seven benches (the five, plus a Brain Dump
+and a Prioritizer); a bench is the tools and affordances present, *"an
+environment where the particular thing the bench is about is easier to
+accomplish because it's set up to be so"*; aesthetics per bench, mixed and
+matched like a system; a bench is a workflow you can have several of; the
+Day bench waits. Built as decision 293 (v2.87): the room (`env`), zones, and
+the Brain Dump, Prioritizer and Film benches. `docs/BENCHES.md` §0 has his
+words and §5 the order from here.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
