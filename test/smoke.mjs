@@ -2628,7 +2628,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const homes = new Set(all.map(o => o.parent));
     // a compound is several of the others, each of which is here (decision 254)
     // …and a cut type has no specimen, since it is not one you can make (294)
-    return { one: kinds.every(k => BUREAU.K[k].parts || BUREAU.isCut(k) || all.some(o => o.kind === k)),
+    return { one: kinds.every(k => BUREAU.K[k].parts || BUREAU.isCut(k) || BUREAU.isShelved(k) || all.some(o => o.kind === k)),
              named: all.every(o => o.title === BUREAU.K[o.kind].nm),
              // …and none of it on the desk, which is what a first desk is for
              offTheDesk: !all.some(o => o.parent === 'root'),
@@ -9370,8 +9370,9 @@ const CHROME = process.env.BUREAU_CHROME;
     document.querySelector(`#ctx [data-c="become:${tk.id}"]`).click(); await nap(250);
     const kinds = [...document.querySelectorAll('#panel [data-become]')]
       .map(e => e.dataset.become.split(':')[1]);
-    out.andItAsksWhichKindOfWork = kinds.length > 3 && kinds.includes('film')
-      && kinds.includes('project');
+    // the kinds of work on offer, which leave out the shelved ones (295)
+    out.andItAsksWhichKindOfWork = kinds.includes('film') && kinds.includes('project')
+      && kinds.includes('pj_featurefilm') && !kinds.includes('pj_novel');
     document.querySelector(`#panel [data-become="${tk.id}:film"]`).click(); await nap(300);
     out.andItIsOneAfterwards = tk.kind === 'film' && BUREAU.isContainer(tk);
     /* The origin is held — a conversion may change what a thing is and must
@@ -10808,8 +10809,10 @@ const CHROME = process.env.BUREAU_CHROME;
     const sw = S.deskCfg.sort; T.tileTap(ids.tblock); out.blockSorts = S.deskCfg.sort !== sw; S.deskCfg.sort = null; B.render();
     // one on the board: a random drawer brings its own contents (decision 244)
     const onRoot = () => S.objects.filter(o => o.parent === 'root').length;
-    const n = onRoot(); T.tileTap(ids.coin); await nap(150);
-    out.coinMakesOne = onRoot() === n + 1;
+    const had = new Set(S.objects.map(o => o.id)); T.tileTap(ids.coin); await nap(150);
+    // one thing, or one compound: several objects made as one group (decision 254)
+    const fresh = S.objects.filter(o => o.parent === 'root' && !had.has(o.id));
+    out.coinMakesOne = fresh.length === 1 || (fresh.length > 1 && fresh.every(o => o.grp && o.grp === fresh[0].grp));
     const a = S.objects.find(o=>o.id==='d_today'), b = S.objects.find(o=>o.id==='d_in');
     a.rel = []; T.tileTap(ids.spool); out.spoolPicksUp = !!S.threading;
     T.tileTap(a.id); out.firstIsHeld = S.threading && S.threading.from === a.id && S.view === 'desk';
@@ -10885,8 +10888,9 @@ const CHROME = process.env.BUREAU_CHROME;
     const tl = document.querySelector(`[data-drawer="${d.id}"]`);
     if(tl) tl.click(); await nap(350);
     out.theFirstTapAsks = B.setupOpen() && !!document.querySelector('#setup .suq')
-      // four, and a way of working since decision 236
-      && document.querySelectorAll('#setup .suchoice').length === 5 && S.view === 'desk';
+      // four, and a way of working since decision 236, less the part of a
+      // life while its benches are shelved (decision 295)
+      && document.querySelectorAll('#setup .suchoice').length === 4 && S.view === 'desk';
     out.fillsTheScreen = (() => { const r = document.querySelector('#setup').getBoundingClientRect();
       return r.width >= innerWidth - 1 && r.height >= innerHeight - 1; })();
     pick('work'); await nap(200);

@@ -419,7 +419,7 @@ flows carry `env` and `stamp`; migration 57.
 *Add to this…* line, `MAKES()`, the type seeds and (migration 58) every
 garden already on a desk or in a saved flow are notepads; the museum shows
 no cut types.
-**v2.90** (decision 295): **flows are benches, and most are shelved.** Every
+**v2.90–2.91** (decision 295): **flows are benches, and most are shelved.** Every
 "flow" and "workflow" in the interface says **bench** (the Workflow type is
 the Bench, the Flows door is Benches); the code keeps `plan`, `workflow` and
 `wf_*`. Only `BENCH_READY` (Brain Dump, Prioritizer, Short Film, Feature

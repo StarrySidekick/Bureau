@@ -12428,7 +12428,7 @@ types were born holding, and anything already on a desk.
 - The `generator` type itself stays defined and cut, as every cut type does,
   and `dispense()` stays, because a Button set to make presses through it.
 
-## 295. Flows are benches, and the unworked ones are shelved (v2.90, 2026-10-02)
+## 295. Flows are benches, and the unworked ones are shelved (v2.90–2.91, 2026-10-02)
 
 Timothy: *"for the time being, the flows we haven't worked on specifically
 for this new bench thing, hide. Also, all mentions of workflow or flow should
@@ -12466,3 +12466,10 @@ grammar's stock list marks each bench *offered* or *shelved*; the dated
 history (this file, `ROADMAP.md`, `USES.md`, the version log in `CLAUDE.md`)
 keeps the word it was written in, with a note that a flow is an older name
 for a bench.
+
+v2.91: the smoke suite counts what shelving changed (four choices on a
+drawer's card, the kinds of work offered, no shelved specimens in the
+museum), checks the shelving itself and unshelves for the aspects test; and
+the coin test counts a compound as one thing, which it is (a toss that made
+one had been failing it at random since compounds joined the coin).
+`BUREAU.isShelved` is exposed for the tests.
