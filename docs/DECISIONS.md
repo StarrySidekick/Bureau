@@ -12692,3 +12692,9 @@ Tested in WebKit first (`test/safari.mjs`: the bench is a deck that ranks,
 each line written is a card in it, pressed it opens full screen, swiping to
 the end gives the order wanted in at most eight swipes for five cards, the
 deck's `ranked` and `top` agree, Done closes; shots 15b, 16 and 17).
+
+v2.95's smoke run also caught a test that random makes could fail: a
+spawner set to anything counted every new object beside it, and a random
+Brain Dump puts its quick add in the desk's front (297) and a compound is
+several parts. That count, and the coin's, now leave out what stands in the
+front and count a group once.

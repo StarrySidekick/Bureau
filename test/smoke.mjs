@@ -9112,13 +9112,17 @@ const CHROME = process.env.BUREAU_CHROME;
       /* Counted on the board: a drawer or a list made at random brings two to
          four things inside it since decision 244, so the desk grows by more
          than one a press and only what lands beside the spawner is its. */
-      const beside = () => S.objects.filter(o => !before.has(o.id) && o.parent === g.parent);
+      /* …and a compound is its parts in one group (decision 254), and a Brain
+         Dump puts a notepad in the desk's front (297), which is not the board:
+         so a press is a thing or a group, and the front is not counted. */
+      const beside = () => S.objects.filter(o => !before.has(o.id) && o.parent === g.parent && !o.front);
+      const presses = () => { const seen = new Set(); return beside().filter(o => !o.grp || (!seen.has(o.grp) && seen.add(o.grp))); };
       for(let i=0;i<6;i++){
         tile(g.id).dispatchEvent(new MouseEvent('click',{bubbles:true}));
         await nap(120);
       }
       const kinds = new Set(beside().map(o => o.kind));
-      out.andMakesSomethingEachPress = beside().length === 6;
+      out.andMakesSomethingEachPress = presses().length === 6;
       out.andNotAlwaysTheSameThing = kinds.size > 1;
       // the picker's first two rows, and the collage (decision 204)
       // out of what the fifteen open onto (decision 240)
@@ -10817,7 +10821,7 @@ const CHROME = process.env.BUREAU_CHROME;
     const onRoot = () => S.objects.filter(o => o.parent === 'root').length;
     const had = new Set(S.objects.map(o => o.id)); T.tileTap(ids.coin); await nap(150);
     // one thing, or one compound: several objects made as one group (decision 254)
-    const fresh = S.objects.filter(o => o.parent === 'root' && !had.has(o.id));
+    const fresh = S.objects.filter(o => o.parent === 'root' && !had.has(o.id) && !o.front);   // a Brain Dump's front notepad is not the board (297)
     out.coinMakesOne = fresh.length === 1 || (fresh.length > 1 && fresh.every(o => o.grp && o.grp === fresh[0].grp));
     const a = S.objects.find(o=>o.id==='d_today'), b = S.objects.find(o=>o.id==='d_in');
     a.rel = []; T.tileTap(ids.spool); out.spoolPicksUp = !!S.threading;
