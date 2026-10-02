@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, stampsOf, isZone, zoneWrites, zoneSaid, ZONE_TRAITS, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid, setting, setSetting } from './model.js';
+  placeOf, cfgOf, isHeld, stampsOf, isZone, zoneWrites, zoneSaid, ZONE_TRAITS, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid, setting, setSetting, isShelved } from './model.js';
 import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -1196,7 +1196,7 @@ function someKind(){
      answers the question each would have asked (a thing done, a card, a tag
      to sort for). Only a bare Aspect of Life stays out, because its types
      (`lf_*`) are all in the bag and each is that answer already. */
-  const ok = k => KINDS[k] && !isCut(k) && !K(k).cat && !K(k).makesAny
+  const ok = k => KINDS[k] && !isCut(k) && !isShelved(k) && !K(k).cat && !K(k).makesAny
     && !K(k).asksLife && !kindHas(k,'control') && !K(k).parts;
   /* **One of the fifteen, then one of what it holds.** Flat, a third of the
      tosses were a part of your life or a kind of project, each laying a whole

@@ -798,7 +798,7 @@ const SETSECS = {
      is running. It sits among the look doors because that is what you are
      looking at when you want it. See decision 143. */
   guide:  ['Specimen Book','book', 'every aesthetic, and everything it dresses'],
-  plans:  ['Flows',      'grid',    'boards set up for one kind of work, to lay out again'],
+  plans:  ['Benches',    'grid',    'boards set up for one kind of work, to lay out again'],
   /* Your Things is the head of About (decision 255). */
   paste:  ['Paste an Object', 'plus',    'objects described as JSON'],
   about:  ['About',      'help',    'how much there is, getting it out, which Bureau this is, and starting over']

@@ -41,19 +41,23 @@ get there. Where they disagree about order, this file is newer.
 
 ## 1. What a bench is
 
-A **flow** is an arrangement: what sits on a board and where (decision 121,
-`plans.js`). A bench is a flow that also brings **the room and the tools** with
-it, so the thing it is for is easier to do in it than anywhere else.
+**Every flow is called a bench now** (decision 295, Timothy: *"all mentions
+of workflow or flow should be replaced with bench in all places"*). A bench is
+an arrangement, what sits on a board and where (decision 121, `plans.js`,
+`plan` in the code), and it may also bring **the room and the tools** with it,
+so the thing it is for is easier to do in it than anywhere else. The ones not
+yet worked on as benches are **shelved** for now: only Brain Dump,
+Prioritizer, Short Film and Feature Film are offered (`BENCH_READY`).
 
 | Layer | What it is | Where it lives |
 | --- | --- | --- |
-| **Arrangement** | the objects and where they sit, on one or several tiles | the flow's objects |
+| **Arrangement** | the objects and where they sit, on one or several tiles | the bench's objects (`plan`) |
 | **Room** | the settings that hold inside it: aesthetic, palette, board color and strength, light or dark, surface, scroll or rigid swipe, bars, gravity, Words defaults, pinned | `env` on the container (decision 293) |
 | **Tools at hand** | the drawer front's tools, including the stamp and what it says | `rail`, `stampw`/`stampink` |
 | **Affordances** | what the Magic Selector makes here, and zones that turn a placement into a decision | `makes.only`, `zone` objects |
 | **Setup card** | the questions it asks on its first tap | `SETUPS` |
 
-A bench is a **workflow type** (`wf_*`) or a project type with a flow, so there
+A bench is a **Bench type** (`wf_*` in the code) or a project type laid out as a bench, so there
 can be several of one (a Film bench per film) or one of another (the Brain
 Dump).
 
@@ -76,8 +80,8 @@ Dump).
   bench*; what the bench decides, each with *Desk's* (forget it, the desk
   decides) and *Everywhere* (make it the desk's too); the aesthetic picker;
   *Stop being a bench*.
-- A flow carries `env` and `stamp` the way it carries `rail` and `makes`, and
-  a captured flow keeps them, so a bench's room is reusable anywhere.
+- A bench carries `env` and `stamp` the way it carries `rail` and `makes`, and
+  one you save keeps them, so a bench's room is reusable anywhere.
 
 ### Zones, as built
 
@@ -108,7 +112,7 @@ ten-minute hourglass, and the way in along the bottom. In **Golf 97**. Front:
 glass, block (sort), the stamp (says *Done*, green). Because the zone writes
 real fields, every board's *Most important first* agrees with the decision.
 
-**3. Film** (`film`, `pj_featurefilm`, one per film). The film flows with
+**3. Film** (`film`, `pj_featurefilm`, one per film). The film benches with
 their departments, plus a **scene pipeline** board: four zones a scene card
 walks across, *Written*, *Prepped*, *Shot*, *Cut*, each giving its tag. In
 **Starful Gothic** (a screening room), with a rigid swipe from department to
@@ -137,7 +141,7 @@ lens, series and graph paper.
 2. **Scope it as a general thing:** an attribute, a type, a tool, a face or a
    setting, named in Bureau's grammar. *Never* a branch on a bench's name.
 3. **Build it, test it in WebKit, write its decision.** It is then a feature
-   of Bureau: in the picker, in the grammar, and available to any flow.
+   of Bureau: in the picker, in the grammar, and available to any bench.
 4. **Put it into every bench in its row**, then live in the bench and write
    down what is still missing. That list is the next round.
 
@@ -177,7 +181,7 @@ bench for a pipeline, and one feature answered both.
 
 1. Should **a room be saved on its own**, so the Film bench's room can be put
    on a drawer that is not a film (a named room, picked from a list)? Today it
-   travels with a flow, or is set by hand in the Bench section.
+   travels with a bench, or is set by hand in the Bench section.
 2. Zones give priority, effort and a tag. Others worth adding: a **date**
    (a "This week" zone), a **color**, a **stamp**.
 3. Should **leaving a zone** take back what it gave? Today it keeps it until

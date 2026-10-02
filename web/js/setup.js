@@ -1,5 +1,5 @@
 import { $, esc, ic, D, ROOT, outURL } from './util.js';
-import { S, K, KINDS, T, dz, byId, has, isContainer, childrenOf, familyList, everyTag, faceOf, genKindOf, ASPECT_KINDS, WORKFLOW_KINDS, SUITS, SUIT_NAMES } from './model.js';
+import { S, K, KINDS, T, dz, byId, has, isContainer, childrenOf, familyList, everyTag, faceOf, genKindOf, ASPECT_KINDS, WORKFLOW_KINDS, SUITS, SUIT_NAMES, isShelved, isShelvedPlan } from './model.js';
 import { BACKS, backHTML } from './active.js';
 import { becomeKind, create, pushSet, toast, seedInto, CONTROLS, CTL_KEYS } from './mutations.js';
 import { plans, planById, planTop, stampPlan, planForKind } from './plans.js';
@@ -272,11 +272,12 @@ const STEPS = {
   'drawer.for': {
     q:'What is this drawer for?', sub:'The answer decides what it is. Anything here can be changed later in its editor.',
     ask:()=>[
-      choice('work', 'Something I am making', 'a project — a film, a book, an app, a trip', typeArt('project')),
-      choice('life', 'A part of my life', 'health, money, the people in it — it is never finished', typeArt('life')),
+      choice('work', 'Something I am making', 'a film, or a project of your own', typeArt('project')),
+      // shelved for now while its benches wait (decision 295)
+      isShelved('life') ? null : choice('life', 'A part of my life', 'health, money, the people in it — it is never finished', typeArt('life')),
       choice('tag', 'Everything with a tag', 'it gathers by itself instead of holding', typeArt('magic')),
-      choice('flow', 'A way of working', 'a brainstorm, a brain dump, several projects at once', typeArt('workflow')),
-      choice('keep', 'A place to keep things', 'a plain drawer, nothing more', typeArt('drawer'))],
+      choice('flow', 'A bench', 'a room set up for one way of working: a brain dump, a prioritizer', typeArt('workflow')),
+      choice('keep', 'A place to keep things', 'a plain drawer, nothing more', typeArt('drawer'))].filter(Boolean),
     answer:(o,v)=>{
       if(v==='work'){ becomeKind(o.id, 'project'); return 'project.what'; }
       if(v==='life'){ becomeKind(o.id, 'life'); return 'life.board'; }
@@ -301,14 +302,14 @@ const STEPS = {
       .map(([f,nm,n])=>choice(f, nm, n, typeArt(f==='front'?'drawer':f==='checklist'||f==='list'?f:f==='collage'?'moodboard':'book'))),
     answer:(o,v)=>{ pushSet('Changed', o.id, 'face', o.face); o.face = v==='front' ? undefined : v; return 'name'; }},
   'project.what': {
-    q:'What are you making?', sub:'A kind of work, or a flow laid out inside it ready to use.',
+    q:'What are you making?', sub:'A kind of work, or a bench laid out inside it ready to use.',
     /* Every kind of work is a type with its flow now (decision 238), so the
        flows are only offered here when they are one you saved yourself. */
     ask:()=>{ const typed = new Set(Object.values(KINDS).map(d=>d.plan).filter(Boolean));
       return familyList('project').filter(k=>KINDS[k]).map(k=>choice('kind:'+k, K(k).nm, K(k).ds||'', typeArt(k)))
-        .concat(plans().filter(p=>p && p.sec==='project' && !typed.has(p.id))
-          .map(p=>choice('plan:'+p.id, p.nm||'A flow', 'a flow you saved, laid out inside', planArt(p)))); },
-    group: v => v.startsWith('plan:') ? 'Or start from a flow' : 'A kind of work',
+        .concat(plans().filter(p=>p && p.sec==='project' && !typed.has(p.id) && !isShelvedPlan(p))
+          .map(p=>choice('plan:'+p.id, p.nm||'A bench', 'a bench you saved, laid out inside', planArt(p)))); },
+    group: v => v.startsWith('plan:') ? 'Or start from a bench' : 'A kind of work',
     answer:(o,v)=>{
       if(v.startsWith('plan:')) layFlow(o, v.slice(5));
       else becomeFresh(o, v.slice(5));
@@ -323,7 +324,7 @@ const STEPS = {
      laid out inside, and then its own questions. */
   'life.board': {
     q:'What part of your life is it for?', sub:'Each comes laid out for what it is for. Its knob is how you will know it.',
-    ask:()=>ASPECT_KINDS.filter(k=>KINDS[k]).map(k=>choice(k, K(k).nm, K(k).ds||'', typeArt(k)))
+    ask:()=>ASPECT_KINDS.filter(k=>KINDS[k] && !isShelved(k)).map(k=>choice(k, K(k).nm, K(k).ds||'', typeArt(k)))
       .concat(choice('none', 'No board, just a drawer', 'you lay it out yourself')),
     group: v => v==='none' ? 'Or' : (PLAN_SEC[(K(v).plan||'').replace('pl_stock_','')]==='experience' ? 'Something you take in' : 'A part of your life'),
     answer:(o,v)=>{
@@ -332,8 +333,8 @@ const STEPS = {
       return aspectStart(v) || null;
     }},
   'workflow.which': {
-    q:'Which way of working?', sub:'Each is a board laid out for it.',
-    ask:()=>WORKFLOW_KINDS.filter(k=>KINDS[k]).map(k=>choice(k, K(k).nm, K(k).ds||'', typeArt(k))),
+    q:'Which bench?', sub:'Each is a room set up for one way of working, with its own look and tools.',
+    ask:()=>WORKFLOW_KINDS.filter(k=>KINDS[k] && !isShelved(k)).map(k=>choice(k, K(k).nm, K(k).ds||'', typeArt(k))),
     answer:(o,v)=>{ becomeFresh(o, v); return null; }},
   'tag.which': {
     q:'What should it gather?', sub:'Everything carrying this tag, wherever it lives. Two or more with & between.',

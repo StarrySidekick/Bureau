@@ -2,7 +2,7 @@
 //
 // GRAMMAR.md is how Claude (or anything else outside Bureau) builds in Bureau:
 // the rules are written by hand, and the words those rules use (every type,
-// field, face, shape, flow and compound) are made here, from the app itself,
+// field, face, shape, bench and compound) are made here, from the app itself,
 // the way the specimen book and the Workshop snapshot are (decisions 143 and
 // 246). One generator, so the list cannot drift from the app it describes.
 //
@@ -33,7 +33,7 @@ const V = await page.evaluate(async () => {
   const others = M.KEYS.filter(k => !listed.has(k) && !M.isCut(k) && !(M.S.kinds && M.S.kinds[k]));
   const fields = Object.entries(M.FIELDS).map(([a, f]) => ({ a, key: f.key, type: f.type, nm: f.nm, derived: !!f.derived, meta: !!f.meta }));
   const attrs = Object.entries(M.ATTRS).map(([a, d]) => ({ a, nm: d.nm, ds: d.ds }));
-  const flows = P.plans().filter(p => p && p.stock).map(p => ({ nm: p.nm, stock: p.stock, sec: p.sec || '', of: p.of || '',
+  const flows = P.plans().filter(p => p && p.stock).map(p => ({ nm: p.nm, stock: p.stock, shelved: M.isShelvedPlan(p), sec: p.sec || '', of: p.of || '',
     things: [...new Set((p.objects || []).map(o => String(o.title || '').trim()).filter(Boolean))] }));
   const compounds = Object.entries(M.COMPOUNDS).map(([k, d]) => ({ k, nm: d.nm, ds: d.ds, parts: d.parts.map(p => p.k + ' "' + (p.t || '') + '"') }));
   return { masters, kinds, others, cut: M.CUT_KINDS, fields, attrs, flows, compounds,
@@ -43,7 +43,7 @@ await browser.close();
 
 const cell = s => String(s ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const out = [];
-out.push(START, '', '*Made by `node scripts/grammar.mjs` from the running app. Do not edit by hand; rerun it after changing a type, a field or a flow.*', '');
+out.push(START, '', '*Made by `node scripts/grammar.mjs` from the running app. Do not edit by hand; rerun it after changing a type, a field or a bench.*', '');
 
 out.push('### The fifteen, and the types inside each', '',
   'The `type` to write is the key in `code`. A name or a near spelling also works (`kindFromName()`), but the key is never ambiguous. Sizes are the phone default, wide × tall, in cells.', '');
@@ -55,14 +55,14 @@ for (const m of V.masters) {
   }
   out.push('');
 }
-out.push('### Types outside the fifteen', '', 'Still made, still valid in a paste, never offered by a picker: what flows and older desks use.', '',
+out.push('### Types outside the fifteen', '', 'Still made, still valid in a paste, never offered by a picker: what benches and older desks use.', '',
   '| type | name | size | holds | what it is |', '| --- | --- | --- | --- | --- |');
 for (const k of V.others) { const r = V.kinds[k]; out.push(`| \`${k}\` | ${cell(r.nm)} | ${r.w}×${r.h} | ${r.holds ? 'yes' : ''} | ${cell(r.ds)} |`); }
 out.push('', `**Cut, never write these:** ${V.cut.map(k => '`' + k + '`').join(', ')}.`, '');
 
-out.push('### Flows (stock boards)', '', 'Name one in `plan`. Its things are what `fill` can address by title.', '',
-  '| plan | name | list | type it makes | things on it, by title |', '| --- | --- | --- | --- | --- |');
-for (const f of V.flows) out.push(`| \`${f.stock}\` | ${cell(f.nm)} | ${f.sec} | \`${f.of}\` | ${cell(f.things.join(', '))} |`);
+out.push('### Benches (stock boards)', '', 'Name one in `plan`. Its things are what `fill` can address by title. *Offered* is whether Timothy can make it from the app now; a shelved one (decision 295) is hidden from every picker for the time being but can still be pasted, so build on an offered one unless he asks for another.', '',
+  '| plan | name | offered | list | type it makes | things on it, by title |', '| --- | --- | --- | --- | --- | --- |');
+for (const f of V.flows) out.push(`| \`${f.stock}\` | ${cell(f.nm)} | ${f.shelved ? 'shelved' : '**yes**'} | ${f.sec} | \`${f.of}\` | ${cell(f.things.join(', '))} |`);
 out.push('');
 
 out.push('### Compounds', '', 'Several objects made as one, grouped and tied. Make one with its key as the `type`. It needs its whole footprint clear, see §5.', '',
@@ -86,4 +86,4 @@ const next = doc.slice(0, a) + out.join('\n') + doc.slice(b + END.length);
 if (process.argv.includes('--check')) {
   if (next !== doc) { console.error('GRAMMAR.md vocabulary is stale: run node scripts/grammar.mjs'); process.exit(1); }
   console.log('GRAMMAR.md vocabulary is current');
-} else { writeFileSync(DOC, next); console.log(`GRAMMAR.md: ${Object.keys(V.kinds).length} types, ${V.flows.length} flows, ${V.compounds.length} compounds`); }
+} else { writeFileSync(DOC, next); console.log(`GRAMMAR.md: ${Object.keys(V.kinds).length} types, ${V.flows.length} benches, ${V.compounds.length} compounds`); }

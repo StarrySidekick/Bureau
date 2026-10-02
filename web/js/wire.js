@@ -5,7 +5,7 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
-  sortOf, sortCycleOf, SORT_FACES, inFront, isCut, stampOf, setting, setSetting, putLook, unsetSetting, envSync } from './model.js';
+  sortOf, sortCycleOf, SORT_FACES, inFront, isCut, stampOf, setting, setSetting, putLook, unsetSetting, envSync, isShelved } from './model.js';
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
@@ -173,9 +173,9 @@ function makeFromPlan(planId, kind, whereId){
   pending.cell = at;
   placeAtPending(box);
   const made = pl ? stampPlan(pl.id, box.id) : [];
-  pushUndo(pl ? 'Lay out a flow' : 'Make a drawer', [box].concat(made).map(o=>({add:o.id})));
+  pushUndo(pl ? 'Lay out a bench' : 'Make a drawer', [box].concat(made).map(o=>({add:o.id})));
   save(); render(); reveal(box.id);
-  if(pl) toast(`${pl.nm||'A flow'}, laid out inside`, true);
+  if(pl) toast(`${pl.nm||'A bench'}, laid out inside`, true);
   return box;
 }
 
@@ -999,7 +999,7 @@ function act(name, el){
       const p = planFrom(cid);
       if(!p){ toast('Nothing to save'); break; }
       save(); refreshPanel();
-      toast(`Saved “${p.nm}” as a flow — ${planSize(p)} thing${planSize(p)===1?'':'s'}`);
+      toast(`Saved “${p.nm}” as a bench — ${planSize(p)} thing${planSize(p)===1?'':'s'}`);
       break;
     }
     case 'allplans': plansPanel(); break;
@@ -1941,9 +1941,9 @@ function wire(){
         return; }
       const made = stampPlan(pp.dataset.planput, where, cell);
       pending.cell = null;
-      if(!made.length){ toast('That flow is empty'); return; }
+      if(!made.length){ toast('That bench is empty'); return; }
       // one move, so ⌘Z takes the whole arrangement back off in one press
-      pushUndo('Lay out a flow', made.map(o=>({add:o.id})));
+      pushUndo('Lay out a bench', made.map(o=>({add:o.id})));
       closePanel(); save(); render();
       const top = made.filter(o=>o.parent===where)[0];
       if(top) reveal(top.id);
@@ -2935,7 +2935,7 @@ function wire(){
          called .toLowerCase() on it unguarded, so any letter that did not
          match one of the first dozen types threw before it could miss. */
       const want = e.key.toLowerCase();
-      const k = KEYS.find(x => !isCut(x) && (KINDS[x].key||'').toLowerCase()===want);
+      const k = KEYS.find(x => !isCut(x) && !isShelved(x) && (KINDS[x].key||'').toLowerCase()===want);
       // the same way in as pressing the tile: the cell, and the questions
       if(k){ newOfKind(k); return; }
     }

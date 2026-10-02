@@ -922,9 +922,11 @@ const WORKFLOWS = [
   ['projectmgmt','Project Management',13,'target','Several projects at once: what is next and when'],
   ['prioritizer','Prioritizer',13,'grid','What matters, decided by where you put it'],
 ];
-BUILTIN_KINDS.workflow = {nm:'Workflow', ic:'target', c:5, face:'front', setup:'workflow',
-  ds:'A drawer laid out for a way of working', attrs:['container'], layout:'grid',
-  family:WORKFLOWS.map(w=>'wf_'+w[0]), famSub:'Which way of working?', size:[2,2], phoneSize:[2,2], body:''};
+/* Called a **Bench** in the interface (decision 295); `workflow` and `wf_*`
+   stay the keys, the way a plan stayed `plan` when it was called a flow. */
+BUILTIN_KINDS.workflow = {nm:'Bench', ic:'target', c:5, face:'front', setup:'workflow',
+  ds:'A room set up for one way of working, with its own look and tools', attrs:['container'], layout:'grid',
+  family:WORKFLOWS.map(w=>'wf_'+w[0]), famSub:'Which bench?', size:[2,2], phoneSize:[2,2], body:''};
 WORKFLOWS.forEach(([key, nm, c, ic, ds])=>{
   BUILTIN_KINDS['wf_'+key] = {nm, ic, c, ds, face:'front', attrs:['container'], layout:'grid',
     plan:'pl_stock_'+key, size:[2,2], phoneSize:[2,2], body:''};
@@ -983,6 +985,21 @@ const SECONDARY = [];
    Album project (`pj_album`) is the album. */
 const CUT_KINDS = ['magic','recipe','control','generator','tracker','anything','telegram','album'];
 const isCut = k => CUT_KINDS.includes(k);
+/* ---- shelved for now — decision 295 ------------------------------------
+   Timothy, 2026-10-02: the benches not yet worked on as benches are hidden
+   for the time being. A stock bench not in `BENCH_READY`, and a type that is
+   there only to hold one, is **shelved**: not offered by any picker, setup
+   card, coin or list of benches. Nothing is deleted and nothing already on a
+   desk changes; adding a key here brings one back. A paste can still name
+   one, because that is Claude building on purpose. */
+const BENCH_READY = ['braindump','prioritizer','shortfilm','featurefilm'];
+const stockKeyOf = id => typeof id==='string' && id.startsWith('pl_stock_') ? id.slice(9) : null;
+const isShelvedPlan = p => !!(p && p.stock && !BENCH_READY.includes(p.stock));
+const isShelved = k => { if(!KINDS[k]) return false;
+  const s = stockKeyOf(K(k).plan); if(s) return !BENCH_READY.includes(s);
+  // …and a type whose whole family is shelved, which would offer nothing
+  const fam = (K(k).family||[]).filter(m=>m!==k && KINDS[m]);
+  return fam.length > 0 && fam.every(m=>{ const ms = stockKeyOf(K(m).plan); return !!ms && !BENCH_READY.includes(ms); }); };
 const isPrimary = k => PRIMARY.includes(k);
 /* Everything a master opens onto, through families all the way down, so the
    picker's "Everything else" can leave it out. Asked lazily: KINDS is built
@@ -1038,7 +1055,7 @@ const isFragmentKind = k => FAMILY_OF[k]==='fragment' || k==='fragment' ||
    name a type that has since been deleted from KINDS, and a type you invented
    may say it belongs to one. */
 const familyList = cat => {
-  const own = (familyOf(cat)||[]).filter(k=>KINDS[k] && !isCut(k));
+  const own = (familyOf(cat)||[]).filter(k=>KINDS[k] && !isCut(k) && !isShelved(k));
   const mine = KEYS.filter(k=>S.kinds && S.kinds[k] && S.kinds[k].family1===cat && !own.includes(k));
   return own.concat(mine);
 };
@@ -1459,8 +1476,9 @@ function seed(){
     const d=KINDS[k];
     // a compound is made of types that are all here already (decision 254)
     if(d.parts) return;
-    // …and a type that is cut is no longer one you can make (decision 294)
-    if(isCut(k)) return;
+    // …and a type that is cut is no longer one you can make (decision 294),
+    // nor one shelved for now (decision 295)
+    if(isCut(k) || isShelved(k)) return;
     const id='k_'+k;
     museum.push(O({id, kind:k, title:d.nm, tags:['sampler'],
       parent: kindHas(k,'container') ? 'd_alldr' : 'd_allob',
@@ -3801,7 +3819,7 @@ export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, co
   STAMP_WORDS, STAMP_INKS, stampsOf, stampInk, stampOf,
   BORDER_SLOTS, borderOf, TEXTURE_SLOTS, textureOf, STOCKS, STOCK_SLOTS, stockOf,
   KNOBSIZES, knobSizeOf, answered, marginOf, marginPlus, iconOf, TSIZES, textSizeOf, mediaTypeOf, loopOf, isPicture,
-  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, CUT_KINDS, isCut, isBackdrop, FILLS, FILL_KEYS, fillOf,
+  isMedia, isPlayable, acceptFor, acceptAny, MEDIA_EXT, isDecor, CUT_KINDS, isCut, BENCH_READY, isShelved, isShelvedPlan, isBackdrop, FILLS, FILL_KEYS, fillOf,
   spawnByOf, genKindOf, takesTyping, showsAddBox, keepsDone, showsContainers,
   makesOf, madeAtSize,
   CALVIEWS, calViewOf, calShowOf, CALSHOWS, weekStartOf, showsWeekends, calCols,

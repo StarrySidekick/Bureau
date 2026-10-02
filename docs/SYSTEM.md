@@ -578,7 +578,7 @@ waiting (`sortInbox()`).
 
 **A copper pipe** (`pipe`, shape `pipe`) leads to the drawer its `into` names,
 else a drawer tied to it with string that is not an inbox (`pipeTo()`). It
-belongs to an inbox tied to it, or named by `from` on a flow's board
+belongs to an inbox tied to it, or named by `from` on a bench's board
 (`pipesOf()`). It carries one kind (`takes`) or, empty, anything the inbox's
 other pipes do not. A drop on its tile files into the drawer at its other end
 (`data-pipe`, `INTO_AT` in gestures.js), and a tap goes there.

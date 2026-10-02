@@ -12427,3 +12427,42 @@ types were born holding, and anything already on a desk.
   smoke suite exempts them.
 - The `generator` type itself stays defined and cut, as every cut type does,
   and `dispense()` stays, because a Button set to make presses through it.
+
+## 295. Flows are benches, and the unworked ones are shelved (v2.90, 2026-10-02)
+
+Timothy: *"for the time being, the flows we haven't worked on specifically
+for this new bench thing, hide. Also, all mentions of workflow or flow should
+be replaced with bench in all places."*
+
+**Shelved, not cut.** `BENCH_READY` in model.js lists the stock benches
+offered: Brain Dump, Prioritizer, Short Film, Feature Film. Every other stock
+bench is **shelved** (`isShelvedPlan(p)`), and so is a type there only to hold
+one (`isShelved(k)`: its `plan` is a shelved stock bench), and a type whose
+whole family is shelved (the Aspect of Life, every one of whose aspects
+waits). Shelved means **not offered**: `familyList()`, the picker's lists,
+the shape ring's types, `someKind()` (the coin and one of anything), the
+keyboard's type keys, the setup cards (*Which bench?*, the project list, the
+life question, whose choice on the drawer's card is dropped while every
+aspect is shelved), the Benches door, the picker's Benches dropdown, the
+category screen's *Or start from a bench*, the type builder's *Opens fitted
+to*, and the sample desk's museum. It is deliberately **not** asked by
+anything that resolves a name (a paste, `create()`, migrations), so Claude
+can still build on one on purpose and every board already on a desk is
+untouched. Nothing is deleted. A bench you saved yourself is never shelved.
+Bringing one back is a key added to the list.
+
+This rides beside `isCut()` rather than inside it, because a cut type is gone
+for good and refuses a paste's name; a shelved one is waiting.
+
+**The word.** Every "flow" and "workflow" the interface says is now
+**bench**: the Workflow type is the **Bench** (*Which bench?*), Settings →
+Flows is **Benches**, *Save as a bench*, *Or start from a bench*, *Lay out a
+bench* on the undo, *Untitled bench*, and the drawer's setup card offers
+*A bench: a room set up for one way of working*. The code keeps `plan`,
+`workflow` and `wf_*`, the way `plan` stayed `plan` when it was first called a
+flow. The written docs that describe how things work now (`GRAMMAR.md` and
+its generator, `BENCHES.md`, `SYSTEM.md`, the model rules) say bench, and the
+grammar's stock list marks each bench *offered* or *shelved*; the dated
+history (this file, `ROADMAP.md`, `USES.md`, the version log in `CLAUDE.md`)
+keeps the word it was written in, with a note that a flow is an older name
+for a bench.

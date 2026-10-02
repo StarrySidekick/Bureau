@@ -424,11 +424,18 @@ built for making something. **Random is `anything`**, a kind carrying
 is made; `someKind()` must skip it or it could pick itself. Stock flows are
 in four lists now: `life`, `experience`, `project` and `work`.
 
-**The aspects of life and the workflows are generated types** (decision 236).
+**The aspects of life and the workflows (benches, in the interface) are generated types** (decision 236).
 `LIFE_ASPECTS` and `WORKFLOWS` in model.js are tables, and a loop right after
 `BUILTIN_KINDS` writes `lf_<key>` and `wf_<key>` into it, before `FAMILY_OF` is
 computed; add an aspect by adding a row. A type may carry `look` (fields a new
 container starts with before the random roll), `kshape`, `knobc` and `plan`.
-A stock flow names its type in `of`, and the setup card writes into objects
+A stock bench (a flow, once) names its type in `of`, and the setup card writes into objects
 the flow marks `sref` (decision 237). Stock flows live in the desk's data, so
 changing one needs a migration that rebuilds them by `stock` key (45, 47).
+
+**Most stock benches are shelved for now** (decision 295). `BENCH_READY` in
+model.js lists the ones offered; `isShelved(k)` and `isShelvedPlan(p)` say
+whether anything else is. Every place that *offers* a type or a bench to make
+asks them (`familyList()`, the pickers, the setup cards, `someKind()`, the
+Benches door, the museum); nothing that *resolves* a name does, so a paste and
+an existing desk are untouched. Never delete a shelved bench's data.

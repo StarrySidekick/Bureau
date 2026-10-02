@@ -128,7 +128,8 @@ view on a hold**; the glass closes the search too. Subtypes are chosen on the
 ring (`VARIANTS`, `ringInto()`): a Decoration's ornaments, a Painting's
 paintings, a **Background**'s fills (a new type drawn under the other tiles).
 Delete sits at the ring’s lower right. **Plans are called flows** in the
-interface; the code still says plan.
+interface; the code still says plan. (Since decision 295 they are called
+**benches**: read "flow" in this log as an older name for a bench.)
 **v2.14** (decision 217): line view stripes its paper rows in the board's two
 checkerboard colours.
 **v2.15** (decision 218): the Workshop's second pass. The object editor has
@@ -418,6 +419,14 @@ flows carry `env` and `stamp`; migration 57.
 *Add to this…* line, `MAKES()`, the type seeds and (migration 58) every
 garden already on a desk or in a saved flow are notepads; the museum shows
 no cut types.
+**v2.90** (decision 295): **flows are benches, and most are shelved.** Every
+"flow" and "workflow" in the interface says **bench** (the Workflow type is
+the Bench, the Flows door is Benches); the code keeps `plan`, `workflow` and
+`wf_*`. Only `BENCH_READY` (Brain Dump, Prioritizer, Short Film, Feature
+Film) is offered; every other stock bench, and a type there only to hold one,
+is **shelved** (`isShelved()`, `isShelvedPlan()` in model.js): hidden from
+pickers, setup cards, the coin and the Benches door, never deleted, still
+pasteable. Add a key to `BENCH_READY` to bring one back.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -430,9 +439,10 @@ missing for Timothy to live in it, and the case for a freeze.
 answer to each — scoped, not built, and the source of the current plan.
 `docs/USES.md` (2026-10-01) is what Timothy approved Bureau being for, the
 objects that need, and the order to build them. **`docs/GRAMMAR.md` is how to
-build in Bureau** (a paste, a flow and its `fill`, the whole vocabulary):
+build in Bureau** (a paste, a bench and its `fill`, the whole vocabulary):
 read it before writing any board for him, and rerun `node scripts/grammar.mjs`
-after changing a type, a field or a flow.
+after changing a type, a field or a bench. **Say "bench", never "flow" or
+"workflow"**, in the interface and in anything written for him (decision 295).
 
 Read `docs/SYSTEM.md` before changing behaviour and `docs/DECISIONS.md` before
 changing structure — the second one records things that were decided deliberately

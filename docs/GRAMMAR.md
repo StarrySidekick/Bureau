@@ -2,7 +2,7 @@
 
 For Claude, or anything else outside Bureau that writes boards for Timothy.
 Read it before writing a single object. The rules (§1 to §7) are written by
-hand; the words they use (§8: every type, field, flow, face and shape) are
+hand; the words they use (§8: every type, field, bench, face and shape) are
 generated from the running app by `node scripts/grammar.mjs`, so they are what
 the app actually accepts today.
 
@@ -28,7 +28,7 @@ delivered as an object.
 6. Every object has a box on its board **per device**: `phone:{x,y,w,h}` and
    `desk:{x,y,w,h}`, 1-based, and nothing may overlap except decorations and
    backgrounds.
-7. A **flow** (`plan` in the code) is a saved board: a container's whole
+7. A **bench** (`plan` in the code, once called a flow) is a saved board: a container's whole
    arrangement, stamped out when the container is made.
 8. A container's **face** is how its contents show on its outside (a front,
    a checklist, a calendar, a spine); a thing's **shape** is its outline.
@@ -67,7 +67,7 @@ A paste is a JSON **array of specs** (a single spec also works). Fences
 
 | Key | What it sets | Notes |
 | --- | --- | --- |
-| `type` | The type | A key from §8 (`task`, `drawer`, `pj_novel`). Names and near spellings also resolve, and anything unknown becomes a `note`, silently. Write the key. A project or life type (`pj_*`, `lf_*`) arrives with its flow already laid out inside, as it does when made in the app. |
+| `type` | The type | A key from §8 (`task`, `drawer`, `pj_novel`). Names and near spellings also resolve, and anything unknown becomes a `note`, silently. Write the key. A project or life type (`pj_*`, `lf_*`) arrives with its bench already laid out inside, as it does when made in the app. |
 | `title` | The name | Plain, specific, American English, sentence case. |
 | `children` | Things inside it | Specs or bare strings. A type that cannot hold things is **made a drawer** if it is given children. |
 | `body` | The words | Markdown, §6. |
@@ -90,10 +90,10 @@ A paste is a JSON **array of specs** (a single spec also works). Fences
 Anything else in a spec is **ignored**, including `x`/`y`, `rel`, `milestones`,
 `media` and every look field. Not an error: it simply does not arrive.
 
-## 4. Building on a flow: `plan`, `fill`, `children`
+## 4. Building on a bench: `plan`, `fill`, `children`
 
 The strongest thing a paste can do. A spec with `plan` makes a container
-**already laid out as that flow**, then fills it in, so Timothy gets a board
+**already laid out as that bench**, then fills it in, so Timothy gets a board
 that looks lived in rather than a heap of objects beside an empty one
 (decision 197; `docs/examples/lived-in.json` is eleven of these).
 
@@ -112,10 +112,10 @@ that looks lived in rather than a heap of objects beside an empty one
 }
 ```
 
-- **`plan`** names a flow by its key, its name or its id (§8, *Flows*).
-- **`type`**, if it names a container, is what gets made; otherwise the flow's
+- **`plan`** names a bench by its key, its name or its id (§8, *Benches*).
+- **`type`**, if it names a container, is what gets made; otherwise the bench's
   own type is used.
-- **`fill`** addresses things already on the flow **by their title** (the
+- **`fill`** addresses things already on the bench **by their title** (the
   *things on it* column in §8, which includes things inside its drawers).
   Where a title appears twice, the one lying on the board wins over one
   inside a drawer (Short Film has a *Shot list* checklist on the board and a
@@ -128,12 +128,12 @@ that looks lived in rather than a heap of objects beside an empty one
     special ones: **`tick`** (titles of the things inside to check off),
     **`milestones`** (titles of its milestones to mark done) and **`dates`**
     (`{"title": "YYYY-MM-DD"}` for the things inside).
-- **`children`** adds more things inside, beyond the flow's own.
+- **`children`** adds more things inside, beyond the bench's own.
 
-`fill` **cannot rearrange** a flow. Its layout is the flow's.
+`fill` **cannot rearrange** a bench. Its layout is the bench's.
 
-**Prefer a flow to building by hand** whenever one fits. Timothy has rebuilt
-the flows several times and they are his arrangement. Building a board out of
+**Prefer a bench to building by hand** whenever one fits. Timothy has rebuilt
+the benches several times and they are his arrangement. Building a board out of
 loose `children` is the fallback for when nothing fits.
 
 ## 5. What a paste cannot do yet
@@ -156,8 +156,8 @@ the flat-pack format has to add. Each is a real limit today, not a convention.
 7. **Look.** Words (`words`), knobs, panels, papers, paintings, drawn art,
    the drawer front's six places (`front`): none.
 8. **Pictures, sound, video.** Bytes live in IndexedDB; a paste carries none.
-9. **A new board shape.** A container is made at its type's size; a flow's
-   `boards`/`dims` come only from the flow.
+9. **A new board shape.** A container is made at its type's size; a bench's
+   `boards`/`dims` come only from the bench.
 
 When Timothy asks for something on this list, say it cannot be pasted yet and
 either build the nearest thing that can, or propose the change to the paste
@@ -188,7 +188,7 @@ kept as space.
 
 **The house pattern for a prompt in a body** is a bold label, a spaced em dash,
 and room to answer, one per paragraph: `**Bring —** insurance card`. The stock
-flows use it throughout, so a filled one reads like them.
+benches use it throughout, so a filled one reads like them.
 
 ## 7. How to build a good board
 
@@ -213,7 +213,7 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
   choices from the Workshop and the aesthetic.
 - **Never use a cut type** (§8 lists them) or invent a type key, and never
   make a `bin`: there is one garbage bin, made by the first delete.
-- **An inbox comes with its pipes from a flow.** A paste can make an `inbox`
+- **An inbox comes with its pipes from a bench.** A paste can make an `inbox`
   and a `pipe`, but cannot tie them (§5), and an untied pipe leads nowhere.
   For a brain dump, write `{"plan": "braindump"}` and `fill` its lists; for
   anything else, paste the inbox and say which pipes to lay by hand.
@@ -225,7 +225,7 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
 
 1. It parses as JSON (no trailing commas, no comments).
 2. Every `type` and `plan` is a key in §8.
-3. Every `fill` title is on that flow's list in §8, spelled the same.
+3. Every `fill` title is on that bench's list in §8, spelled the same.
 4. Dates are `YYYY-MM-DD`; numbers are numbers, not strings.
 5. Nothing relies on a field §3 says is ignored.
 
@@ -233,7 +233,7 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
 
 <!-- vocabulary:start -->
 
-*Made by `node scripts/grammar.mjs` from the running app. Do not edit by hand; rerun it after changing a type, a field or a flow.*
+*Made by `node scripts/grammar.mjs` from the running app. Do not edit by hand; rerun it after changing a type, a field or a bench.*
 
 ### The fifteen, and the types inside each
 
@@ -323,7 +323,6 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `postcard` | Postcard | 5×4 |  | A picture one side, the writing the other |
 | `character` | Character | 4×6 |  | Someone in the story |
 | `place` | Place | 5×6 |  | Somewhere in the story |
-| `world` | World | 8×8 | yes | The people, places and things a story is set in |
 | `artifact` | Artifact | 4×4 |  | A thing that matters |
 | `creature` | Creature | 4×5 |  | Something alive that is not a person |
 | `histevent` | Historical event | 6×4 |  | Something that happened, before the story starts |
@@ -391,7 +390,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 
 ### Types outside the fifteen
 
-Still made, still valid in a paste, never offered by a picker: what flows and older desks use.
+Still made, still valid in a paste, never offered by a picker: what benches and older desks use.
 
 | type | name | size | holds | what it is |
 | --- | --- | --- | --- | --- |
@@ -400,6 +399,7 @@ Still made, still valid in a paste, never offered by a picker: what flows and ol
 | `trip` | Trip | 3×2 | yes | Somewhere you are going |
 | `writing` | Essay | 3×3 | yes | An essay, an article or a blog post, and the work around it |
 | `bin` | Garbage bin | 2×2 | yes | Where deleted things go. Open it to sift through them; hold one to put it back |
+| `world` | World | 8×8 | yes | The people, places and things a story is set in |
 | `film` | Film | 2×2 | yes | A film, and everything it is made of |
 | `game` | Game | 2×4 | yes | A game, and everything it is made of |
 | `song` | Song | 2×2 | yes | A song, and everything it is made of |
@@ -441,7 +441,7 @@ Still made, still valid in a paste, never offered by a picker: what flows and ol
 | `pj_album` | Album | 2×2 | yes | A record, track by track |
 | `pj_handmade` | Handmade Object | 2×2 | yes | Something made by hand, materials to finish |
 | `pj_device` | Device | 2×2 | yes | A thing with parts, wiring and code |
-| `workflow` | Workflow | 2×2 | yes | A drawer laid out for a way of working |
+| `workflow` | Bench | 2×2 | yes | A room set up for one way of working, with its own look and tools |
 | `wf_brainstorming` | Brainstorm | 2×2 | yes | Ideas out fast, timed, with prompts to push on |
 | `wf_braindump` | Brain Dump | 2×2 | yes | Everything out of your head, sorted later |
 | `wf_projectmgmt` | Project Management | 2×2 | yes | Several projects at once: what is next and when |
@@ -455,54 +455,54 @@ Still made, still valid in a paste, never offered by a picker: what flows and ol
 
 **Cut, never write these:** `magic`, `recipe`, `control`, `generator`, `tracker`, `anything`, `telegram`, `album`.
 
-### Flows (stock boards)
+### Benches (stock boards)
 
-Name one in `plan`. Its things are what `fill` can address by title.
+Name one in `plan`. Its things are what `fill` can address by title. *Offered* is whether Timothy can make it from the app now; a shelved one (decision 295) is hidden from every picker for the time being but can still be pasted, so build on an offered one unless he asks for another.
 
-| plan | name | list | type it makes | things on it, by title |
-| --- | --- | --- | --- | --- |
-| `health` | Health | life | `lf_health` | Appointments, Next appointment, Book these, Physical, Dentist cleaning, Eye exam, Skin check, Ask the doctor, Records, Medications and doses, Allergies and history, Insurance, Results, Patient portal, Find a doctor, Add to this…, Water, Sleep, Steps, Vitamins, Numbers |
-| `money` | Finances | life | `lf_money` | What there is, Your bank, Credit card, Investments, Budget, Savings, A first cushion, One month of expenses, Three months, Financial goals, Three months put by, Pay off the card, Put something into retirement every month, Bills, Rent, Phone, Card, Look over the month, When it is owed, Add to this… |
-| `exercise` | Exercise | life | `lf_exercise` | Your fitness app, The routine, Strength, A run, Strength again, A long walk, Moved today, What it is for, Three sessions a week, a month running, A first milestone of your own, Sessions, Rest, Cadence, Apple Fitness, Nike Run Club, Add to this… |
-| `nutrition` | Nutrition | life | `lf_nutrition` | Good for me, Go easy on, Allergies and intolerances, Water, Reflux: easier on it, Reflux: triggers, Look a food up, Eat right, Add to this… |
-| `partner` | Partner | life | `lf_partner` | Dates, Date ideas, Date night, Somewhere neither of us has been, Cook something new together, Gift ideas, Things to tell her, Anniversary, Pick a date, Go back to where you met, A walk somewhere new, Board games and takeout, A show, a museum or a gig, Breakfast out, phones away, Cook her favorite, Book a table, Things to do, Flowers, Add to this… |
-| `family` | Family | life | `lf_family` | Everyone, Check in, Call home, Message someone you have not in a while, Birthdays and visits, Next time we are together, Plan the next visit, Something to do together, Photographs, Video call, Send a card, Add to this… |
-| `friends` | Friends | life | `lf_friends` | Friends, Check in, Text someone you have not in a while, Plan something for everyone, Plans, Something to do, Dinner at somebody’s place, A walk and a coffee, Game night, See a show, Go somewhere for the day, Just call, Where do I wish I had friends?, Meetups, Something on, Split the bill, Add to this… |
-| `communities` | Communities | life | `lf_communities` | Part of, Would like to join, Gatherings, Show up, Go to the next one, Offer to help with something, What could I give?, Meetups, Volunteer, Local events, Add to this… |
-| `home` | Home | life | `lf_home` | Kitchen, Wipe down, Clean the fridge, Bins out, Bathroom, Clean the sink and mirror, Scrub the shower, New towels, Bedroom, Change the sheets, Laundry, Living room, Vacuum, Dust, Ten minutes of tidying, This month, Find a pro, Add to this…, Fix and maintain, Replace the air filter, Test the smoke alarms, The thing that drips, Shopping, Light bulbs, Batteries, Bin bags, Manuals and warranties, Hardware |
-| `things` | Things | life | `lf_things` | The car, Oil change, Rotate the tires, Registration, Inspection, Insurance, VIN and plate, The laptop, Back it up, Install the updates, Serial, warranty and where it was bought, The phone, Serial and plan, Everything else, Due, Warranties and receipts, Find a mechanic, Apple support, Add to this… |
-| `travel` | Travel | experience | `lf_travel` | Want to go, Been, Somewhere new, A city you know one thing about, Somewhere a train can take you, Where a book you loved is set, The coast in winter, A friend’s home town, A country whose food you love, Find somewhere new, Map, Next trip, Trips, Packing, Passport or ID, Chargers, Medication, Add to this…, Bookings, Getting there, Where we are staying, Getting around, While we are there, Eat, See, Do, Flights, Somewhere to stay, Day by day |
-| `films` | Films | experience | `lf_films` | Letterboxd, Drama, Comedy, Horror and thrillers, Science fiction, Animation, Documentary, Add to this… |
-| `books` | Books | experience | `lf_books` | To read, Favorites, A note on a book…, Book notes, On my shelves, Libby, Find a library, The StoryGraph, Bookshop, Add to this… |
-| `music` | Music | experience | `lf_music` | Favorite songs, Artists, Inspirations, Put something on, An album start to finish, Something from the year you were born, A genre you never play, What you loved at sixteen, A live recording, Something a friend sent you, Spotify, Bandcamp, Gigs near me, Add to this… |
-| `visual` | Artwork | experience | `lf_visual` | Favorite works, Artists, Museums to visit, Shows and openings, Look closer, Draw what you see for five minutes, What is the light doing?, Stand where the artist stood, What would you take home?, Read nothing, then read the label, Find the oldest thing in the room, Find new art, Find a museum, The Met, Add to this… |
-| `games` | Games | experience | `lf_games` | To play, Favorites, How far into this one, What to play, The one you stopped halfway, Something short, Co-op with a friend, A board game night, A classic, The newest thing you own, Roll, Just finished…, Finished, Backloggd, BoardGameGeek, Add to this… |
-| `food` | Food | experience | `lf_food` | Restaurants to try, Foods to try, Recipes to try, Tonight, Somewhere you have walked past a hundred times, A cuisine you have never had, Cook the recipe you saved last month, Breakfast for dinner, The place a friend keeps mentioning, Something with one ingredient you have never used, Book a table, Recipes, Near me, Add to this… |
-| `shortfilm` | Short Film | project | `film` | Where it stands, Stages, Logline, Script locked, Cast, Crew, Locations, Shot list, Shoot, Picture lock, Sound and color, Festivals, What is it about?, Script, Beats, Shoot days, First shoot day, Call sheets, Add to this…, Roles to cast, Characters, The lead, Who is in the way, Auditions, Contacts and agents, Casting days, Post a casting call, Find crew, Storyboard, The look, Props, Wardrobe, References, Scouting photos, Permits and permissions, Map, Find a location, Notes from the scout, Written, Prepped, Shot, Cut, Scene 1, Scene 2, Scene 3, New scene |
-| `featurefilm` | Feature Film | project | `pj_featurefilm` | Where it stands, Stages, Treatment, First draft, Rewrite, Financing, Casting, Crew, Locations, Schedule, Shoot, Edit, Sound and music, Color, Festivals and distribution, What is it about?, Screenplay, Production, First shoot day, Schedule and budget, Festivals, Add to this…, Roles to cast, Characters, The lead, Who is in the way, Auditions, Contacts and agents, Casting days, Post a casting call, Find crew, Storyboard, Shot list, The look, Props, Wardrobe, References, Scouting photos, Permits and permissions, Map, Find a location, Notes from the scout, Written, Prepped, Shot, Cut, Scene 1, Scene 2, Scene 3, New scene |
-| `tvshow` | TV Show | project | `pj_tvshow` | What is the show?, The bible, Characters, The lead, Who is in the way, The friend, Pilot, Stages, Pitch, Bible, Pilot rewrite, Episodes broken, Series pitch, Where it stands, Screenplay, Add to this…, Episode 1, Beats, Episode 2, Episode 3, Episode 4, Episode 5, Episode 6, The season |
-| `videoessay` | Video Essay | project | `pj_videoessay` | Where it stands, What is the argument?, Stages, Research, Outline, Script, Record the voice, Gather footage, Edit, Sound, Thumbnail and title, Publish, Words a day, Publishing, Your channel, Footage, Add to this…, Sources, Clips, Look, Edit notes |
-| `song` | Song | project | `song` | Lyrics, Chords and structure, Tempo, Takes, Voice memo, Stages, Idea, Demo, Arrangement, Record, Mix, Master, Release, Where it stands, Distribute it, Add to this… |
-| `album` | Album | project | `pj_album` | Where it stands, What is the record about?, Stages, Songs written, Demos, Tracklist, Recording, Mixing, Mastering, Artwork, Release, Sessions and release, Tempo, Distribute it, Bandcamp, Add to this…, Track 1, Track 2, Track 3, Track 4, Track 5, Track 6 |
-| `musical` | Musical | project | `pj_musical` | What is it about?, Book, Characters, The lead, Who is in the way, Scenes and songs, Stages, Story, Song list, Book draft, Songs demoed, Table read, Workshop, Staging, Where it stands, Tempo, Rehearsal space, Add to this…, Opening number, The I want song, Act one finale, Eleven o’clock number, Demos |
-| `play` | Play | project | `pj_play` | What is it about?, The play, Characters, The lead, Who is in the way, Scenes, Stages, Idea, First draft, Reading, Rewrite, Casting, Rehearsals, Tech, Opening, Where it stands, Rehearsals and shows, Schedule rehearsals, Add to this… |
-| `script` | Screenplay | project | `pj_script` | What is it about?, The script, Beats, Pages a day, Stages, Logline, Treatment, Beat sheet, First draft, Notes, Rewrite, Polish, Where it stands, Characters, Write it, Add to this… |
-| `novel` | Novel | project | `pj_novel` | What is it about?, Words a day, Write until it burns down, Sprint, Stages, Premise, Outline, First draft, Second draft, Readers, Final draft, Query or publish, Chapters, Where it stands, The manuscript, Find an agent, Write it, Add to this…, Characters, The lead, Who is in the way, The one who helps, The world, Places, Where it starts, Research, Look and feel |
-| `shortstory` | Short Story | project | `pj_shortstory` | What is it about?, The story, Characters, The lead, Words a day, Stages, Idea, Draft, Rest it, Rewrite, Readers, Submit, Where it stands, Write until it burns down, Where to send it, Add to this… |
-| `poem` | Poem | project | `pj_poem` | The poem, A way in, Begin with an object on the table, Write it as a letter, Only questions, Fourteen lines, The weather, and something else, Steal a first line, Ten minutes, Drafts, Lines worth keeping, Where to send it, Add to this… |
-| `essay` | Essay | project | `writing` | What is the argument?, The essay, Outline, Words a day, Sources, Stages, Research, Draft, Cut, Edit, Publish, Look it up, Where it stands, Add to this… |
-| `blogpost` | Blog Post | project | `pj_blogpost` | Who is it for, and what will they get?, The post, Headings, Publish on, Stages, Idea, Draft, Pictures, Edit, Title and summary, Publish, Share it, Your blog, Where it stands, Add to this… |
-| `application` | Application | project | `app` | What does it do, for whom?, This release, Stages, Sketch, Prototype, Core feature, Test with someone, Polish, Ship, Screens, Bugs, The hard part, The repository, Design, Add to this… |
-| `website` | Website | project | `pj_website` | Who is it for, and what should they do?, Pages, Look, Stages, Pages and words, Build, Content in, Test on a phone, Launch, The words, Where it stands, The site, Hosting, Add to this… |
-| `game` | Game | project | `game` | What does the player do?, The rules, Test roll, Cards to try, A card, Another card, Stages, Core loop, Paper prototype, First playtest, Rules rewrite, Art, Second playtest, Release, Mechanics, Where it stands, Playtest notes, Print and play, Engine, Add to this… |
-| `world` | Fantasy World | project | `world` | What makes it different?, History, Places, The capital, The edge of the map, Peoples and groups, Those in power, Laws of the world, How magic works, What it costs, Roll for it, What if…, A war nobody remembers, A god who left, A trade route, A forbidden word, Characters, Make a map, Add to this… |
-| `device` | Device | project | `pj_device` | What does it do?, Parts, Sketches and wiring, Stages, Sketch, Parts ordered, Breadboard, Firmware, Enclosure, Test, Done, What is not working, Where it stands, Code, Add to this… |
-| `handmade` | Handmade Object | project | `pj_handmade` | What is it, and who is it for?, Materials, References, Stages, Design, Make a test, Make it, Finish, Give it or keep it, Hours at the bench, One session, Where it stands, Supplies, Add to this… |
-| `artwork` | Artwork | project | `artpiece` | What is it about?, Studies, References, Hours making, Stages, Sketches, Materials, Underpainting, The work, Finish, Photograph it, Where it stands, A timed study, Supplies, Add to this… |
-| `braindump` | Brain Dump | work | `wf_braindump` | Inbox, Apple Notes, Do, Someday, Questions, Keep, Add to this… |
-| `prioritizer` | Prioritizer | work | `wf_prioritizer` | Do now, Plan it, Squeeze in, Let it go, Ask it, Will this matter in a year?, What happens if it never gets done?, Who is waiting on it?, Is there a smaller version?, What would make the rest easier?, Is it yours to do?, Ten minutes, How it works, Give it a time, Add to this… |
-| `projectmgmt` | Project Management | work | `wf_projectmgmt` | Now, three at most, Next, Waiting on someone, Paused, Deadlines, Google Calendar, Focus, What one thing moves it most?, What can you drop?, What is blocked, and by whom?, Finish before you start, What is due first?, Ship the smallest version, Deep work, Add to this…, Someday, maybe…, Someday, Ideas for projects, Picking the next one, Can’t choose, The rule, Finished, Shipped this year, Looking back, Weekly review, Review, What did you finish?, What stalled, and why?, What should stop?, Who needs an update?, What is next week’s one thing?, This month |
-| `brainstorming` | Brainstorm | work | `wf_brainstorming` | The question, Another idea…, Everything, no judging, The best three, Five minutes, Pick one at random, Oblique turns, Reverse it, Make it absurd, What would a child do?, Steal from another field, Make it free, Make it ten times bigger, Next step, Are.na, Add to this… |
+| plan | name | offered | list | type it makes | things on it, by title |
+| --- | --- | --- | --- | --- | --- |
+| `health` | Health | shelved | life | `lf_health` | Appointments, Next appointment, Book these, Physical, Dentist cleaning, Eye exam, Skin check, Ask the doctor, Records, Medications and doses, Allergies and history, Insurance, Results, Patient portal, Find a doctor, Add to this…, Water, Sleep, Steps, Vitamins, Numbers |
+| `money` | Finances | shelved | life | `lf_money` | What there is, Your bank, Credit card, Investments, Budget, Savings, A first cushion, One month of expenses, Three months, Financial goals, Three months put by, Pay off the card, Put something into retirement every month, Bills, Rent, Phone, Card, Look over the month, When it is owed, Add to this… |
+| `exercise` | Exercise | shelved | life | `lf_exercise` | Your fitness app, The routine, Strength, A run, Strength again, A long walk, Moved today, What it is for, Three sessions a week, a month running, A first milestone of your own, Sessions, Rest, Cadence, Apple Fitness, Nike Run Club, Add to this… |
+| `nutrition` | Nutrition | shelved | life | `lf_nutrition` | Good for me, Go easy on, Allergies and intolerances, Water, Reflux: easier on it, Reflux: triggers, Look a food up, Eat right, Add to this… |
+| `partner` | Partner | shelved | life | `lf_partner` | Dates, Date ideas, Date night, Somewhere neither of us has been, Cook something new together, Gift ideas, Things to tell her, Anniversary, Pick a date, Go back to where you met, A walk somewhere new, Board games and takeout, A show, a museum or a gig, Breakfast out, phones away, Cook her favorite, Book a table, Things to do, Flowers, Add to this… |
+| `family` | Family | shelved | life | `lf_family` | Everyone, Check in, Call home, Message someone you have not in a while, Birthdays and visits, Next time we are together, Plan the next visit, Something to do together, Photographs, Video call, Send a card, Add to this… |
+| `friends` | Friends | shelved | life | `lf_friends` | Friends, Check in, Text someone you have not in a while, Plan something for everyone, Plans, Something to do, Dinner at somebody’s place, A walk and a coffee, Game night, See a show, Go somewhere for the day, Just call, Where do I wish I had friends?, Meetups, Something on, Split the bill, Add to this… |
+| `communities` | Communities | shelved | life | `lf_communities` | Part of, Would like to join, Gatherings, Show up, Go to the next one, Offer to help with something, What could I give?, Meetups, Volunteer, Local events, Add to this… |
+| `home` | Home | shelved | life | `lf_home` | Kitchen, Wipe down, Clean the fridge, Bins out, Bathroom, Clean the sink and mirror, Scrub the shower, New towels, Bedroom, Change the sheets, Laundry, Living room, Vacuum, Dust, Ten minutes of tidying, This month, Find a pro, Add to this…, Fix and maintain, Replace the air filter, Test the smoke alarms, The thing that drips, Shopping, Light bulbs, Batteries, Bin bags, Manuals and warranties, Hardware |
+| `things` | Things | shelved | life | `lf_things` | The car, Oil change, Rotate the tires, Registration, Inspection, Insurance, VIN and plate, The laptop, Back it up, Install the updates, Serial, warranty and where it was bought, The phone, Serial and plan, Everything else, Due, Warranties and receipts, Find a mechanic, Apple support, Add to this… |
+| `travel` | Travel | shelved | experience | `lf_travel` | Want to go, Been, Somewhere new, A city you know one thing about, Somewhere a train can take you, Where a book you loved is set, The coast in winter, A friend’s home town, A country whose food you love, Find somewhere new, Map, Next trip, Trips, Packing, Passport or ID, Chargers, Medication, Add to this…, Bookings, Getting there, Where we are staying, Getting around, While we are there, Eat, See, Do, Flights, Somewhere to stay, Day by day |
+| `films` | Films | shelved | experience | `lf_films` | Letterboxd, Drama, Comedy, Horror and thrillers, Science fiction, Animation, Documentary, Add to this… |
+| `books` | Books | shelved | experience | `lf_books` | To read, Favorites, A note on a book…, Book notes, On my shelves, Libby, Find a library, The StoryGraph, Bookshop, Add to this… |
+| `music` | Music | shelved | experience | `lf_music` | Favorite songs, Artists, Inspirations, Put something on, An album start to finish, Something from the year you were born, A genre you never play, What you loved at sixteen, A live recording, Something a friend sent you, Spotify, Bandcamp, Gigs near me, Add to this… |
+| `visual` | Artwork | shelved | experience | `lf_visual` | Favorite works, Artists, Museums to visit, Shows and openings, Look closer, Draw what you see for five minutes, What is the light doing?, Stand where the artist stood, What would you take home?, Read nothing, then read the label, Find the oldest thing in the room, Find new art, Find a museum, The Met, Add to this… |
+| `games` | Games | shelved | experience | `lf_games` | To play, Favorites, How far into this one, What to play, The one you stopped halfway, Something short, Co-op with a friend, A board game night, A classic, The newest thing you own, Roll, Just finished…, Finished, Backloggd, BoardGameGeek, Add to this… |
+| `food` | Food | shelved | experience | `lf_food` | Restaurants to try, Foods to try, Recipes to try, Tonight, Somewhere you have walked past a hundred times, A cuisine you have never had, Cook the recipe you saved last month, Breakfast for dinner, The place a friend keeps mentioning, Something with one ingredient you have never used, Book a table, Recipes, Near me, Add to this… |
+| `shortfilm` | Short Film | **yes** | project | `film` | Where it stands, Stages, Logline, Script locked, Cast, Crew, Locations, Shot list, Shoot, Picture lock, Sound and color, Festivals, What is it about?, Script, Beats, Shoot days, First shoot day, Call sheets, Add to this…, Roles to cast, Characters, The lead, Who is in the way, Auditions, Contacts and agents, Casting days, Post a casting call, Find crew, Storyboard, The look, Props, Wardrobe, References, Scouting photos, Permits and permissions, Map, Find a location, Notes from the scout, Written, Prepped, Shot, Cut, Scene 1, Scene 2, Scene 3, New scene |
+| `featurefilm` | Feature Film | **yes** | project | `pj_featurefilm` | Where it stands, Stages, Treatment, First draft, Rewrite, Financing, Casting, Crew, Locations, Schedule, Shoot, Edit, Sound and music, Color, Festivals and distribution, What is it about?, Screenplay, Production, First shoot day, Schedule and budget, Festivals, Add to this…, Roles to cast, Characters, The lead, Who is in the way, Auditions, Contacts and agents, Casting days, Post a casting call, Find crew, Storyboard, Shot list, The look, Props, Wardrobe, References, Scouting photos, Permits and permissions, Map, Find a location, Notes from the scout, Written, Prepped, Shot, Cut, Scene 1, Scene 2, Scene 3, New scene |
+| `tvshow` | TV Show | shelved | project | `pj_tvshow` | What is the show?, The bible, Characters, The lead, Who is in the way, The friend, Pilot, Stages, Pitch, Bible, Pilot rewrite, Episodes broken, Series pitch, Where it stands, Screenplay, Add to this…, Episode 1, Beats, Episode 2, Episode 3, Episode 4, Episode 5, Episode 6, The season |
+| `videoessay` | Video Essay | shelved | project | `pj_videoessay` | Where it stands, What is the argument?, Stages, Research, Outline, Script, Record the voice, Gather footage, Edit, Sound, Thumbnail and title, Publish, Words a day, Publishing, Your channel, Footage, Add to this…, Sources, Clips, Look, Edit notes |
+| `song` | Song | shelved | project | `song` | Lyrics, Chords and structure, Tempo, Takes, Voice memo, Stages, Idea, Demo, Arrangement, Record, Mix, Master, Release, Where it stands, Distribute it, Add to this… |
+| `album` | Album | shelved | project | `pj_album` | Where it stands, What is the record about?, Stages, Songs written, Demos, Tracklist, Recording, Mixing, Mastering, Artwork, Release, Sessions and release, Tempo, Distribute it, Bandcamp, Add to this…, Track 1, Track 2, Track 3, Track 4, Track 5, Track 6 |
+| `musical` | Musical | shelved | project | `pj_musical` | What is it about?, Book, Characters, The lead, Who is in the way, Scenes and songs, Stages, Story, Song list, Book draft, Songs demoed, Table read, Workshop, Staging, Where it stands, Tempo, Rehearsal space, Add to this…, Opening number, The I want song, Act one finale, Eleven o’clock number, Demos |
+| `play` | Play | shelved | project | `pj_play` | What is it about?, The play, Characters, The lead, Who is in the way, Scenes, Stages, Idea, First draft, Reading, Rewrite, Casting, Rehearsals, Tech, Opening, Where it stands, Rehearsals and shows, Schedule rehearsals, Add to this… |
+| `script` | Screenplay | shelved | project | `pj_script` | What is it about?, The script, Beats, Pages a day, Stages, Logline, Treatment, Beat sheet, First draft, Notes, Rewrite, Polish, Where it stands, Characters, Write it, Add to this… |
+| `novel` | Novel | shelved | project | `pj_novel` | What is it about?, Words a day, Write until it burns down, Sprint, Stages, Premise, Outline, First draft, Second draft, Readers, Final draft, Query or publish, Chapters, Where it stands, The manuscript, Find an agent, Write it, Add to this…, Characters, The lead, Who is in the way, The one who helps, The world, Places, Where it starts, Research, Look and feel |
+| `shortstory` | Short Story | shelved | project | `pj_shortstory` | What is it about?, The story, Characters, The lead, Words a day, Stages, Idea, Draft, Rest it, Rewrite, Readers, Submit, Where it stands, Write until it burns down, Where to send it, Add to this… |
+| `poem` | Poem | shelved | project | `pj_poem` | The poem, A way in, Begin with an object on the table, Write it as a letter, Only questions, Fourteen lines, The weather, and something else, Steal a first line, Ten minutes, Drafts, Lines worth keeping, Where to send it, Add to this… |
+| `essay` | Essay | shelved | project | `writing` | What is the argument?, The essay, Outline, Words a day, Sources, Stages, Research, Draft, Cut, Edit, Publish, Look it up, Where it stands, Add to this… |
+| `blogpost` | Blog Post | shelved | project | `pj_blogpost` | Who is it for, and what will they get?, The post, Headings, Publish on, Stages, Idea, Draft, Pictures, Edit, Title and summary, Publish, Share it, Your blog, Where it stands, Add to this… |
+| `application` | Application | shelved | project | `app` | What does it do, for whom?, This release, Stages, Sketch, Prototype, Core feature, Test with someone, Polish, Ship, Screens, Bugs, The hard part, The repository, Design, Add to this… |
+| `website` | Website | shelved | project | `pj_website` | Who is it for, and what should they do?, Pages, Look, Stages, Pages and words, Build, Content in, Test on a phone, Launch, The words, Where it stands, The site, Hosting, Add to this… |
+| `game` | Game | shelved | project | `game` | What does the player do?, The rules, Test roll, Cards to try, A card, Another card, Stages, Core loop, Paper prototype, First playtest, Rules rewrite, Art, Second playtest, Release, Mechanics, Where it stands, Playtest notes, Print and play, Engine, Add to this… |
+| `world` | Fantasy World | shelved | project | `world` | What makes it different?, History, Places, The capital, The edge of the map, Peoples and groups, Those in power, Laws of the world, How magic works, What it costs, Roll for it, What if…, A war nobody remembers, A god who left, A trade route, A forbidden word, Characters, Make a map, Add to this… |
+| `device` | Device | shelved | project | `pj_device` | What does it do?, Parts, Sketches and wiring, Stages, Sketch, Parts ordered, Breadboard, Firmware, Enclosure, Test, Done, What is not working, Where it stands, Code, Add to this… |
+| `handmade` | Handmade Object | shelved | project | `pj_handmade` | What is it, and who is it for?, Materials, References, Stages, Design, Make a test, Make it, Finish, Give it or keep it, Hours at the bench, One session, Where it stands, Supplies, Add to this… |
+| `artwork` | Artwork | shelved | project | `artpiece` | What is it about?, Studies, References, Hours making, Stages, Sketches, Materials, Underpainting, The work, Finish, Photograph it, Where it stands, A timed study, Supplies, Add to this… |
+| `braindump` | Brain Dump | **yes** | work | `wf_braindump` | Inbox, Apple Notes, Do, Someday, Questions, Keep, Add to this… |
+| `prioritizer` | Prioritizer | **yes** | work | `wf_prioritizer` | Do now, Plan it, Squeeze in, Let it go, Ask it, Will this matter in a year?, What happens if it never gets done?, Who is waiting on it?, Is there a smaller version?, What would make the rest easier?, Is it yours to do?, Ten minutes, How it works, Give it a time, Add to this… |
+| `projectmgmt` | Project Management | shelved | work | `wf_projectmgmt` | Now, three at most, Next, Waiting on someone, Paused, Deadlines, Google Calendar, Focus, What one thing moves it most?, What can you drop?, What is blocked, and by whom?, Finish before you start, What is due first?, Ship the smallest version, Deep work, Add to this…, Someday, maybe…, Someday, Ideas for projects, Picking the next one, Can’t choose, The rule, Finished, Shipped this year, Looking back, Weekly review, Review, What did you finish?, What stalled, and why?, What should stop?, Who needs an update?, What is next week’s one thing?, This month |
+| `brainstorming` | Brainstorm | shelved | work | `wf_brainstorming` | The question, Another idea…, Everything, no judging, The best three, Five minutes, Pick one at random, Oblique turns, Reverse it, Make it absurd, What would a child do?, Steal from another field, Make it free, Make it ten times bigger, Next step, Are.na, Add to this… |
 
 ### Compounds
 

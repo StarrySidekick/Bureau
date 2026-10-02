@@ -14,7 +14,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   TSIZES, textSizeOf, mediaTypeOf, loopOf, countsOf, COUNTS, isPicture, isMedia, isDecor,
   bindingOf, FRAMES, FRAME_SLOTS, frameOf, panelOf, knobOf, plateOf, borderOf, textureOf,
   slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc,
-  makesOf, madeAtSize } from './model.js';
+  makesOf, madeAtSize, isShelved, isShelvedPlan } from './model.js';
 import { newOfKind } from './wire.js';
 import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
@@ -236,7 +236,7 @@ const RING_N = 7;
 function shapeKinds(w, h, home){
   const dv = dev(), only = (makesOf(container(home))||{}).only || [];
   const rank = k => PRIMARY.includes(k) ? 0 : SECONDARY.includes(k) ? 1 : 2;
-  return KEYS.filter(k => KINDS[k] && !K(k).cat && !K(k).makesAny && !isCut(k) && !kindHas(k,'control'))
+  return KEYS.filter(k => KINDS[k] && !K(k).cat && !K(k).makesAny && !isCut(k) && !isShelved(k) && !kindHas(k,'control'))
     .map(k => { const [kw, kh] = sizeOfKind(k, dv, home);
       /* A type whose range the box falls inside comes before one whose
          default merely happens to be near it (decision 246). */
@@ -419,7 +419,7 @@ function pickGroups(skipPrimary){
     /* A category is only ever a question — there is no generic Fragment to
        make — so it is never listed as a type anywhere, including in the
        pickers that deliberately show everything. */
-    if(K(k).cat || isCut(k)) return;
+    if(K(k).cat || isCut(k) || isShelved(k)) return;
     if(skipPrimary && (isPrimary(k) || SECONDARY.includes(k)) && !S.kinds[k]) return;
     /* …and neither is a type its category already covers. Drawing Idea both
        in the picker's own list and behind the Note tile is the "decide twice"
@@ -520,8 +520,8 @@ function familyPanel(cat){
          `boards` it offers — the plans carrying that `sec` — and each makes
          the container its plan is for, already holding it. A Film holds the
          Short Film board by itself; a Feature Film is here. */
-      d.boards && plans().some(p=>p && p.sec===d.boards) ? `<div class="section-h" style="margin-top:14px"><h2>Or start from a flow</h2><div class="rule"></div></div>
-        <div class="deskmapgrid">${plans().filter(p=>p && p.sec===d.boards).map(p=>planCard(p,'planmake')).join('')}</div>` : ''}`});
+      d.boards && benches().some(p=>p && p.sec===d.boards) ? `<div class="section-h" style="margin-top:14px"><h2>Or start from a bench</h2><div class="rule"></div></div>
+        <div class="deskmapgrid">${benches().filter(p=>p && p.sec===d.boards).map(p=>planCard(p,'planmake')).join('')}</div>` : ''}`});
 }
 
 /* ---- a thing that turned out to be a project ---------------------------
@@ -560,7 +560,7 @@ function lifeFirstPanel(kind){
      miniature each lays out, in two lists. A plan you made yourself joins
      them by carrying a `sec`. */
   const k=K(kind);
-  const of = sec => plans().filter(p=>p && p.sec===sec);
+  const of = sec => benches().filter(p=>p && p.sec===sec);
   const row = (h, ps) => ps.length ? `<div class="section-h"><h2>${h}</h2><div class="rule"></div></div>
       <div class="deskmapgrid">${ps.map(p=>planCard(p,'newlife',kind+':')).join('')}</div>` : '';
   openPanel({key:'newlife', wide:true, title:k.nm, sub:'What part of your life is it for?',
@@ -635,35 +635,38 @@ function planCard(p, act, pre){
       ${top.map(o=>{ const b=o.desk||{x:1,y:1,w:2,h:2};
         return `<i style="--k:${objColour(o)};grid-column:${b.x||1}/span ${b.w||1};grid-row:${b.y||1}/span ${b.h||1}"></i>`;
       }).join('')}</span>
-    <b>${esc(p.nm||'Untitled flow')}</b>
+    <b>${esc(p.nm||'Untitled bench')}</b>
     <u>${top.length} on it${planSize(p)>top.length?` · ${planSize(p)} in all`:''}</u>
   </button>`;
 }
 
+/* The benches on offer: every one but those shelved for now (decision
+   295). A bench you saved yourself is never shelved. */
+const benches = ()=> plans().filter(p=>!isShelvedPlan(p));
 /* ---- the plans you have, and what to do with one ----------------------
    A door of its own rather than a row in someone else's: a plan is a thing
    the desk is made *with*, like a type, and "what arrangements have I saved"
    is not the same question as "how much is on this device". See decision 121. */
 function plansPanel(){
-  openPanel({key:'plans', wide:true, title:'Flows',
+  openPanel({key:'plans', wide:true, title:'Benches',
     sub:'Boards you saved, to lay out again',
     body:()=>{
-      const ps = plans();
+      const ps = benches();
       const home = (S.view==='drawer' && S.drawerId) || ROOT;
       const c = byId(home);
       const where = home===ROOT ? 'the desk' : (c && c.title) || 'this drawer';
-      if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a flow</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
+      if(!ps.length) return `<div class="mini" style="--k:var(--brass)">Nothing saved yet. Arrange a drawer the way you want it, open <b>its</b> editor with the brush in the bar, and press <b>Save as a bench</b>. Then it can be put down again anywhere — or given to a type, so every one you make opens fitted to it.</div>`;
       /* Grouped by what each is the board for (decision 196): thirty-three
          in one grid is a wall. Yours, which carry no `sec`, come first. */
       const SECS = [[null,'Yours'],['life','A part of your life'],['experience','Something you take in'],['project','A piece of work'],['work','Getting work done']];
       return `${SECS.map(([sec,h])=>{ const g = ps.filter(p=>(p.sec||null)===sec);
           return g.length ? `<div class="section-h"><h2>${h}</h2><div class="rule"></div><span class="n">${g.length}</span></div>
             <div class="deskmapgrid">${g.map(p=>planCard(p,'planput')).join('')}</div>` : ''; }).join('')}
-        <div class="mini" style="--k:var(--brass);margin-top:10px">${home===ROOT ? 'Pressing one on the desk makes a drawer of the right kind with the board inside it.' : `Pressing one lays it out on <b>${esc(where)}</b>.`} Everything comes back unticked and undated — a flow carries what a thing <i>is</i>, never the record of having done it.</div>
+        <div class="mini" style="--k:var(--brass);margin-top:10px">${home===ROOT ? 'Pressing one on the desk makes a drawer of the right kind with the board inside it.' : `Pressing one lays it out on <b>${esc(where)}</b>.`} Everything comes back unticked and undated — a bench carries what a thing <i>is</i>, never the record of having done it.</div>
         <div class="section-h" style="margin-top:14px"><h2>Keeping them</h2><div class="rule"></div></div>
         <div class="rows">${ps.map(p=>`<div class="row">
           <span class="kindmark">${ic(p.ic||'grid',13)}</span>
-          <div class="body"><input class="pfield" data-planname="${p.id}" value="${esc(p.nm||'')}" placeholder="Untitled flow">
+          <div class="body"><input class="pfield" data-planname="${p.id}" value="${esc(p.nm||'')}" placeholder="Untitled bench">
             <div class="snip">${planSize(p)} things · saved ${esc(p.made||'')}</div></div>
           <button class="subtle-btn" data-act="delplan" data-id="${p.id}">${ic('trash',12)}</button>
         </div>`).join('')}</div>`;
@@ -676,13 +679,13 @@ function plansPanel(){
    board, laying it out is very often what you came for. */
 const PLANS_HERE = 3;
 function plansHere(){
-  const ps = plans();
+  const ps = benches();
   if(!ps.length) return '';
   /* A dropdown since decision 204, beside the one holding the other types:
      the picker opens on the twelve things and nothing else. */
-  return `<details class="pgroup plansdrop"><summary>Flows <span class="n">a board set up for one kind of work, laid out where you pressed</span></summary>
+  return `<details class="pgroup plansdrop"><summary>Benches <span class="n">a board set up for one kind of work, laid out where you pressed</span></summary>
     <div class="deskmapgrid">${ps.slice(0,PLANS_HERE).map(p=>planCard(p,'planput')).join('')}</div>${
-    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} flows</button>` : ''}</details>`;
+    ps.length>PLANS_HERE ? `<button class="subtle-btn" data-act="allplans">${ic('grid',12)} All ${ps.length} benches</button>` : ''}</details>`;
 }
 
 /* ---- what a board makes, as rows in its own editor ---------------------
@@ -1382,8 +1385,8 @@ function objectPanelBody(id, sec){
      a board to save, and the desk is a container. See decision 121. */
   if(!sec && cont){
     const held = S.objects.filter(x=>x.parent===id).length;
-    out.push(prow('Flow',
-      held ? `<button class="pill" data-act="saveplan" data-id="${id}">${ic('grid',13)} Save as a flow</button>`
+    out.push(prow('Bench',
+      held ? `<button class="pill" data-act="saveplan" data-id="${id}">${ic('grid',13)} Save as a bench</button>`
            : `<span class="mini" style="--k:var(--brass)">Nothing in it to save yet</span>`,
       held ? `${held} on this board, and whatever is inside them` : ''));
   }
@@ -2447,10 +2450,10 @@ function modalNewKind(from, editKey, forBoard){
            that whole arrangement inside it, boxes and nesting and all. This is
            what `seed:` was reaching for and could not say: seed is a list of
            titles one level deep, and a shoot day is a board. See decision 121. */''}
-      ${row('Opens fitted to','a flow — every one you make arrives with it inside',
+      ${row('Opens fitted to','a bench — every one you make arrives with it inside',
         `<select class="psel" data-kplan><option value="">Empty</option>${
-          plans().map(p=>`<option value="${p.id}"${(base&&base.plan)===p.id?' selected':''}>${esc(p.nm||'Untitled flow')}</option>`).join('')}</select>${
-          plans().length ? '' : `<div class="mini" style="--k:var(--brass);margin-top:6px">No flows saved yet — arrange a drawer, then <b>Save as a flow</b> in its own editor.</div>`}`,
+          benches().map(p=>`<option value="${p.id}"${(base&&base.plan)===p.id?' selected':''}>${esc(p.nm||'Untitled bench')}</option>`).join('')}</select>${
+          benches().length ? '' : `<div class="mini" style="--k:var(--brass);margin-top:6px">No benches saved yet — arrange a drawer, then <b>Save as a bench</b> in its own editor.</div>`}`,
         'kplan', ` id="kplanrow"${sort==='object'?' style="display:none"':''}`)}
       ${/* a container's contents have a default order, like everything else a
            type decides. Manual is a real answer, and the one a drawer gives. */''}

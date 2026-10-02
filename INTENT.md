@@ -319,6 +319,11 @@ words and §5 the order from here.
 **Then:** *"the notepad should replace the garden as an object."* Done as
 decision 294 (v2.89): every flow's way in is a notepad now.
 
+**Then:** hide the flows not yet worked on as benches, and call every flow
+and workflow a **bench**. Decision 295 (v2.90): only Brain Dump, Prioritizer,
+Short Film and Feature Film are offered; the rest are shelved, not deleted.
+Older entries in this file say "flow"; read it as bench.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set
