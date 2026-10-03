@@ -558,8 +558,9 @@ phone one.
 **The drawer front holds objects, not knobs** (decision 208). On a phone
 `gridBar()` hands `RAILBAR = {where, left, right}` to `deskRail()`:
 magnifying glass (`searchopen`, which also closes it) and letter block (`sortcycle`: a tap is the next sort in `sortCycleOf()`, a hold swaps grid and line view, decision 215) left
-of the knob, padlock and gear right of it (decision 211), each `railObj()` drawing its `RAILART` at the
-knob's height. The `data-act`s are the ones the old buttons had, so anything
+of the knob, padlock right of it (decision 211), each `railObj()` drawing its `RAILART` at the
+knob's height. **The gear is on the top lip, at its right** (decision 302), in
+`.lipgear`; with *One more row* (no lip) it rides first on the front's right. The `data-act`s are the ones the old buttons had, so anything
 pressing `togglelock`, `searchopen` or `appsettings` still finds them. The Mac
 bar is unchanged.
 
@@ -570,8 +571,8 @@ front. The lip is measured at its **min-height**, because its height is what
 
 **A board's drawer front is its own** (decision 220). `rail:{left,right}` on
 the board's config, three a side at most, read only through `railToolsOf()`
-in views.js; `railTool()` draws each from `TOOLART` in active.js. The desk
-keeps its gear. The same six tools are objects (`ACTIVE` rows `tglass`,
+in views.js; `railTool()` draws each from `TOOLART` in active.js. `gear` is
+not a rail tool since decision 302; a stored one is passed over. The same six tools are objects (`ACTIVE` rows `tglass`,
 `tblock`, `tlock`, `tgear`, `spool`, `coin`), and a press on either lands in
 `toolPress()` in wire.js, so the object and the button cannot drift apart.
 

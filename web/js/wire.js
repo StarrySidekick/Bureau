@@ -1921,9 +1921,6 @@ function wire(){
       // a thing standing in the front holds its place as much as a tool does
       const stood = S.objects.filter(o=>(o.parent||ROOT)===cid && o.front===side && inFront(o)).length;
       if(!had && now[side].length + stood>=3){ toast('Three a side — take one off first'); return; }
-      /* The desk's gear is the way into Settings on a phone, and there is no
-         other; a drawer's Board settings are in its own editor too. */
-      if(had && cid===ROOT && tool==='gear'){ toast('The desk keeps its gear — it is the way into Settings'); return; }
       if(cid!==ROOT) pushSet('Drawer front', cid, 'rail', cfg.rail ? JSON.parse(JSON.stringify(cfg.rail)) : undefined);
       ['left','right'].forEach(k=>{ now[k] = now[k].filter(x=>x!==tool); });
       if(!had) now[side].push(tool);

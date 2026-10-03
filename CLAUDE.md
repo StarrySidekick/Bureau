@@ -465,6 +465,14 @@ three boards) and **Journal** (`wf_journal`: entries newest first). Seven
 benches are in `BENCH_READY`; migration 62. The made sorts break a same-day
 tie on `ord`.
 
+**v2.98** (decision 302): **the gear is on the top lip**, at its right, on
+every board (`.lipgear`), and no longer a drawer front tool, so every front
+has a place more; with *One more row* it rides in the front again. **How a
+bench is moved around in is scoped, not built: `docs/NAVIGATION.md`** (tile
+size, layout with closed edges, scroll type, zoom type, the five patterns,
+stations, the seven benches reviewed, six questions for Timothy). **To design
+or build a bench, use the `bench` skill** (`.claude/skills/bench/`).
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and
@@ -474,6 +482,8 @@ at, and what is worth taking from Bear, Things 3 and Notion.
 missing for Timothy to live in it, and the case for a freeze.
 `docs/FUNCTIONS.md` is the fifteen functions a paper system serves and Bureau's
 answer to each — scoped, not built, and the source of the current plan.
+`docs/NAVIGATION.md` (2026-10-03) is how a bench is moved around in: read
+it before touching the swipe, the zoom, tile sizes or a bench's layout.
 `docs/USES.md` (2026-10-01) is what Timothy approved Bureau being for, the
 objects that need, and the order to build them. **`docs/GRAMMAR.md` is how to
 build in Bureau** (a paste, a bench and its `fill`, the whole vocabulary):

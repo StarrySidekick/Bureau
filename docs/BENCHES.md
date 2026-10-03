@@ -57,7 +57,8 @@ since decision 301 Brainstorm, Story Builder and Journal.
 | --- | --- | --- |
 | **Arrangement** | the objects and where they sit, on one or several tiles | the bench's objects (`plan`) |
 | **Room** | the settings that hold inside it: aesthetic, palette, board color and strength, light or dark, surface, scroll or rigid swipe, bars, gravity, Words defaults, pinned | `env` on the container (decision 293) |
-| **Tools at hand** | the drawer front's tools, including the stamp and what it says | `rail`, `stampw`/`stampink` |
+| **Navigation** | how you get around it: tile size, layout, scroll type, zoom, where it opens (`NAVIGATION.md`, mostly proposed) | `start`, the room's `flow`; `form`, `bw`/`bh`, `tiles` on the board |
+| **Tools at hand** | the drawer front's tools, including the stamp and what it says (the gear is on the top lip, decision 302) | `rail`, `stampw`/`stampink` |
 | **Affordances** | what the Magic Selector makes here, and zones that turn a placement into a decision | `makes.only`, `zone` objects |
 | **Setup card** | the questions it asks on its first tap | `SETUPS` |
 
@@ -109,7 +110,7 @@ on top and every line listed. Each line is guessed and says its guess on a
 label (tap for the next kind); swipe left deletes, right asks when; hold it
 and a tray of drawers rises above the front to carry it into. In **Aeros**
 (clear skies), nothing falling, the bars showing. Front: glass, the stamp
-(says *Filed*, blue), the coin; the spool, the gear. Made, it puts a
+(says *Filed*, blue), the coin; the spool. Made, it puts a
 **quick add** in the desk's front, lent to every front: a notepad that takes
 you to the Brain Dump with the line ready, and a button on the lip back
 (decision 297). An old Brain Dump is converted to this (decision 298).
@@ -129,7 +130,7 @@ their departments, plus a **scene pipeline** board: four zones a scene card
 walks across, *Written*, *Prepped*, *Shot*, *Cut*, each giving its tag. In
 **Starful Gothic** (a screening room), with a rigid swipe from department to
 department. Front: glass, the stamp (says *Approved*, red), the spool, the
-block, the gear.
+block.
 
 **Brainstorm** (`wf_brainstorming`, decision 301). Out, then pick: the
 question, *Every idea* (the line writes into it), five minutes of sand, a
@@ -199,6 +200,16 @@ bench for a pipeline, and one feature answered both.
 | **String as signal** | | x | | | | x | x | to scope |
 | **Automaton and gauge** | | | | | | x | | to scope |
 | **Book from ISBN** | | | | | x | | | to scope |
+| **Rigid by the tile, closed edges** (`NAVIGATION.md` §2) | x | x | x | x | x | | | scoped |
+| **Zoom type and levels** (cells, tile, row, whole) | | | x | x | x | | x | scoped |
+| **A bench states its board** (kind, tile size, layout, navigation) | x | x | x | x | x | x | x | scoped |
+| **Stations** (named tiles, edge hints, a Button that goes) | | | x | x | x | | | scoped |
+| **Pencil ledge** (a row that stays while the board moves) | x | | | x | | | x | scoped, needs a yes |
+
+**How a bench is moved around in** is scoped separately, 2026-10-03, in
+`docs/NAVIGATION.md`: the four dials, five patterns (Sheet, Scroll,
+Carousel, Rooms, Expanse), stations, and each bench reviewed through them.
+How to design and build one is the `bench` skill (`.claude/skills/bench/`).
 
 ## 5. Order from here
 

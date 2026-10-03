@@ -275,7 +275,7 @@ const ZONE = (t, w, b, c)=>({k:'zone', t, b, set:{c, writes:w}});
    card walks across, each giving its tag and taking the last one's. The
    front's stamp says Approved. Shared by the short and the feature. */
 const FILM_BENCH = {env:{style:'starry', flow:'rigid'}, stamp:{w:'Approved', ink:'red'},
-  rail:{left:['glass','stamp','spool'], right:['block','gear']},
+  rail:{left:['glass','stamp','spool'], right:['block']},
   makes:{only:['scene','character','image','note','task','zone'], sizes:[]}};
 const SCENE_PIPELINE = at => ({at, on:[
   ZONE('Written', {tag:'written'}, [1,1,2,12], 12),
@@ -880,7 +880,7 @@ const SPECS = [
     LINK('Write it', 'https://www.writerduet.com', [5,11,4,1], 9)
   ]},
 
-  {key:'novel', rail:{left:['glass'], right:['spool','gear']}, sec:'project', nm:'Novel', ic:'book', c:11, of:'pj_novel', on:[
+  {key:'novel', rail:{left:['glass'], right:['spool']}, sec:'project', nm:'Novel', ic:'book', c:11, of:'pj_novel', on:[
     {k:'question', t:'What is it about?', b:[1,1,4,3], set:{c:10, sref:'logline'}},
     {k:'tracker', t:'Words a day', b:[5,1,4,2], set:{c:11, sref:'words', measure:{unit:'words', goal:1000, step:250}}},
     {k:'candle', t:'Write until it burns down', b:[5,3,2,2], set:{c:12}},
@@ -1081,7 +1081,7 @@ const SPECS = [
      falling, the bars showing, and a selector that makes only the things a
      head empties into. The front's stamp says Filed, for marking what is
      dealt with as you go down the lists. */
-  {key:'braindump', rail:{left:['glass','stamp','coin'], right:['spool','gear']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump',
+  {key:'braindump', rail:{left:['glass','stamp','coin'], right:['spool']}, sec:'work', inbox:'note', nm:'Brain Dump', ic:'inbox', c:5, of:'wf_braindump',
    env:{style:'aero', flow:false, gravity:false, tuck:false}, stamp:{w:'Filed', ink:'blue'},
    makes:{only:['notepad','task','idea','question','thought','note','pipe'], sizes:[]},
    /* **Nothing laid out in it** (decision 296): the Brain Dump is itself the
@@ -1101,7 +1101,7 @@ const SPECS = [
      card is your first priority wherever it sits. The zone matrix it was is
      still a thing any board can be given (decision 293); this bench is the
      deck. Golf 97, desktop gray. `raw`, so the rows left empty stay empty. */
-  {key:'prioritizer', raw:true, rail:{left:['glass','block','stamp'], right:['lock','gear']}, sec:'work', inbox:false, nm:'Prioritizer', ic:'grid', c:13, of:'wf_prioritizer',
+  {key:'prioritizer', raw:true, rail:{left:['glass','block','stamp'], right:['lock']}, sec:'work', inbox:false, nm:'Prioritizer', ic:'grid', c:13, of:'wf_prioritizer',
    env:{style:'golf97', flow:false, gravity:false}, stamp:{w:'Done', ink:'green'},
    makes:{only:['card','task','note','deck'], sizes:[]}, on:[
     {k:'deck', t:'Priorities', ref:'pdeck', b:[1,1,4,6], set:{c:10, deckTap:'rank', faceup:true}},
@@ -1113,7 +1113,7 @@ const SPECS = [
   ]},
 
   // "Helps me prioritize all my projects and focus."
-  {key:'projectmgmt', rail:{left:['glass','block'], right:['spool','lock','gear']}, sec:'work', nm:'Project Management', ic:'target', c:13, of:'wf_projectmgmt', on:[
+  {key:'projectmgmt', rail:{left:['glass','block'], right:['spool','lock']}, sec:'work', nm:'Project Management', ic:'target', c:13, of:'wf_projectmgmt', on:[
     LABEL('Projects', [1,1,8,1], 13),
     LIST('Now, three at most', 'pmnow', [1,2,4,4], 9),
     LIST('Next', 'pmnext', [5,2,4,4], 6),
@@ -1162,7 +1162,7 @@ const SPECS = [
      list is a sorting drawer collecting what on this board carries it, so
      the good ones rise without being moved or written twice. Carca: a
      workshop of war machines turned to tinkering. */
-  {key:'brainstorming', raw:true, inbox:false, rail:{left:['glass','stamp','coin'], right:['spool','gear']}, sec:'work', nm:'Brainstorm', ic:'sparkle', c:10, of:'wf_brainstorming',
+  {key:'brainstorming', raw:true, inbox:false, rail:{left:['glass','stamp','coin'], right:['spool']}, sec:'work', nm:'Brainstorm', ic:'sparkle', c:10, of:'wf_brainstorming',
    env:{style:'carca', flow:false, gravity:false}, stamp:{w:'Keep', ink:'green'},
    makes:{only:['idea','note','question','card','deck','image'], sizes:[]}, on:[
     {k:'question', t:'The question', b:[1,1,8,2], set:{c:10}, body:'**What we are trying to solve —** '},
@@ -1192,7 +1192,7 @@ const SPECS = [
      Then the world: places, things that matter, the powers and the rules,
      and a collage for how it looks. Stelaine, crystal stars over a floating
      island; the stamp says *Canon*, for what is settled. */
-  {key:'storybuilder', raw:true, inbox:false, rail:{left:['glass','spool','stamp'], right:['block','gear']}, sec:'work', nm:'Story Builder', ic:'feather', c:7, of:'wf_storybuilder',
+  {key:'storybuilder', raw:true, inbox:false, rail:{left:['glass','spool','stamp'], right:['block']}, sec:'work', nm:'Story Builder', ic:'feather', c:7, of:'wf_storybuilder',
    env:{style:'stelaine', flow:'rigid', gravity:false}, stamp:{w:'Canon', ink:'violet'},
    makes:{only:['note','idea','scene','character','place','artifact','creature','group','law','histevent','image'], sizes:[]}, on:[
     {k:'question', t:'What is it about?', b:[1,1,8,2], set:{c:10}, body:'**Told as —** a film, a game, a piece of art, or words\n\n**In one line —** '},
@@ -1226,7 +1226,7 @@ const SPECS = [
      write by until it goes out, and a deck to cut when nothing comes.
      Victoria: an old desk, baize and brass. Nothing ticks or files here, so
      the front has no stamp; the block turns Entries newest or oldest first. */
-  {key:'journal', raw:true, inbox:false, rail:{left:['glass','block'], right:['lock','gear']}, sec:'work', nm:'Journal', ic:'book', c:6, of:'wf_journal',
+  {key:'journal', raw:true, inbox:false, rail:{left:['glass','block'], right:['lock']}, sec:'work', nm:'Journal', ic:'book', c:6, of:'wf_journal',
    env:{style:'victorian', flow:false, gravity:false},
    makes:{only:['note','thought','quote','image','card'], sizes:[]}, on:[
     NEWEST(LIST('Entries', 'entries', [1,1,5,11], 6)),

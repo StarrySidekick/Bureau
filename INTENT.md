@@ -363,6 +363,22 @@ twelve stages, then the people, then the world; the Brainstorm picks its
 keepers with the stamp; the Journal is a list of entries, newest first. The
 Journal wants the Daybook next (an entry that shows its day).
 
+### Added 2026-10-03: how a bench is moved around in
+
+Timothy: *"I want to expand on the actual navigation aspect of each bench. I
+think things are a little cramped right now and I want us to think more about
+board shape and size."* Flexibility over scroll type (smooth, rigid tile by
+tile), zoom type (a set level, several set levels, free), tile size (8×14,
+9×15, any width and height), board layout (two tiles side by side, a long
+strip), and the tools in the drawer front; for example *"a bench that has a
+rigid scroll to a left tile and right tile, but not to any tiles up or down,
+and have a custom toolbar."* Also: think about the current benches, build a
+bench skill, and consider what new features or objects a strong bench needs.
+And one change: the gear goes to the top right, to leave the drawer front
+room. Decision 302 (v2.98) built the gear and the skill and scoped the rest
+as **`docs/NAVIGATION.md`**, whose §9 asks him six questions. Read it before
+building any of the navigation.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

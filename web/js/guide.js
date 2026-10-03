@@ -281,6 +281,7 @@ function chromePlate(s){
         <span class="shelfmark" style="--sw:3">${
           Array.from({length:9},(_,i)=>`<i class="${i===4?'on':''}"></i>`).join('')}</span>
       </div>
+      <span class="lipgear">${railObj('gear','','','Settings')}</span>
     </div>
   </div>`;
 
@@ -294,7 +295,7 @@ function chromePlate(s){
       <div class="gridbar inrail">
         <div class="railside railleft">${railObj('glass','','','Search')}${railObj('block','','','Sort')}</div>
         <i class="pull railknob"></i>
-        <div class="railside railright">${railObj('lock','','','Locked',true)}${railObj('gear','','','Settings')}</div>
+        <div class="railside railright">${railObj('lock','','','Locked',true)}${railObj('spool','','','Spool of thread')}</div>
       </div>
     </nav>
   </div>`;

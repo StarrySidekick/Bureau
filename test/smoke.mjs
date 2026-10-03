@@ -2953,8 +2953,8 @@ const CHROME = process.env.BUREAU_CHROME;
     out.aNudgeGoesBack = Math.abs(sc().scrollTop - top1) < 2;
 
     // the swipe switch, in the drawer front and as a thing on the board
-    const rt = JSON.parse(JSON.stringify(S.deskCfg.rail || {left:['glass','block'], right:['lock','gear']}));
-    S.deskCfg.rail = {left:['glass','swipe'], right:['lock','gear']}; BUREAU.render(); await nap(150);
+    const rt = JSON.parse(JSON.stringify(S.deskCfg.rail || {left:['glass','block'], right:['lock']}));
+    S.deskCfg.rail = {left:['glass','swipe'], right:['lock']}; BUREAU.render(); await nap(150);
     const sw = document.querySelector('.railobj.ro-swipe');
     out.theSwitchIsInTheFront = !!sw && sw.classList.contains('on');
     sw.click(); await nap(250);
@@ -10373,7 +10373,8 @@ const CHROME = process.env.BUREAU_CHROME;
     S.view='drawer'; S.drawerId=ph.id; BUREAU.render(); await nap(200);
     const where = (document.querySelector('.gridbar .where, .toplip .where')||{}).textContent || '';
     out.theBarSaysOnlyWhereYouAre = where.includes('Slots') && !document.querySelector('.gridbar [data-act="back"]');
-    document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(250);
+    // on the top lip since decision 302, on the Mac's bar still
+    document.querySelector('.toplip [data-act="appsettings"], .gridbar [data-act="appsettings"]').click(); await nap(250);
     const title = (document.querySelector('#panel .ptop b, #panel h1, #panel .ptitle')||{}).textContent || '';
     out.theGearIsBoardSettings = /Board settings/.test(document.querySelector('#panel').textContent)
       && !document.querySelector('#panel [data-act="panelback"]')
@@ -10382,7 +10383,7 @@ const CHROME = process.env.BUREAU_CHROME;
       && !document.querySelector('#panel [data-style3]');
     BUREAU.closePanel(); await nap(100);
     S.view='desk'; S.drawerId=null; BUREAU.render(); await nap(150);
-    document.querySelector('.gridbar [data-act="appsettings"]').click(); await nap(250);
+    document.querySelector('.toplip [data-act="appsettings"], .gridbar [data-act="appsettings"]').click(); await nap(250);
     out.theDeskHasABoardSettingsDoor = !!document.querySelector('#panel [data-ssec="board"]');
     BUREAU.closePanel(); await nap(100);
 
@@ -10838,13 +10839,17 @@ const CHROME = process.env.BUREAU_CHROME;
     const tools = () => ['.railleft', '.railright'].map(s => [...document.querySelectorAll(s+' .railobj')]
       .map(e => e.className.match(/ro-(\w+)/)[1]).join(','));
     // the padlock draws as `unlock` while the board is open
-    out.defaultFront = JSON.stringify(tools()).replace('unlock','lock') === JSON.stringify(['glass,block', 'lock,gear']);
-    S.deskCfg.rail = {left:['coin'], right:['spool','glass','gear']}; B.render(); await nap(150);
-    out.frontIsTheBoards = JSON.stringify(tools()) === JSON.stringify(['coin', 'spool,glass,gear']);
+    // the gear is on the top lip since decision 302, not in the front
+    out.defaultFront = JSON.stringify(tools()).replace('unlock','lock') === JSON.stringify(['glass,block', 'lock'])
+      && !!document.querySelector('.toplip .lipgear [data-act="appsettings"]');
+    S.deskCfg.rail = {left:['coin'], right:['spool','glass','stamp']}; B.render(); await nap(150);
+    out.frontIsTheBoards = JSON.stringify(tools()) === JSON.stringify(['coin', 'spool,glass,stamp']);
     const knob = document.querySelector('.railknob').getBoundingClientRect();
     out.knobStaysCentred = Math.abs(knob.x + knob.width/2 - innerWidth/2) < 3;
-    S.deskCfg.rail = {left:[], right:['gear']}; B.render(); await nap(150);
-    out.noneOnOneSide = JSON.stringify(tools()) === JSON.stringify(['', 'gear']);
+    // a gear a board stored before 302 is passed over, not drawn twice
+    S.deskCfg.rail = {left:[], right:['lock','gear']}; B.render(); await nap(150);
+    out.noneOnOneSide = JSON.stringify(tools()).replace('unlock','lock') === JSON.stringify(['', 'lock'])
+      && document.querySelectorAll('[data-act="appsettings"]').length === 1;
     delete S.deskCfg.rail; B.render();
     const pl = S.plans.find(p=>p.stock==='brainstorming');
     out.flowSaysItsFront = !!(pl && pl.rail && pl.rail.left.includes('coin'));

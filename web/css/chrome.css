@@ -5422,6 +5422,12 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   background:rgba(0,0,0,.22);color:var(--ink, #F4EEE0);font:600 13px/1 var(--sans, system-ui);cursor:pointer;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
 .backpill span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+/* the gear at the lip's right (decision 302): the drawer front's own drawn
+   gear, at the lip's height rather than the knob's, pushed to the right edge,
+   or beside the way back when there is one */
+.toplip .lipgear{margin-left:auto;flex:0 0 auto;display:flex;align-items:center}
+.toplip .backpill ~ .lipgear{margin-left:10px}
+.toplip .lipgear .railobj{height:27px;width:27px}
 .backpill:active{background:rgba(0,0,0,.36)}
 .is-phone .main > .toplip ~ .scroll.deskscroll{--gapmin:4px}
 

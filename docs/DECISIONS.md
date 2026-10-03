@@ -12811,3 +12811,53 @@ its room; a Brainstorm line goes into Every idea and a Keep stamp puts it in
 Keepers without moving it; the Story Builder has twelve stages, three boards
 and eight archetypes; the Journal's second entry today is on top; shots 20
 to 22).
+
+## 302. The gear is on the top lip; navigation is scoped; a bench skill (v2.98, 2026-10-03)
+
+Timothy: *"new change: the gear settings icon is just in the top right menu
+bar thing to make more room for other stuff in the void drawer."* And, around
+it, a brief to think about how a bench is moved around in: tile size, board
+layout, scroll type, zoom type and what the drawer front carries, so a bench
+can be, for example, a rigid swipe between a left and a right tile with
+nothing above or below and a toolbar of its own.
+
+**The gear.** On a phone it is at the right of the top lip, on every board,
+drawn as the same gear the front drew (`railObj('gear', 'appsettings', …)`
+inside `.lipgear`), 27 points square so it never takes the name's room.
+`gear` is no longer one of `RAIL_TOOLS`, so the Drawer Front row in Board
+settings no longer offers it, and a `gear` a board or a stored bench carried
+in its `rail` is passed over by `railToolsOf()` rather than drawn twice. No
+migration: nothing stored is wrong, it is only no longer read. The default
+front is glass and block left of the knob and the padlock right of it, with
+a place free. With *One more row* there is no lip, so the gear rides first on
+the right of the front again (`railSide(c, side, gearHere)`), the one thing
+there nothing standing in the front can push out. Tucked away, neither is
+drawn, as before; the knob brings them back. The Mac's bar is unchanged (its
+gear was already at the top right). The stock benches' `rail`s lose their
+`gear`; the Gear *object* (`tgear`) is still a thing a board can hold.
+
+**Navigation, scoped not built: `docs/NAVIGATION.md`.** What it found is
+that most of the dials exist and disagree. The tile is the unit a bench is
+laid out in, but a rigid swipe moves a *screenful*, which only equals a tile
+at the default 8×14; tile size and layout are Board settings a bench cannot
+state; zoom is not a setting at all; and nothing can say "these tiles and no
+more". Its proposal: four dials on a board (tile size, layout with open or
+closed **edges**, scroll type, zoom type with levels said in board terms:
+cells, tile, row, whole), read through one `navOf(id)`; five **patterns**
+that set them together (Sheet, Scroll, Carousel, Rooms, Expanse); and
+**stations**, tiles with names that the lip shows and edge hints point to.
+Timothy's example is a closed two-tile Carousel. §7 reviews the seven
+benches through it; §9 is six questions for him.
+
+**The bench skill: `.claude/skills/bench/`.** How to design, build, rework
+and review a bench in this codebase: the layers, the design process (the one
+thing, the moments as tiles, the pattern, the front, the room, the
+affordances, the gaps), the spec format and its wiring (type, `BENCH_READY`,
+a migration, a WebKit block), and a review rubric. Its `reference/dials.md`
+marks every dial built or proposed, and is to be kept current as the
+navigation is built.
+
+Tested in WebKit first (`test/safari.mjs`: on the desk and in a drawer the
+gear is in the lip, at its right, past the name, not in the front, and opens
+Settings; shots 23 and 23b). Smoke blocks 57, 147 and 151, updated for the
+front without a gear.

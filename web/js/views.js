@@ -146,25 +146,36 @@ function gridBar(c){
     const bt = S.backTo, back = bt && S.view==='drawer' && S.drawerId===bt.to
       ? `<button class="backpill" data-act="goback" title="Back to where you were">${ic('chevL',13)}<span>${
           esc(bt.view==='drawer' && bt.drawerId && byId(bt.drawerId) ? (byId(bt.drawerId).title||'Untitled') : boardName(rootObj()))}</span></button>` : '';
+    /* **The gear is at the lip's right** (decision 302, Timothy: "the gear
+       settings icon is just in the top right menu bar thing to make more room
+       for other stuff in the void drawer"). The drawer front keeps its six
+       places for the board's tools and things; the lip already says where
+       you are, and what you can set about where you are sits beside it. With
+       *One more row* there is no lip, so the gear rides in the front again,
+       first on the right (`railSide()`). */
+    const gear = lip ? `<span class="lipgear">${railObj('gear', 'appsettings', c.id, c.id===ROOT?'Settings':'Board settings')}</span>` : '';
     RAILBAR = {
       where: lip ? '' : where + back,
       left: railSide(c, 'left'),
-      right: railSide(c, 'right')
+      right: railSide(c, 'right', !lip)
     };
-    return lip ? `<div class="toplip${UNTUCK.lip?' unfold':''}"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}${back}</div>` : '';
+    return lip ? `<div class="toplip${UNTUCK.lip?' unfold':''}"${REVEAL.lip?` style="height:${REVEAL.lip}px"`:''}>${where}${back}${gear}</div>` : '';
   }
   return `<div class="gridbar shelf shelf-top">${where}${searchBtn(c)}${tools}</div>`;
 }
 /* ---- the tools in the drawer front — decision 220 ---------------------
-   Six, and a board carries up to three each side of the knob, in the order
-   it says. The glass, the block, the padlock and the gear are the four the
-   front has always had; the spool of thread and the spiral coin are new, and
-   each of the six is also an object a board can hold (`TOOLART`, the tool
-   rows of `ACTIVE`). */
-const RAIL_TOOLS = ['glass','block','lock','gear','swipe','spool','stamp','coin'];
+   A board carries up to three each side of the knob, in the order it says.
+   The glass, the block and the padlock are the front's own; the spool of
+   thread, the spiral coin, the swipe switch and the stamp are there to be
+   chosen, and each is also an object a board can hold (`TOOLART`, the tool
+   rows of `ACTIVE`). **The gear is not one of them** since decision 302: it
+   is on the top lip, on every board, so a `gear` still stored in a board's
+   `rail` is passed over here rather than drawn twice. The Gear *object*
+   (`tgear`) is still a thing you can put on a board. */
+const RAIL_TOOLS = ['glass','block','lock','swipe','spool','stamp','coin'];
 const RAIL_NAMES = {glass:'Magnifying glass', block:'Letter block', lock:'Padlock',
-  gear:'Gear', swipe:'Swipe switch', spool:'Spool of thread', stamp:'Rubber stamp', coin:'Spiral coin'};
-const RAIL_DEFAULT = {left:['glass','block'], right:['lock','gear']};
+  swipe:'Swipe switch', spool:'Spool of thread', stamp:'Rubber stamp', coin:'Spiral coin'};
+const RAIL_DEFAULT = {left:['glass','block'], right:['lock']};
 function railToolsOf(cid){
   const r = (cfgOf(cid)||{}).rail;
   if(!r || typeof r!=='object') return {left:RAIL_DEFAULT.left.slice(), right:RAIL_DEFAULT.right.slice()};
@@ -186,17 +197,20 @@ const FRONT_SIDE = 3;
 const frontThings = (cid, side)=> S.objects
   .filter(o=>o.front===side && inFront(o) && ((o.parent||ROOT)===cid || (o.frontAll && (o.parent||ROOT)===ROOT)))
   .sort((a,b)=>((a.frontAll?1:0)-(b.frontAll?1:0)) || (a.frontAt||0)-(b.frontAt||0));
-function railSide(c, side){
-  let tools = railToolsOf(c.id)[side];
+function railSide(c, side, gearHere){
+  /* No lip to stand on (*One more row*), so the gear comes back to the
+     front, first on the right, and nothing standing there outranks it: it
+     is the only way into Settings. */
+  let tools = gearHere && side==='right' ? ['gear'].concat(railToolsOf(c.id)[side]) : railToolsOf(c.id)[side];
   /* A thing lent by the desk's front (`frontAll`, decision 297) takes only
      a place this board has left over: it never pushes out a board's own
-     tool, or a drawer would lose its gear to the desk's notepad. */
+     tool, or a drawer would lose its padlock to the desk's notepad. */
   const own = frontThings(c.id, side).filter(o=>(o.parent||ROOT)===c.id);
   const lent = frontThings(c.id, side).filter(o=>(o.parent||ROOT)!==c.id);
   const things = own.slice(0, FRONT_SIDE)
     .concat(lent.slice(0, Math.max(0, FRONT_SIDE - Math.min(FRONT_SIDE, own.length + tools.length))));
   if(tools.length + things.length > FRONT_SIDE){
-    const keep = c.id===ROOT && tools.includes('gear') ? ['gear'] : [];
+    const keep = tools.includes('gear') ? ['gear'] : [];
     tools = keep.concat(tools.filter(t=>!keep.includes(t))).slice(0, Math.max(keep.length, FRONT_SIDE - things.length));
   }
   const free = Math.max(0, FRONT_SIDE - tools.length - things.length);
@@ -257,7 +271,7 @@ function railToolsField(cid){
       ><i style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${hex};margin-right:5px"></i>${n}</button>`).join('')}</div></div>` : '';
   return `<div class="field" style="margin-top:12px"><label>Drawer Front</label>
     ${side('left','Left of the knob')}${side('right','Right of the knob')}${stamp}${stood}
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Six places on a phone, three either side, and the knob stays in the middle whatever is beside it. Carry anything on the board onto an empty place to stand it there; hold it there to take it out. Every tool here is also an object you can put on a board.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Six places on a phone, three either side, and the knob stays in the middle whatever is beside it. Carry anything on the board onto an empty place to stand it there; hold it there to take it out. Every tool here is also an object you can put on a board. The gear is on the top lip, at the right, on every board.</div>
   </div>`;
 }
 /* What `gridBar()` left for the rail to draw on a phone, reset by viewHTML()

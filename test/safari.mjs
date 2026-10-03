@@ -645,6 +645,32 @@ await page.evaluate(id => { const t = BUREAU.state.objects.find(o => o.parent ==
   document.querySelector(`[data-row="${t.id}"],[data-drawer="${t.id}"]`)?.scrollIntoView({block: 'start', inline: 'start'}); }, jn.id); await nap(300);
 await shot('22-journal');
 
+// ---- the gear is on the top lip, at the right (decision 302) --------------
+// Not in the drawer front, on the desk or in a drawer, and pressing it still
+// opens Settings; its right edge is near the lip's, past the name.
+const gearAt = async () => page.evaluate(async () => {
+  const lip = document.querySelector('#app .toplip'), g = lip && lip.querySelector('.lipgear [data-act="appsettings"]');
+  const name = lip && lip.querySelector('.here');
+  if (!g) return { inLip: false };
+  const r = g.getBoundingClientRect(), l = lip.getBoundingClientRect(), n = name.getBoundingClientRect();
+  const front = !!document.querySelector('.deskrail [data-act="appsettings"]');
+  g.click(); await new Promise(r => setTimeout(r, 350));
+  const opened = !!document.querySelector('.panel, #panel, [data-panel="settings"]') && /settings/i.test(document.body.innerText);
+  document.querySelector('[data-act="panelclose"]')?.click(); await new Promise(r => setTimeout(r, 250));
+  return { inLip: true, right: l.right - r.right < 40, pastName: r.left > n.right, inside: r.top >= l.top - 1 && r.bottom <= l.bottom + 1,
+    front, opened };
+});
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); }); await nap(300);
+const gDesk = await gearAt();
+await shot('23-lip-gear-desk');
+await page.evaluate(() => { const S = BUREAU.state, d = S.objects.find(o => o.title === 'Workroom');
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); }); await nap(300);
+const gIn = await gearAt();
+await shot('23b-lip-gear-drawer');
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); }); await nap(200);
+out.theGearIsOnTheLip = [gDesk, gIn].every(g => g.inLip && g.right && g.pastName && g.inside && !g.front && g.opened);
+out.gearAt = JSON.stringify({ gDesk, gIn });
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();
