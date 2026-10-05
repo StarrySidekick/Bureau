@@ -507,6 +507,10 @@ move); the ring offers **Break Down**, **Draft Answer** (`drafted`, which
 `answered()` still counts as open) and **Fill In** once a key is set. The key
 is `aiCfg()`/`setAiCfg()` in persist.js under `bureau.ai`, **never in the
 desk**. Tests use `BUREAU.aiStub`, never the network.
+**v3.03** (decision 307): a box drawn with the Magic Selector offers
+**Claude…** on the shape ring (`ringask`); what it writes lands inside the box
+(`spotIn()`), the rest below. On the desk Claude is told only the names of
+what lies there (`boardSaid()`).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

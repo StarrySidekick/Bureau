@@ -21,7 +21,7 @@ import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll,
 import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo } from './model.js';
 import { paintTarget, hasArt } from './paint.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
-import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS, BACKS } from './active.js';
+import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS, BACKS, TOOLART } from './active.js';
 import { DECOR, decorOf, decorSVG, decorFor, decorRest, LIFE_ART, LIFE_KEYS, lifeSVG } from './decor.js';
 import { quickAdd, toast, drawerForTag, CONTROLS, CTL_KEYS, ctlSpec, galleryOf, PAINTINGS, pictureMedia, AT_GOAL } from './mutations.js';
 import { openObj, renderSheet, closeSheet , openZoom } from './sheet.js';
@@ -345,6 +345,12 @@ function shapeRing(rect, cell, kind, page){
     items = ks.map((k, i) => ({act:`data-act="ringmake" data-kind="${k}"${asksOnRing(k) ? ' data-ask="1"' : ''}`,
         art: ringArt(k, null, masters ? 34 : 46), label:(masters && K(k).pickNm) || K(k).nm,
         inner: masters && i < MASTER_HOLDS}))
+      /* **…or ask Claude to fill it** (decision 307), once there is a key:
+         the box you drew is the room it writes into, and nothing lands
+         outside it. Drawn as the fountain pen, which is how Claude is asked
+         everywhere else. */
+      .concat(aiReady() && cell.x ? [{act:'data-act="ringask"',
+        art:`<span class="radpaint radpen"><svg viewBox="0 0 40 40" aria-hidden="true">${TOOLART.pen()}</svg></span>`, label:'Claude…'}] : [])
       .concat({act:'data-act="ringmore"', art:`<span class="radpaint">${ic('plus',17)}</span>`, label:'More…'});
   } else {
     /* One question further in: the choices, a page of eight at a time, with

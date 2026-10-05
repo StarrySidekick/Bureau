@@ -393,9 +393,10 @@ Read as: the objects are still the point, but they should do more of the work
 (Now, a line that is read, backups: decision 305), and AI is welcome **as
 long as what it makes is objects on the board**, never a chat beside it.
 Decision 306 is the first of that: the fountain pen, the flat-pack, and Break
-Down, Draft Answer and Fill In on the ring, with his own key. The obvious
-next steps along the same line are Claude filling a box drawn with the Magic
-Selector, and a board that can be asked what it is missing on its own.
+Down, Draft Answer and Fill In on the ring, with his own key. Decision 307
+added a box drawn with the Magic Selector, filled by Claude. The next step
+along the same line is a board that can be asked what it is missing on its
+own.
 
 ## Deliberately not next
 

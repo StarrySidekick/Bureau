@@ -836,6 +836,27 @@ await shot('26d-filled');
 out.claudeWritesObjectsInPlace = verbs.rings.task.includes('aisteps') && verbs.rings.question.includes('aianswer') && verbs.rings.board.includes('aifill')
   && verbs.glowing && Array.isArray(verbs.steps) && verbs.steps.length === 3 && verbs.q.drafted === true && /Black and white/.test(verbs.q.a)
   && verbs.added === 2 && verbs.sent.every(x => x.model === 'claude-opus-5-5' && x.cached && x.fb === 'default') || JSON.stringify(verbs);
+// A box drawn with the Magic Selector offers Claude on its ring; the card
+// fills that space, and everything lands inside the box (decision 307).
+const room = await page.evaluate(async () => { const S = BUREAU.state;
+  const d = BUREAU.create('drawer', { parent: 'root', title: 'Shoot day', noSeed: true });
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render();
+  const cell = { x: 2, y: 3, w: 4, h: 6, parent: d.id };
+  const m = await import('/js/panels.js'); const t = await import('/js/tiles.js');
+  t.pending.cell = cell; m.shapeRing({ left: 120, top: 300, width: 160, height: 240, right: 280, bottom: 540 }, cell);
+  return { id: d.id, cell, ask: !!document.querySelector('[data-act="ringask"]') }; });
+await nap(400);
+await shot('27-ring');
+await page.locator('[data-act="ringask"]').tap(); await nap(500);
+const roomCard = await page.evaluate(() => ({ verb: document.querySelector('#panel [data-act="askgo"]')?.dataset.verb,
+  sub: document.querySelector('#panel .psub, #panel .ptop')?.textContent.replace(/\s+/g, ' ').trim() }));
+await page.locator('#askbox').fill('the kit for the shoot');
+await page.locator('#panel [data-act="askgo"]').first().tap(); await nap(900);
+const filled = await page.evaluate(r => { const S = BUREAU.state, kids = S.objects.filter(o => o.parent === r.id);
+  const inside = o => { const b = o.phone; return b && b.x >= r.cell.x && b.y >= r.cell.y && b.x + b.w <= r.cell.x + r.cell.w && b.y + b.h <= r.cell.y + r.cell.h; };
+  return { n: kids.length, inside: kids.every(inside), titles: kids.map(o => o.title + '@' + JSON.stringify(o.phone)) }; }, room);
+await shot('27b-room');
+out.aDrawnBoxIsFilledByClaude = room.ask && roomCard.verb === 'room' && filled.n === 2 && filled.inside || JSON.stringify({ room, roomCard, filled });
 await page.evaluate(() => { BUREAU.aiStub = null; BUREAU.state.deskCfg.rail = null; });
 
 out.errors = errs;

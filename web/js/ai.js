@@ -174,7 +174,10 @@ async function askClaude(ask, schema, effort){
    two hundred things sends its first two hundred lines, not a novel. */
 function boardSaid(c, cap){
   if(!c) return '';
-  const out = [`Board: "${c.title||'The desk'}"`];
+  /* The desk is everything, so on the desk only the names of what lies on it
+     go: no pages, nothing inside. Inside a container, two levels down. */
+  const desk = c.id===ROOT || !c.id;
+  const out = [`Board: "${desk ? 'The desk' : c.title||'Untitled'}"`];
   const lines = [];
   // in reading order: a list top to bottom (newest first), a board by where things lie
   const dv = dev();
@@ -186,9 +189,10 @@ function boardSaid(c, cap){
     if(lines.length >= (cap||160)) return;
     const pad = '  '.repeat(depth);
     const what = has(o,'heading') ? `## ${o.title}` : `${pad}- ${K(o.kind).nm}: ${o.title||'Untitled'}${o.done?' (done)':''}${
-      has(o,'answer') ? (answered(o) ? ` (answered: ${String(o.answer).slice(0,140)})` : ' (unanswered)') : ''}`;
+      has(o,'answer') && !desk ? (answered(o) ? ` (answered: ${String(o.answer).slice(0,140)})` : ' (unanswered)') : ''}`;
     lines.push(what);
     const b = String(o.body||'').trim();
+    if(desk) return;
     if(b && !has(o,'heading') && depth < 2) lines.push(`${pad}  ${b.replace(/\s+/g,' ').slice(0, 280)}`);
     if(isContainer(o) && !has(o,'magic') && depth < 2) walk(o, depth+1);
   });
@@ -281,9 +285,21 @@ function spotFor(w, h, cid, near){
    What the pen opens: a line to say what you want, and the one or two things
    Claude can do with it here. On the desk that is a new board; inside a
    container it is filling that board in, or a new board on it. */
-function openAsk(cid, penId){
+function openAsk(cid, penId, room){
   const home = homeFor(cid || ROOT), c = home===ROOT ? null : byId(home);
   const where = c ? (c.title || 'this drawer') : 'the desk';
+  /* A box drawn with the Magic Selector (decision 307) is a room: the card
+     asks only what goes there, and its one button fills that space. */
+  if(room && room.w && room.h) return openPanel({key:'ask', title:'Ask Claude',
+    sub:`A space ${room.w} × ${room.h} ${c ? `in ${esc(where)}` : 'on the desk'}`, body:()=>`
+    ${aiReady() ? '' : `<div class="mini" style="--k:var(--brass);margin-bottom:8px">Claude needs your key first.
+      <div style="margin-top:6px"><button class="pill solid" data-ssec="claude">${ic('sparkle',13)} Add your key</button></div></div>`}
+    <textarea id="askbox" class="editor" style="min-height:96px" enterkeyhint="send"
+      placeholder="What goes here: “the kit list for Saturday”, “three questions to settle first”"></textarea>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="pill solid" data-act="askgo" data-verb="room" data-id="${esc(home)}"
+        data-room="${room.x},${room.y},${room.w},${room.h}">${ic('plus',13)} Fill this space</button></div>
+    <div class="mini" style="--k:var(--brass);margin-top:8px">Claude writes for the box you drew and nothing lands outside it. Only what you write here and what is on ${esc(where)} is sent.</div>`});
   openPanel({key:'ask', title:'Ask Claude', sub: c ? `In ${esc(where)}` : 'On the desk', body:()=>`
     ${aiReady() ? '' : `<div class="mini" style="--k:var(--brass);margin-bottom:8px">Claude needs your key first. It is kept on this device only.
       <div style="margin-top:6px"><button class="pill solid" data-ssec="claude">${ic('sparkle',13)} Add your key</button></div></div>`}
@@ -300,10 +316,16 @@ function openAsk(cid, penId){
       Only what you write here${c ? ` and what is on ${esc(where)}` : ''} is sent.</div>`});
   requestAnimationFrame(()=>{ const t = $('#askbox'); if(t) t.focus(); });
 }
-function askGo(verb, cid, penId){
+function askGo(verb, cid, penId, roomSaid){
   const t = $('#askbox'), what = clean(t && t.value);
   if(!aiReady()) return needKey();
   if(verb==='fill'){ closePanel(); return askFill(cid, what); }
+  if(verb==='room'){
+    const [x, y, w, h] = String(roomSaid||'').split(',').map(Number);
+    if(!(w > 0 && h > 0)) return;
+    if(!what){ toast('Say what goes here first'); if(t) t.focus(); return; }
+    closePanel(); return askFill(cid, what, {x, y, w, h});
+  }
   if(!what){ toast('Say what to build first'); if(t) t.focus(); return; }
   closePanel();
   askBuild(what, cid, penId ? byId(penId) : null);
@@ -420,22 +442,48 @@ function keepDraft(id){
 /* ---- a board, filled in ----------------------------------------------------
    What Claude adds goes under what is there, in reading order (the paste's
    packing with its floor set below the last thing on the board), as one move. */
-async function askFill(cid, ask){
+/* A room (decision 307) is a box drawn on any board, the desk included:
+   each thing is made, then moved to the first place inside the box that
+   takes it, at no more than the box's size. What will not fit goes on the
+   board below and the toast says so, rather than being dropped. */
+const roomKey = (cid, room) => `${cid}@${room.x},${room.y}`;
+async function askFill(cid, ask, room){
   if(!aiReady()) return needKey();
-  const c = still(cid); if(!c || !isContainer(c) || has(c,'magic') || AI.asking.has(cid)) return;
-  begin(cid); toast(`Claude is filling in ${c.title || 'this drawer'}`);
+  const c = cid===ROOT ? (room ? container(ROOT) : null) : still(cid);
+  if(!c || (cid!==ROOT && (!isContainer(c) || has(c,'magic')))) return;
+  const key = room ? roomKey(cid, room) : cid;
+  if(AI.asking.has(key)) return;
+  begin(key); toast(room ? 'Claude is filling the space' : `Claude is filling in ${c.title || 'this drawer'}`);
   try{
-    const r = await aiFill(c, ask);
-    const q = still(cid); if(!q || !r.specs.length) return;
-    const dv = dev();
-    const floor = 1 + childrenOf(q).reduce((m, x)=>x[dv] ? Math.max(m, x[dv].y + x[dv].h - 1) : m, 0);
-    const tally = {drawers:0, objects:0, made:[], sets:[], updated:0};
-    r.specs.forEach(sp=>addSpec(sp, cid, tally, {pack:{floor}}));
+    const r = await aiFill(c, ask, room);
+    const q = cid===ROOT ? c : still(cid); if(!q || !r.specs.length) return;
+    const dv = dev(), tally = {drawers:0, objects:0, made:[], sets:[], updated:0};
+    let spilled = 0;
+    if(room){
+      r.specs.forEach(sp=>{
+        const o = addSpec(sp, cid, tally); if(!o || !o[dv]) return;
+        const w = Math.min(o[dv].w, room.w), h = Math.min(o[dv].h, room.h);
+        const spot = spotIn(room, w, h, cid, o.id);
+        if(spot) o[dv] = spot; else spilled++;
+      });
+    } else {
+      const floor = 1 + childrenOf(q).reduce((m, x)=>x[dv] ? Math.max(m, x[dv].y + x[dv].h - 1) : m, 0);
+      r.specs.forEach(sp=>addSpec(sp, cid, tally, {pack:{floor}}));
+    }
     pushUndo('Filled in', tally.made.map(x=>({add:x})));
     save();
-    toast(r.said || `${tally.made.length} things added to ${q.title || 'it'}`, true);
+    toast((r.said || `${tally.made.length} things added`) + (spilled ? `. ${spilled} did not fit and went below` : ''), true);
   }catch(e){ toast(e.message || 'Claude could not fill that in'); }
-  finally{ end(cid); render(); }
+  finally{ end(key); render(); }
+}
+function spotIn(room, w, h, cid, id){
+  const dv = dev();
+  for(let y = room.y; y+h <= room.y+room.h; y++)
+    for(let x = room.x; x+w <= room.x+room.w; x++){
+      const box = {x, y, w, h};
+      if(boxOk(box, id, dv, cid)) return box;
+    }
+  return null;
 }
 
 /* ---- the key, tried -------------------------------------------------------

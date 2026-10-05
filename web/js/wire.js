@@ -1105,6 +1105,9 @@ function act(name, el){
     case 'ringback': ringInto(null); break;
     case 'ringmore': { const at = pending.cell; closeCtx(); pending.cell = at;
       modalNewObject(); break; }
+    // the drawn box, for Claude to fill (decision 307)
+    case 'ringask': { const at = pending.cell; closeCtx(); pending.cell = null;
+      if(at && at.w && at.h) openAsk(at.parent || ROOT, null, at); break; }
     case 'renamedone': renameTo(el.dataset.id); break;
     case 'frontpress': {
       if(Date.now() - FRONT_HELD < 700) break;
@@ -1265,7 +1268,7 @@ function act(name, el){
     /* Claude (decision 306): the pen in a drawer front, the Ask card's two
        buttons, and Settings → Claude. */
     case 'askpen': openAsk(el.dataset.id || ROOT); break;
-    case 'askgo': askGo(el.dataset.verb, el.dataset.id || ROOT, el.dataset.pen); break;
+    case 'askgo': askGo(el.dataset.verb, el.dataset.id || ROOT, el.dataset.pen, el.dataset.room); break;
     case 'aikeep': keepKey(); break;
     case 'aiforget': forgetKey(); break;
     case 'aitest': tryKey(); break;

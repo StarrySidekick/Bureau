@@ -13125,3 +13125,28 @@ verbs, the ring, and every request's model, cache mark and fallbacks; shots
 26 to 26d). Smoke: `claudeOk` (the key in no save, state or backup; the four
 schemas closed, required and not recursive; a list's order; the flat-pack
 offered nowhere; a pasted parcel unfolding).
+
+## 307. A box you draw, filled by Claude (v3.03, 2026-10-05)
+
+The Magic Selector already answers a drawn box with the shape ring (decisions
+210, 240). Once there is a key, that ring has one more blob, the fountain pen
+labeled **Claude…** (`ringask`), and the box becomes a **room**: the Ask card
+asks only what goes there (*"Fill this space"*), and what Claude writes is
+made and then moved to the first place **inside the box** that takes it, at
+no more than the box's size (`spotIn()` in ai.js). Anything that will not
+fit goes on the board below and the toast says how many, rather than being
+dropped. One move, Undo on the toast. It works on the desk too, which the
+fountain pen's Fill In does not.
+
+This is the most physical way to ask: you mark out where something belongs
+before you say what it is, the way you clear a space on a table.
+
+**And the desk is not sent.** What Claude is told about a board
+(`boardSaid()`) was two levels of it, pages and answers included; on the
+desk that was most of the desk, which contradicted Settings → Claude's
+"never the whole desk". On the desk it is now only the names of what lies
+on it, nothing inside and no pages. Inside a container it is unchanged.
+
+Tested in WebKit (`test/safari.mjs` block 27: the ring offers Claude for a
+drawn 4×6 box in a fresh drawer, the card's one verb is the room, and both
+things it writes land inside the box; shots 27, 27b).

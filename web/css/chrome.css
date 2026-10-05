@@ -7117,3 +7117,6 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .page .readanswer textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.95em;line-height:1.4;color:inherit;
   background:color-mix(in srgb, currentColor 5%, transparent);border:1.5px dashed color-mix(in srgb, currentColor 30%, transparent);
   border-radius:8px;padding:.55em .7em;resize:none;-webkit-user-select:text;user-select:text}
+/* The fountain pen on the shape ring (decision 307): the pen drawn in the
+   well, a little larger than an icon, because it is the thing and not a mark. */
+.radpaint.radpen svg{width:34px;height:34px;display:block}
