@@ -1030,6 +1030,26 @@ const overlaps = (a,b)=> a.x < b.x+b.w && b.x < a.x+a.w && a.y < b.y+b.h && b.y 
    so a thing waiting to be placed blocked the very cell it could go in
    (found by decision 288's fixed boards, which have no margin to hide it). */
 const hasBox = (o,dv)=> !!(o && o[dv] && o[dv].w && o[dv].x);
+/* **A board's sections** (decision 304): every thing on it carrying
+   `heading`, top to bottom and then left to right, each with how many things
+   stand between it and the next one. A board is read the way a page is, so a
+   section is the rows from its heading down to the next heading's row; two
+   headings on one row make the first an empty section, which is honest. What
+   floats (a decoration, a background) and a contents page itself are not
+   counted: they are furniture, not what the section holds. */
+function sectionsOf(cid, dv){
+  dv = dv || dev(); const home = cid || ROOT;
+  const kids = childrenOf(container(home)).filter(o=>o && !o.done && !inFront(o) && hasBox(o, dv));
+  const at = o => lay(o, dv, home);
+  const heads = kids.filter(o=>has(o,'heading')).map(o=>({o, b:at(o)}))
+    .sort((a,b)=> a.b.y-b.b.y || a.b.x-b.b.x);
+  const counted = kids.filter(o=>!has(o,'heading') && !has(o,'decor') && !has(o,'backdrop') && !has(o,'contents'))
+    .map(o=>at(o).y);
+  return heads.map((h,i)=>{
+    const y0 = h.b.y, y1 = i+1 < heads.length ? heads[i+1].b.y : Infinity;
+    return {o:h.o, y:y0, n:counted.filter(y=>y>=y0 && y<y1).length};
+  });
+}
 function boxOk(box, id, device, parentId, clear){
   const g=gridOf(device, parentId||ROOT), dv=device||dev();
   if(box.x<1 || box.y<1 || box.w<1 || box.h<1) return false;
@@ -1449,7 +1469,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
+export { sectionsOf, TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, FRESH, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, FORMS, formOf, tiledBoard, tilesOf, tileRectOf, setForm, setTileDim, fitTiles, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, shelvesToHold, colsOf, gridKeyOf, shelvesOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

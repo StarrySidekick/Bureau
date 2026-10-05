@@ -56,6 +56,13 @@ const ATTRS = {
      back and tidy is just the body again. */
   margin:   {nm:'Margin',     ds:'A running note you add to, each entry dated — never rewritten'},
   relates:  {nm:'Related',    ds:'Points at other objects, both ways'},
+  /* **A board has sections** (decision 304). A thing carrying `heading`
+     starts one: it and everything below it, down to the next heading. A
+     Label carries it from its type, so every label already on a desk is a
+     heading. `contents` is the other half: a thing that lists them and goes
+     to one when pressed. Read through `sectionsOf()` in grid.js. */
+  heading:  {nm:'Heading',    ds:'Starts a section of the board: a Contents lists it and the top lip names it'},
+  contents: {nm:'Contents',   ds:'Lists the headings on its board, in order, and goes to one when pressed'},
   total:    {nm:'Total',      ds:'Adds up a field across what it holds'},
   spawn:    {nm:'Spawns',     ds:'Makes new objects — on a press, or as you type into it'},
   /* Two ways out of a locked board, one object at a time. A lock is which
@@ -732,8 +739,14 @@ const BUILTIN_KINDS = {
      values, so every one of them can be argued with in the object editor the
      moment it lands. */
   label:   {shape:'band', nm:'Label',   ic:'tag',     c:12, key:'M', ds:'A name for a stretch of board',
-     size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['text'],
+     size:[4,1], phoneSize:[4,1], onclick:'none', attrs:['text','heading'],
      tsize:'1.6', border:'gilt', body:'' },
+  /* **The contents page** (decision 304): the headings on the board it lies
+     on, one line each with how many things sit under it, and a press on a
+     line scrolls the board there. It holds nothing; it reads its board on
+     every render, the way a sorting drawer collects. */
+  contents:{nm:'Contents', ic:'list', c:12, key:'', ds:'The headings on its board, in order: press one to go there',
+     size:[4,5], phoneSize:[4,5], onclick:'none', attrs:['contents'], body:'' },
   /* **Counter is a category** (decision 265): the ways of showing an
      amount. The wheels are the Ticker, the first of them; the Progress bar is
      the second. Either may count *to* something (`goal`), and says what
@@ -825,7 +838,7 @@ const BUILTIN_KINDS = {
      family that names a type, and these must not take a Note away from the
      Note's own family or a Character away from the Fragment. */
   m_list:    {cat:true, master:true, lead:'list', nm:'List', ic:'list', c:4,
-     ds:'A list of anything, or of things to check off', family:['list','checklist','inbox'], famSub:'Which list?', attrs:[], body:'' },
+     ds:'A list of anything, or of things to check off', family:['list','checklist','inbox','contents'], famSub:'Which list?', attrs:[], body:'' },
   m_calendar:{cat:true, master:true, lead:'calendar', nm:'Calendar', ic:'calendar', c:7,
      ds:'Things laid out along time', family:['calendar','timeline','appt'], famSub:'Which?', attrs:[], body:'' },
   m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
@@ -1126,6 +1139,7 @@ const WORKSHOP_SIZES = {
   pj_handmade:{size:[2,2], range:[[1,4],[1,4]], phone:null},
   pj_device:{size:[2,2], range:[[1,4],[1,4]], phone:null},
   checklist:{size:[4,6], range:[[2,8],[3,13]], phone:null},
+  contents:{size:[4,5], range:[[2,8],[2,12]], phone:null},
   timeline:{size:[8,3], range:[[4,8],[3,6]], phone:null},
   appt:{size:[3,1], range:[[2,4],[1,3]], phone:null},
   tag:{size:[2,1], range:[[1,3],[1,2]], phone:null},
@@ -2942,6 +2956,35 @@ function childrenOf(c){
 }
 // Guard against a container being dragged inside itself — with recursion this
 // is a real way to lose a subtree, not a theoretical one.
+/* ---- links between pages — decision 304 --------------------------------
+   `[[Title]]` in a body names another thing by what it is called. Two things
+   may share a name (every project has an *Open questions*), so a name is
+   looked for **nearest first**: in the container the link is written in,
+   then the one round that, out to the desk, and only then anywhere. */
+const LINK_RE = /\[\[([^\]|\n]+)(?:\|[^\]\n]*)?\]\]/g;
+const linksIn = body => { const out = [];
+  String(body||'').replace(LINK_RE, (m, t)=>{ out.push(t.trim().toLowerCase()); return m; });
+  return out; };
+function linkTarget(title, fromId){
+  const t = String(title||'').trim().toLowerCase(); if(!t) return null;
+  const all = S.objects.filter(x=>x && !isGone(x) && String(x.title||'').trim().toLowerCase()===t);
+  if(all.length < 2) return all[0] ? all[0].id : null;
+  for(let at = byId(fromId), n = 0; at && n < 100; n++){
+    const p = at.parent || ROOT;
+    const hit = all.find(x=>x.id!==fromId && (x.parent===p || (p!==ROOT && isAncestor(p, x))));
+    if(hit) return hit.id;
+    if(p===ROOT) break;
+    at = byId(p);
+  }
+  return (all.find(x=>x.id!==fromId) || all[0]).id;
+}
+/* What links here: every page whose links, resolved from where they are
+   written, arrive at this one. Asked by the reader, not stored. */
+function linkedFrom(o){
+  const t = String((o && o.title) || '').trim().toLowerCase(); if(!t) return [];
+  return S.objects.filter(x=>x && x.id!==o.id && x.body && x.body.includes('[[') && !isGone(x)
+    && linksIn(x.body).includes(t) && linkTarget(t, x.id)===o.id);
+}
 function isAncestor(maybeAncestor, o){
   let p = o && o.parent, n = 0;
   while(p && p!==ROOT && n++ < 100){
@@ -3817,7 +3860,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
+export { linkTarget, linkedFrom, linksIn, homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, ENV_KEYS, ENV_NAMES, isBench, envSync, setting, setSetting, putLook, unsetSetting, benchHere, lookNow, decidedBy, withoutEnv, envDepth, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,

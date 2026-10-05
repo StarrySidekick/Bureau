@@ -1019,6 +1019,9 @@
 .drawer.selected{outline:2.5px solid var(--glow);outline-offset:2px}
 .drawer.selected::after{content:"";position:absolute;inset:0;background:color-mix(in srgb,var(--glow) 16%,transparent);pointer-events:none}
 .ctxhead{padding:7px 12px 5px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+/* a contents menu row: the heading's number, its name, how many under it */
+.ctxmenu .tocnum{display:inline-block;min-width:1.4em;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.ctxmenu .ctxsub{margin-left:auto;padding-left:14px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 
 /* ---- a magic drawer is gilded, and the gilt is leaf -------------------
    It used to be dotted and speckled with stars, which read as a placeholder
@@ -5415,6 +5418,17 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
   text-shadow:0 -1px 0 rgba(0,0,0,.45)}
 .toplip .shelfmark{margin-left:2px}
+/* **The section you are in** (decision 304): smaller than the name and
+   after it, a chevron saying the name opens something, and the section's
+   own name truncating before the board's does. Empty above the first
+   heading, where the chevron alone says there is a contents to open. */
+.lipsec{flex:0 1 auto;min-width:0;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 4px;
+  margin-left:-4px;border:0;background:none;color:var(--ink-2);font:600 14px/1 var(--sans, system-ui);cursor:pointer}
+.lipsec svg{flex:0 0 auto;opacity:.8;transform:rotate(-90deg)}
+.lipsec .secname{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.lipsec .secname:empty{display:none}
+.toplip .here[data-act],.gridbar .here[data-act]{cursor:pointer}
+.gridbar .lipsec{color:var(--ink-3)}
 /* back to where a notepad in the drawer front was pressed (decision 297):
    a brass-edged tab at the lip's right, named for the place */
 .backpill{margin-left:auto;flex:0 1 auto;min-width:0;max-width:46%;display:inline-flex;align-items:center;gap:4px;
@@ -7088,3 +7102,18 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .benchrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0;border-bottom:1px solid color-mix(in srgb, var(--ink-3) 25%, transparent)}
 .benchrow > span{flex:1;min-width:150px;font-size:13px}
 .benchrow > span i{font-style:normal;opacity:.6;font-size:12px}
+
+/* **A link to another page** (decision 304): the page's own ink, underlined
+   in the brass the app marks a press with, so it reads as a word in the
+   sentence and not a web address. "Linked from" closes the page, small. */
+.page a.wlink,.zoombody a.wlink{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb, var(--brass, #b08d57) 75%, transparent);
+  text-decoration-thickness:1.5px;text-underline-offset:2px;cursor:pointer}
+.page .backlinks{margin-top:1.4em;padding-top:.6em;border-top:1px solid color-mix(in srgb, currentColor 18%, transparent);
+  font-size:.82em;opacity:.85}
+.page .backlinks span{font-weight:600;margin-right:.3em}
+.page .backlinks a{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb, currentColor 35%, transparent);cursor:pointer}
+/* a question's answer box on its own page (decision 304) */
+.page .readanswer{margin-top:1em}
+.page .readanswer textarea{width:100%;box-sizing:border-box;font:inherit;font-size:.95em;line-height:1.4;color:inherit;
+  background:color-mix(in srgb, currentColor 5%, transparent);border:1.5px dashed color-mix(in srgb, currentColor 30%, transparent);
+  border-radius:8px;padding:.55em .7em;resize:none;-webkit-user-select:text;user-select:text}

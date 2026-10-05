@@ -4190,3 +4190,17 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
   font:600 14px/1.2 var(--sans, system-ui);color:var(--ink, #2a241c);background:var(--paper, #f7f2e6);
   box-shadow:0 8px 20px rgba(0,0,0,.35)}
 #frame .drawer.listband.traysource{opacity:.35}
+
+/* **The contents page** (decision 304) wears the list face's lines; its mark
+   is the heading's number rather than a type's glyph, set in the line's own
+   ink so it reads as a contents page and not a list of things. */
+.tocface .tocnum{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums;color:var(--dink-2);
+  text-align:center;font-size:12px}
+.tocface .tocline{cursor:pointer}
+/* **What is open inside** (decision 304), on a front that asks for it: a
+   line under the name in the front's own light ink, wrapping rather than
+   pushing the knob, gone on a front too small to hold it. */
+.drawer.dtile .dtop{flex-wrap:wrap}
+.drawer .fstat{flex:1 0 100%;order:9;text-align:center;font:600 10.5px/1.25 var(--sans, system-ui);
+  color:var(--dink-2);letter-spacing:.01em;font-variant-numeric:tabular-nums;margin-top:1px}
+.drawer.sz-mini .fstat,.drawer.sz-thin .fstat,.drawer.sz-short .fstat{display:none}

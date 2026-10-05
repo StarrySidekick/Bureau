@@ -473,6 +473,20 @@ size, layout with closed edges, scroll type, zoom type, the five patterns,
 stations, the seven benches reviewed, six questions for Timothy). **To design
 or build a bench, use the `bench` skill** (`.claude/skills/bench/`).
 
+**v2.99–3.00** (decisions 303–304): **a board has sections and the
+project dashboards ship.** A Label is a `heading`; `sectionsOf()` in grid.js
+reads them; the **Contents** (`contents`, List family) lists them and goes
+to one (`goSection()`), and the lip names the section you are in and opens
+the same list (`litSection()`, `sectionMenu()`). `[[Title]]` links pages,
+resolved nearest first (`linkTarget()`), and the reader ends a page with
+*Linked from*. A paste can lay out in reading order (`arrange:'rows'`),
+come back with `update:true` without touching what was written, ticked or
+thrown away (`sp`, `laid`, `key`), set `words` and a front `status` line;
+a board copies as text from Board settings. **Bureau, Composer's Key and
+EveryPark are dashboards in `web/js/dashboards.js`**: laid once by migration
+63, refreshed when `DASH_V` moves, and in Settings → About for a fresh desk.
+Edit them there and bump `DASH_V`; never by hand on the desk.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

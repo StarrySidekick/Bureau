@@ -1,5 +1,7 @@
 import { D, uid, clamp, ROOT, BIN } from './util.js';
-import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
+import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev, isGone } from './model.js';
+import { WORD_KEYS } from './words.js';
+import { DASH_V, DASHBOARDS } from './dashboards.js';
 import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold, boxOk, growDown } from './grid.js';
 import { toast, create, makeCompound, pushUndo } from './mutations.js';
 import { render } from './views.js';
@@ -19,7 +21,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.99';
+const APP_VERSION = '3.00';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -267,7 +269,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 62;
+const DATA_V = 63;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1542,6 +1544,13 @@ const MIGRATIONS = [
     const have = new Set(d.plans.map(p=>p && p.stock).filter(Boolean));
     ['storybuilder','journal'].forEach(k=>{ if(!have.has(k) && fresh[k]) d.plans.push(fresh[k]); });
   }},
+  /* ---- the project dashboards (decision 304) ------------------------------
+     Asked for, not made: making them needs `create()` and a measured board,
+     which a migration has neither of, so this leaves a note that boot.js
+     answers with `shipDashboards()` once the desk is up. */
+  {v:63, up(d){
+    d.deskCfg = Object.assign({layout:'grid', sort:null}, d.deskCfg, {dashPending:true});
+  }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -1896,9 +1905,96 @@ function askedSpot(spec, o, w, h, dv, parentId){
 }
 const PAGES_GUARD = 40;
 
-function addSpec(spec, parentId, tally){
+/* **In reading order** (decision 304): `"arrange": "rows"` on a container
+   packs its children left to right and top to bottom, each at the first spot
+   where it fits, so a paste's order is its layout and nobody has to work out
+   cells. A heading as wide as the board starts a new floor: nothing after it
+   goes back up above it, or a small thing would slip into a gap two sections
+   back. */
+function packSpot(w, h, dv, parentId, pack, id){
+  const cols = gridOf(dv, parentId).cols; w = Math.min(w, cols);
+  for(let y = pack.floor, n = 0; n < 400; y++, n++){
+    for(let g = 0; g < PAGES_GUARD && y+h-1 > gridOf(dv, parentId).rows; g++) if(!growDown(parentId)) return null;
+    for(let x = 1; x+w-1 <= cols; x++){ const box = {x, y, w, h}; if(boxOk(box, id, dv, parentId)) return box; }
+  }
+  return null;
+}
+
+/* ---- a paste that comes back — decision 304 ----------------------------
+   A board Claude builds goes stale the day after, and pasting it again made
+   a second one beside the first. `"update": true` on a top-level spec finds
+   the container it made last time (by `key`, else by title) and brings it up
+   to date instead, by three rules that keep what is yours:
+
+     · a thing is matched by its `key`, else by its title, and only its
+       **title, body and address** are refreshed, each only if it still says
+       what the last paste wrote (`sp`, a hash per field): write on a page
+       and the next update leaves that page alone;
+     · a check, an answer, a date, a move, a resize: never touched;
+     · a thing the spec has and the board has not is added at the bottom,
+       unless an earlier paste laid it and it has been taken away since
+       (`laid` on the container): a deletion is a decision too.        */
+const hashOf = v => { let h = 5381; const t = String(v==null ? '' : v);
+  for(let i = 0; i < t.length; i++) h = ((h<<5) + h + t.charCodeAt(i))|0;
+  return (h>>>0).toString(36); };
+const SPEC_OWN = ['title','body','url'];
+const specVal = (o, f) => f==='url' ? ((o.link && o.link.target) || '') : String(o[f]||'');
+const specKey = c => String((c && (c.key || c.title || c.name)) || '').trim().toLowerCase();
+const sameTitle = (x, c) => String(x.title||'').trim().toLowerCase() === String(c.title||c.name||'').trim().toLowerCase();
+function marksSpec(o, spec){
+  o.sp = {}; SPEC_OWN.forEach(f=>{ o.sp[f] = hashOf(specVal(o, f)); });
+  if(spec.key) o.sk = String(spec.key);
+}
+function refreshFrom(o, spec, tally){
+  SPEC_OWN.forEach(f=>{
+    if(spec[f]==null) return;
+    const now = specVal(o, f), to = String(spec[f]);
+    if(now===to || !o.sp || o.sp[f]!==hashOf(now)) return;     // written on since: theirs now
+    if(f==='url'){
+      if(!has(o,'button')) return;
+      tally.sets.push({set:{id:o.id, k:'link', v:o.link}});
+      o.link = Object.assign({label:o.title||'Open'}, o.link, {target:to});
+    } else { tally.sets.push({set:{id:o.id, k:f, v:o[f]}}); o[f] = to; }
+    o.sp[f] = hashOf(to); tally.updated++;
+  });
+}
+/* What a thing answers to: the key a paste gave it, else its title. A spec
+   that says `key` asks for that and nothing else at the top, so a shipped
+   board never pours itself into some other drawer that happens to share its
+   name; below the top, a key equal to an old title is how a rename keeps its
+   place (the thing then carries the key from there on). */
+const keyOf = x => x.sk || String(x.title||'').trim().toLowerCase();
+function existingFor(spec, parentId){
+  const here = S.objects.filter(x=>x && (x.parent||ROOT)===parentId && isContainer(x) && !isGone(x));
+  return spec.key ? (here.find(x=>x.sk===String(spec.key)) || null) : (here.find(x=>sameTitle(x, spec)) || null);
+}
+function upsertInto(o, spec, tally){
+  refreshFrom(o, spec, tally);
+  const kids = (Array.isArray(spec.children) ? spec.children : [])
+    .map(c=>typeof c==='string' ? {type:'task', title:c} : c).filter(Boolean);
+  if(!kids.length || !isContainer(o)) return;
+  const here = S.objects.filter(x=>x && x.parent===o.id);
+  const laid = new Set(o.laid||[]);
+  const dv = dev();
+  const bottom = here.reduce((m, x)=>{ const b = x[dv]; return b && b.y ? Math.max(m, b.y+(b.h||1)) : m; }, 1);
+  const ctx = {pack:{floor:bottom}};
+  kids.forEach(c=>{
+    const k = specKey(c); if(!k) return;
+    const hit = here.find(x=>keyOf(x)===k);
+    if(hit){ if(c.key) hit.sk = String(c.key); upsertInto(hit, c, tally); laid.add(k); return; }
+    if(laid.has(k)) return;                        // laid before, and taken away since
+    addSpec(c, o.id, tally, ctx); laid.add(k);
+  });
+  o.laid = [...laid];
+}
+
+function addSpec(spec, parentId, tally, ctx){
   if(spec==null) return;
   if(typeof spec==='string') spec={type:'task', title:spec};   // a bare line is a task
+  if(spec.update && !(ctx && ctx.pack)){
+    const was = existingFor(spec, parentId);
+    if(was){ upsertInto(was, spec, tally); return was; }
+  }
   const pl = spec.plan ? planByWord(spec.plan) : null;
   if(pl){
     const said = spec.type||spec.kind ? kindFromName(spec.type||spec.kind) : null;
@@ -1943,18 +2039,59 @@ function addSpec(spec, parentId, tally){
   if(spec.face)  o.face=spec.face;
   if(spec.layout) o.layout=spec.layout;
   if(spec.onclick) o.onclick=spec.onclick;
+  /* How its words are set (decision 247), from the same keys the Words door
+     writes: `"words": {"shows": "title"}` is a page that wears only its name. */
+  if(spec.words && typeof spec.words==='object')
+    WORD_KEYS.forEach(k=>{ if(spec.words[k]!=null) o[k]=String(spec.words[k]); });
+  // a front that says what is open inside (decision 304)
+  if(spec.status) o.status='open';
+  marksSpec(o, spec);
   const [dw,dh]=sizeOfKind(kind, dev());
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
-  o[dev()]=askedSpot(spec, o, w, h, dev(), parentId) || anySpot(w,h,dev(),parentId);
-  const other = dev()==='phone' ? 'desk' : 'phone', there = askedSpot(spec, o, w, h, other, parentId);
+  const pack = ctx && ctx.pack, other = dev()==='phone' ? 'desk' : 'phone';
+  o[dev()]=askedSpot(spec, o, w, h, dev(), parentId)
+    || (pack && parentId!==ROOT && packSpot(w, h, dev(), parentId, pack, o.id)) || anySpot(w,h,dev(),parentId);
+  if(pack && has(o,'heading') && w >= gridOf(dev(), parentId).cols) pack.floor = o[dev()].y;
+  const there = askedSpot(spec, o, w, h, other, parentId)
+    || (pack && parentId!==ROOT && boxOk(o[dev()], o.id, other, parentId) ? Object.assign({}, o[dev()]) : null);
   if(there) o[other] = there;
   tally[isContainer(o)?'drawers':'objects']++;
   tally.made.push(o.id);
-  kids.forEach(c=>addSpec(c, o.id, tally));
+  const kidCtx = spec.arrange==='rows' ? {pack:{floor:1}} : null;
+  kids.forEach(c=>addSpec(c, o.id, tally, kidCtx));
+  if(kids.length) o.laid = kids.map(c=>specKey(typeof c==='string' ? {title:c} : c)).filter(Boolean);
   /* A board laid out by the paste reads from the top, so it opens on its
      first tile rather than the middle of what is on it (decision 287). */
-  if(kids.some(c=>c && c.x!=null && c.y!=null)) o.start={x:0, y:0};
+  if(kidCtx || kids.some(c=>c && c.x!=null && c.y!=null)) o.start={x:0, y:0};
   return o;
+}
+
+/* ---- the shipped dashboards — decision 304 ------------------------------
+   Timothy's project dashboards (dashboards.js) come with the app rather than
+   through a paste. Migration 63 asks for them once on an existing desk; after
+   that, a new `DASH_V` brings the ones still on the desk up to date by the
+   paste's update rules, and never puts back one that was thrown away.
+   `force` is Settings' button: lay every one, updating what is there and
+   making what is not. A fresh desk gets none until that button is pressed:
+   the sample desk is what a first run looks like. */
+function shipDashboards(force){
+  const cfg = S.deskCfg || (S.deskCfg = {layout:'grid', sort:null});
+  const laid = new Set(cfg.dashLaid || []);
+  const fresh = !!(force || cfg.dashPending);
+  if(!fresh && (cfg.dashV||0) >= DASH_V) return null;
+  const tally = {drawers:0, objects:0, made:[], sets:[], updated:0};
+  DASHBOARDS.forEach(d=>{
+    const spec = Object.assign(JSON.parse(JSON.stringify(d)), {update:true, arrange:'rows', status:true});
+    const there = existingFor(spec, ROOT);
+    if(!there && !(force || (cfg.dashPending && !laid.has(spec.key)))) return;   // taken away: stays away
+    addSpec(spec, ROOT, tally);
+    laid.add(spec.key);
+  });
+  cfg.dashLaid = [...laid]; cfg.dashV = DASH_V; delete cfg.dashPending;
+  if(tally.made.length || tally.sets.length)
+    pushUndo('Project dashboards', [...tally.made.map(id=>({add:id})), ...tally.sets]);
+  save();
+  return tally;
 }
 
 function pasteObjects(text, parentId){
@@ -1966,19 +2103,22 @@ function pasteObjects(text, parentId){
   catch(e){ toast('That is not valid JSON — check for a stray comma'); return; }
   const list=Array.isArray(data)?data:[data];
   if(!list.length) return toast('Nothing to add');
-  const tally={drawers:0,objects:0,made:[]};
+  const tally={drawers:0,objects:0,made:[],sets:[],updated:0};
   try{ list.forEach(sp=>addSpec(sp, parentId||ROOT, tally)); }
   catch(e){ toast('Could not read that: '+e.message); return; }
   save(); render();
   const bits=[];
   if(tally.drawers) bits.push(`${tally.drawers} drawer${tally.drawers>1?'s':''}`);
   if(tally.objects) bits.push(`${tally.objects} object${tally.objects>1?'s':''}`);
+
   // a paste is one move, however many objects it made — undoing it should not
   // mean pressing undo forty times
-  pushUndo('Paste', tally.made.map(id=>({add:id})));
-  toast('Added '+(bits.join(' and ')||'nothing'), !!tally.made.length);
+  pushUndo('Paste', [...tally.made.map(id=>({add:id})), ...tally.sets]);
+  const said = (bits.length ? 'Added '+bits.join(' and ') : '')
+    + (tally.updated ? (bits.length ? '; ' : '')+`Updated ${tally.updated} thing${tally.updated>1?'s':''}` : '');
+  toast(said || (tally.sets.length ? 'Up to date' : 'Nothing new to add'), !!(tally.made.length || tally.sets.length));
 }
 
-export { APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
+export { shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, importMedia, importFile, imgFor,
   pasteObjects, install };

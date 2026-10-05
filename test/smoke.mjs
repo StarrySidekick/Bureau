@@ -672,6 +672,53 @@ const CHROME = process.env.BUREAU_CHROME;
       && r.start && r.start.x === 0 && r.start.y === 0 && r.cards.join() === 'Only card' ? true : JSON.stringify(r);
   });
 
+  /* Sections, the contents page, links between pages, and a paste that
+     comes back (decision 304): a board laid in reading order, its headings
+     read in order with what is under each, a [[link]] found nearest first
+     and "linked from" answered, an update that refreshes what the last paste
+     wrote and leaves what was written on, ticked or thrown away, and a board
+     copied as text with its answers. Everything it made goes again. */
+  const sectionsOk = await page.evaluate(() => {
+    const S = BUREAU.state, before = new Set(S.objects.map(o => o.id));
+    const v1 = { type: 'project', title: 'Sectioned', key: 'sect', update: true, arrange: 'rows', status: true, children: [
+      { type: 'contents', title: 'Contents', w: 4, h: 5 },
+      { type: 'checklist', title: 'Next', w: 4, h: 5, children: ['Second', 'First'] },
+      { type: 'label', title: 'Alpha', w: 8, h: 1 },
+      { type: 'note', title: 'One', body: 'See [[Two]].', w: 4, h: 3 }, { type: 'note', title: 'Two', body: 'two', w: 4, h: 3 },
+      { type: 'label', title: 'Beta', w: 8, h: 1 },
+      { type: 'question', title: 'Why?', body: 'Because.', w: 4, h: 3 }, { type: 'note', title: 'Three', body: 'three', w: 4, h: 3 } ] };
+    BUREAU.paste(JSON.stringify([v1]));
+    const mine = () => S.objects.filter(o => !before.has(o.id));
+    const at = t => mine().find(o => o.title === t);
+    const p = at('Sectioned'), box = t => { const b = at(t)[S.device === 'phone' ? 'phone' : 'desk']; return [b.x, b.y].join(','); };
+    const r = { alpha: box('Alpha'), toc0: box('Contents'), one: box('One'), two: box('Two'), beta: box('Beta'), start: p.start && p.start.y === 0 };
+    S.view = 'drawer'; S.drawerId = p.id; BUREAU.render();
+    r.toc = [...document.querySelectorAll('#app .tocline')].map(l => l.textContent.replace(/\s+/g, ' ').trim());
+    r.lip = !!document.querySelector('#app .lipsec');
+    r.link = BUREAU.linkTarget('two', at('One').id) === at('Two').id;
+    r.from = BUREAU.linkedFrom(at('Two')).map(o => o.title).join();
+    // written on, ticked, thrown away; then the update
+    at('Two').body = 'mine'; at('Why?').answer = 'Yes'; mine().find(o => o.title === 'First').done = true;
+    at('Three').parent = '__bin__';
+    const v2 = JSON.parse(JSON.stringify(v1));
+    v2.children[3].body = 'See [[Two]] again.'; v2.children[4].body = 'two, updated'; v2.children[7].body = 'three again';
+    v2.children.push({ type: 'note', title: 'Four', body: 'new' });
+    BUREAU.paste(JSON.stringify([v2]));
+    r.one = at('One').body; r.two = at('Two').body; r.answer = at('Why?').answer;
+    r.first = mine().find(o => o.title === 'First').done; r.three = mine().filter(o => o.title === 'Three' && o.parent === p.id).length;
+    r.four = !!at('Four'); r.projects = mine().filter(o => o.title === 'Sectioned').length;
+    r.md = BUREAU.boardText(p.id);
+    S.view = 'desk'; S.drawerId = null;
+    const gone = new Set(mine().map(o => o.id));
+    S.objects = S.objects.filter(o => !gone.has(o.id)); BUREAU.render();
+    const below = (a, b, n) => a.split(',')[0] === '1' && +a.split(',')[1] === +b.split(',')[1] + n;
+    const ok = below(r.alpha, r.toc0, 5) && below(r.beta, r.alpha, 4) && r.one === 'See [[Two]] again.' && r.two === 'mine' && r.answer === 'Yes' && r.first === true
+      && r.three === 0 && r.four && r.projects === 1 && r.start && r.lip && r.link && r.from === 'One'
+      && r.toc.length === 2 && /Alpha\s*2$/.test(r.toc[0]) && /Beta\s*2$/.test(r.toc[1])
+      && /## Alpha/.test(r.md) && !/Add to this/.test(r.md) && /- \[x\] First/.test(r.md) && /A: Yes/.test(r.md);
+    return ok ? true : JSON.stringify(Object.assign(r, { md: r.md.slice(0, 200) }));
+  });
+
   // --- magic rules: a magic drawer collects by rule, and completed things
   // leave their own drawer for the archive (decisions 15 and 2)
   const magicOk = await page.evaluate(() => {
@@ -2204,7 +2251,12 @@ const CHROME = process.env.BUREAU_CHROME;
       inside: all.every(x => x.x >= 1 && x.w <= 8
         && x.x + x.w - 1 <= BUREAU.shelvesOf('root', 'phone').w * BUREAU.TILE),
       clear,
-      nothingElseAdded: BUREAU.state.objects.length === 4,
+      /* …bar the three project dashboards, which migration 63 lays on any
+         desk that comes from before them (decision 304): nothing else. */
+      nothingElseAdded: (() => { const S = BUREAU.state;
+        const dash = new Set(S.objects.filter(o => o.sk && o.parent === 'root').map(o => o.id));
+        const under = o => { for (let p = o, n = 0; p && n < 50; p = S.objects.find(x => x.id === p.parent), n++) if (dash.has(p.id)) return true; return false; };
+        return dash.size === 3 && S.objects.filter(o => !under(o)).length === 4; })(),
       /* the Mac's boxes as they were, one beside the next: since decision 287
          the board is fitted to what is on it at load, which moves every
          number on it by the same margin and nothing in relation to anything */
@@ -11562,7 +11614,7 @@ const CHROME = process.env.BUREAU_CHROME;
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
-    pasteOk, pasteWhere, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
+    pasteOk, pasteWhere, sectionsOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,

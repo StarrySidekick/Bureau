@@ -88,6 +88,32 @@ A paste is a JSON **array of specs** (a single spec also works). Fences
 | `answer` | An answer | For a Question. |
 | `x`, `y` | Where, inside a container the paste made | 1-based cells on that container's board. Honored only where the box is free (a tiled board grows down to reach it); otherwise it is placed as usual. A board given positions opens on its first tile. Never on the desk. |
 | `seed` | `false` leaves out what the type is born holding | A deck's blank *Write on me* card, a project's *Add to this…* notepad. |
+| `arrange` | `"rows"` on a container: its children in reading order | Each child goes to the first spot, left to right and top to bottom, where it fits; a heading as wide as the board starts a new floor nothing after it climbs above. **The way to lay out a board**: write the children in the order they should read and give sizes, no cells. The board opens on its first tile. |
+| `key` | What it answers to on a later `update` | Any string. Without one, a thing answers to its title. |
+| `update` | `true` on a top-level container: bring the one made last time up to date | §3a. |
+| `words` | How its words are set | The Words door's keys, e.g. `{"shows": "title"}` for a page that wears only its name. |
+| `status` | `true` on a container with a plain front: the front says what is open inside | "4 to do · 2 to answer", counted however deep. |
+
+### 3a. A paste that comes back: `update`
+
+A board goes stale the day after it is pasted. `"update": true` on a
+top-level container finds the one the last paste made (by `key` if the spec
+has one, and then **only** by key; else by title) and brings it up to date
+instead of making a second:
+
+- Each child is matched by its `key`, else its title, inside its own
+  container, all the way down.
+- A matched thing has its **title, body and address** refreshed, each only
+  if it still says what the last paste wrote. Anything written on since is
+  left alone. A check, an answer, a date, a position, a size: never touched.
+- A child the board does not have is added at the bottom, **unless an
+  earlier paste laid it and it was taken away since**: a deletion stays.
+- To rename a thing and keep it, give it `"key"` equal to its old key
+  (its old title, lowercased) once.
+- One undo takes the whole update back.
+
+The project dashboards that ship with Bureau (`web/js/dashboards.js`,
+decision 304) are kept current this way.
 
 Anything else in a spec is **ignored**, including `rel`, `milestones`,
 `media` and every look field. Not an error: it simply does not arrive.
@@ -143,12 +169,15 @@ loose `children` is the fallback for when nothing fits.
 This is the gap between the grammar and the flat-pack, and the list of what
 the flat-pack format has to add. Each is a real limit today, not a convention.
 
-1. **Place on the desk.** `x`/`y` work only inside a container the paste
-   made (§3); a top-level spec lands at the first free spot. Without `x`/`y`,
-   the free spot fans out from a tile's middle, so a paste's order does not
-   decide its layout. `docs/examples/wiki.json` (made by
-   `scripts/wiki-paste.mjs`) is a laid-out board written this way.
-2. **Put things into an existing drawer.** A paste always starts on the desk.
+1. **Place on the desk.** `x`/`y` and `arrange` work only inside a
+   container the paste made (§3); a top-level spec lands at the first free
+   spot. Without either, the free spot fans out from a tile's middle, so a
+   paste's order does not decide its layout. `docs/examples/wiki.json`
+   (made by `scripts/wiki-paste.mjs` from the shipped dashboards) is
+   three boards written with `arrange`.
+2. **Put things into a drawer it did not make.** A paste starts on the
+   desk; `update` (§3a) reaches a container only if it sits on the desk and
+   matches.
 3. **Tie with string.** `rel` holds ids, and a paste has no way to name
    another object in the same paste. Compounds do this already, with local
    names (`ref:'list'`, `rel:['@list']`, `tracks:'@list'` in `COMPOUNDS`);
@@ -159,8 +188,8 @@ the flat-pack format has to add. Each is a real limit today, not a convention.
    board nothing is made. Its parts keep their own titles.
 6. **Define milestones.** `fill` can tick existing ones; a spec cannot make
    them.
-7. **Look.** Words (`words`), knobs, panels, papers, paintings, drawn art,
-   the drawer front's six places (`front`): none.
+7. **Look.** Knobs, panels, papers, paintings, drawn art, the drawer
+   front's six places (`front`): none. Words can be set (`words`, §3).
 8. **Pictures, sound, video.** Bytes live in IndexedDB; a paste carries none.
 9. **A new board shape.** A container is made at its type's size; a bench's
    `boards`/`dims` come only from the bench.
@@ -180,6 +209,7 @@ kept as space.
 | `**bold**`, `*italic*`, `~~struck~~`, `==highlight==`, `++underline++` | Inline styles |
 | `` `code` `` and fenced blocks | Code |
 | `[words](https://…)` | A link |
+| `[[Title]]`, `[[Title\|words]]` | A link to another page by its name, found nearest first (the same container, then out to the desk); the page it reaches lists what links to it |
 | `![alt](https://…)` | A picture from a web address |
 | `- item`, `1. item` | Lists |
 | `- [ ] item`, `- [x] item` | Check boxes in the words (not objects) |
@@ -225,6 +255,16 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
   no pipes: `{"plan": "braindump"}` is an inbox you write into, and its lines
   are carried to drawers by hand (decision 296), so give it `children`, not
   `fill` (a bare string there is a task; say the type for anything else).
+- **A long board has headings and a Contents.** Put a Label (8 wide) at
+  the head of each section and a `contents` near the top: the Contents
+  lists the sections and goes to one, and the top lip names the section
+  you are in and opens the same list. Lay it out with `arrange: "rows"`.
+- **Pages go in lists, not loose on the board.** A `list` of notes is a
+  column of names that open; a board of 4×3 notes is a corkboard of cut-off
+  sentences. Write a list's children last to first: it shows its newest
+  first.
+- **Link pages with `[[Title]]`**, and give a board that will be refreshed
+  a `key` and `update: true` (§3a).
 - **Say what could not be pasted.** If the board needs strings, positions or
   pictures (§5), hand over the paste and say plainly what he will have to do
   by hand, or what the paste bridge would need.
@@ -260,6 +300,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `list` | List | 4×6 | yes | Whatever is inside it, one line each, on the front |
 | `checklist` | Checklist | 4×6 | yes | Tasks you can check off and add to without opening it |
 | `inbox` | Inbox | 4×5 | yes | Write anything. It becomes what it reads as, and copper pipes tied to it carry each kind to its drawer |
+| `contents` | Contents | 4×5 |  | The headings on its board, in order: press one to go there |
 
 **Calendar** (`m_calendar`)
 
@@ -560,6 +601,8 @@ An attribute is a trait; some carry a field, which is the key a value is written
 | `answer` | Answerable | `answer` | text | A box to answer it in — filled means answered |
 | `margin` | Margin |  |  | A running note you add to, each entry dated — never rewritten |
 | `relates` | Related | `rel` | refs | Points at other objects, both ways |
+| `heading` | Heading |  |  | Starts a section of the board: a Contents lists it and the top lip names it |
+| `contents` | Contents |  |  | Lists the headings on its board, in order, and goes to one when pressed |
 | `total` | Total |  |  | Adds up a field across what it holds |
 | `spawn` | Spawns |  |  | Makes new objects — on a press, or as you type into it |
 | `decor` | Decoration |  |  | Stands above the board rather than in it — it may overlap anything, and nothing makes room for it |

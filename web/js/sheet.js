@@ -1,5 +1,5 @@
 import { $, $$, esc, ic } from './util.js';
-import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, loopOf, iconOf } from './model.js';
+import { S, K, byId, has, isContainer, READS, readOf, isMedia, mediaTypeOf, loopOf, iconOf, dev, isGone, answered, isDecor, isBackdrop } from './model.js';
 import { lay } from './grid.js';
 import { bookOf, sheetOf, faceLook, facePaper } from './tiles.js';
 import { isActive, activeArt, activeSay, activeName, activeZoom, cardFace } from './active.js';
@@ -326,8 +326,36 @@ function mdTool(ta, what){
    store you hope about. So: the title as a heading, the body underneath, its
    tags at the foot — the markdown it was written in, which is the only format
    that loses nothing. See decision 68. */
+/* **A board as text** (decision 304): everything on it, top to bottom and
+   left to right, in the words a person would write it down in, so what was
+   written and answered in Bureau can go somewhere else (a Claude session, an
+   email) whole. A heading is a heading, a check is a checkbox with its tick,
+   a question carries its answer or says it has none, a link is a link, a
+   page is its title and its words, and a container nests one level deeper.
+   Checked things are included: they are what was done. */
+function boardMarkdown(c, depth){
+  const dv = dev(), h = '#'.repeat(Math.min(6, depth));
+  const at = o => { const b = lay(o, dv, c.id) || {}; return [b.y||0, b.x||0]; };
+  // what is written there, not the furniture: no decorations, no contents
+  // page, no notepad or other line that only makes things
+  const kids = S.objects.filter(x=>x && x.parent===c.id && !isGone(x) && !isDecor(x) && !isBackdrop(x) && !has(x,'contents')
+      && !(has(x,'spawn') && !isContainer(x)) && !isActive(x))
+    .sort((a,b)=>{ const [ay,ax]=at(a), [by,bx]=at(b); return ay-by || ax-bx; });
+  const out = [];
+  kids.forEach(x=>{
+    const t = x.title || 'Untitled', body = (x.body||'').trim();
+    if(has(x,'heading')) out.push('', `${h} ${t}`, '');
+    else if(has(x,'check')) out.push(`- [${x.done?'x':' '}] ${t}`);
+    else if(has(x,'answer')) out.push('', `**Q: ${t}**`, body ? body : '', answered(x) ? `A: ${x.answer.trim()}` : '_Not answered yet._', '');
+    else if(has(x,'button') && x.link && x.link.target) out.push(`- [${t}](${x.link.target})`);
+    else if(isContainer(x)) out.push('', `${h}# ${t}`, '', boardMarkdown(x, depth+1), '');
+    else out.push('', `**${t}**`, body, '');
+  });
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
 function asMarkdown(o){
   if(!o) return '';
+  if(isContainer(o)) return `# ${o.title||'Untitled'}\n\n${boardMarkdown(o, 2)}\n`;
   const out=[];
   if(o.title) out.push('# '+o.title, '');
   if((o.body||'').trim()) out.push(o.body.trim(), '');
@@ -337,7 +365,7 @@ function asMarkdown(o){
 function copyObject(id){
   const o=byId(id); if(!o) return;
   const text=asMarkdown(o);
-  const done=()=>toast('Copied as markdown');
+  const done=()=>toast(isContainer(o) ? 'Copied the board as text' : 'Copied as markdown');
   if(navigator.clipboard && navigator.clipboard.writeText)
     navigator.clipboard.writeText(text).then(done, ()=>fallback(text, done));
   else fallback(text, done);

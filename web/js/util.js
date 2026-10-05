@@ -164,6 +164,11 @@ function md(src){
     .replace(/~~([^~]+)~~/g,'<del>$1</del>')
     .replace(/==([^=]+)==/g,'<mark>$1</mark>')
     .replace(/\+\+([^+]+)\+\+/g,'<u>$1</u>')
+    /* **A link to another page** (decision 304): `[[Title]]`, or
+       `[[Title|the words to show]]`. Resolved when it is pressed, not here
+       (`linkTarget()` in model.js), so a page renamed or made later is found
+       by whatever it is called then. Before the web link, which it is not. */
+    .replace(/\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g,(m,t,w)=>`<a class="wlink" data-wlink="${t.trim()}" role="link">${(w||t).trim()}</a>`)
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
   /* **What you typed is what you see.** Every non-blank line used to become its
      own `<p>` and every blank line was thrown away — so a single Return between
@@ -272,6 +277,7 @@ function plain(src){
   if(!src) return '';
   const inline = t => String(t)
     .replace(/!\[([^\]]*)\]\([^)]*\)/g,'$1')        // an image is its alt text
+    .replace(/\[\[([^\]|\n]+)(?:\|([^\]\n]+))?\]\]/g,(m,t,w)=>(w||t).trim())   // a page link too
     .replace(/\[([^\]]+)\]\([^)]*\)/g,'$1')         // a link is its words
     .replace(/`([^`]+)`/g,'$1')
     .replace(/\*\*([^*]+)\*\*/g,'$1')

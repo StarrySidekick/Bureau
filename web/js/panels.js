@@ -16,7 +16,7 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc,
   makesOf, madeAtSize, isShelved, isShelvedPlan } from './model.js';
 import { newOfKind } from './wire.js';
-import { GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
+import { sectionsOf, GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
 import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo } from './model.js';
 import { paintTarget, hasArt } from './paint.js';
@@ -202,6 +202,17 @@ function openMenu(anchor, html){
    menu of them hung off one piece in the drawer front is, and grid or list
    came along because it answers the same question — in what order do I see
    these. The editor's "Sorted by" row writes the same field. */
+/* **The lip's contents** (decision 304): the board's headings hung off its
+   name, so a section is one press away from anywhere on a long board rather
+   than a scroll back to the contents page. The same list a Contents object
+   draws, from the same reader. */
+function sectionMenu(anchor, cid){
+  const secs = sectionsOf(cid);
+  if(!secs.length) return false;
+  openMenu(anchor, `<div class="ctxhead">Contents</div>${secs.map((x,i)=>
+    `<button data-act="gosec" data-id="${esc(x.o.id)}"><span class="tocnum">${i+1}</span> ${esc(x.o.title||'Untitled')}<span class="ctxsub">${x.n}</span></button>`).join('')}`);
+  return true;
+}
 function sortMenu(anchor, cid){
   const c = container(cid), cur = sortOf(c) || MANUAL, lay = layoutOf(c)==='grid' ? 'grid' : 'list';
   const b = (act, v, label, on)=> `<button data-act="${act}" data-id="${esc(cid)}" data-v="${v}"${
@@ -1683,6 +1694,12 @@ function objectPanelBody(id, sec){
       [['1',faceOf(d)==='list'?'On the front, with how many are in it':'On the front, with how many are done'],['0','On the tooltip only']],
       d.clhead==='0'?'0':'1')));
   }
+  /* What a front says beside its name (decision 304): what is still open
+     inside, for a project you want to read from across the desk. */
+  if(!isRoot && cont && faceOf(d)==='front'){
+    out.push(prow('Its front says', psel(id,'status',
+      [['','Its name'],['open','Its name and what is open inside']], d.status==='open'?'open':'')));
+  }
   // whether what goes into it is born on today or with no day — decision 197
   /* "New things in it" (undated) was cut from the editor in the Workshop
      (decision 218); a flow still sets it, and `create()` still reads it. */
@@ -3029,7 +3046,7 @@ function closeCtx(){
 
 export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, sortMenu, shapeRing, shapeKinds, ringJustOpened, ringInto, VARIANTS, variantsOf, variantPatch, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
+  openMenu, sortMenu, sectionMenu, shapeRing, shapeKinds, ringJustOpened, ringInto, VARIANTS, variantsOf, variantPatch, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

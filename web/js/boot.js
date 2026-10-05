@@ -1,9 +1,9 @@
 /* ============================================================
    boot — load, wire, render, register the service worker
    ============================================================ */
-import { $ } from './util.js';
+import { $, ROOT } from './util.js';
 import { plans, planFrom, stampPlan, planById, planSize, delPlan } from './plans.js';
-import { refreshKinds , groupTogether, groupMates, travelWith, countOf, inFront, isShelved, isInbox } from './model.js';
+import { byId, linkTarget, linkedFrom, refreshKinds , groupTogether, groupMates, travelWith, countOf, inFront, isShelved, isInbox } from './model.js';
 import { S, KINDS, SHAPES, shapeChoices, SORTS, childrenOf, container, relate, deskOf, has, lateOn, isLate, knobOf,
   urgencyOf, urgeSaid, workday,
   isContainer, faceOf, PRIMARY, SECONDARY, MASTERS, inMaster, isCut, isPrimary, inFamily, barPct, marginOf, marginPlus,
@@ -29,7 +29,7 @@ import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
 import { gravityReport, gravitySettle, gravityApply, gravityWake,
   gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
-import { load, writeNow, save, hydrateAssets, pasteObjects, migrate } from './persist.js';
+import { load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom, openCard } from './sheet.js';
 import { openPaint, closePaint, paintOpen, PT, artLayer } from './paint.js';
 import { gather } from './mutations.js';
@@ -100,6 +100,17 @@ document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) tiltRec
 if(hash==='settings') settingsPanel();
 hydrateAssets();
 if(!restored) writeNow();
+/* The project dashboards (decision 304): laid on an existing desk the once
+   migration 63 asks for, and brought up to date when the shipped ones move.
+   After the first render, because placing needs a measured board. */
+if(restored){
+  const t = shipDashboards();
+  if(t && (t.made.length || t.updated)){
+    render();
+    toast(t.made.some(id=>(byId(id)||{}).parent===ROOT) ? 'Your project dashboards are on the desk'
+      : 'Project dashboards brought up to date', true);
+  }
+}
 save();
 
 /* The words a random thing is born with (decision 244), fetched once the
@@ -160,7 +171,7 @@ window.BUREAU = {
   migrated(d){ migrate(d); return d; },
   // a counter's readout and a thing in the drawer front (decisions 252, 254)
   countOf, inFront,
-  paste: pasteObjects, relate, pin: togglePin, setPin, renderSheet,
+  paste: pasteObjects, dashboards: shipDashboards, linkTarget, linkedFrom, boardText: id => asMarkdown(byId(id)), relate, pin: togglePin, setPin, renderSheet,
   /* The instruments, so a test can press one and read what it did rather than
      driving a gesture to find out. */
   activeTap, actOf, isActive, metroGoing, stopAllMetros, checkAlarms, zoom: openZoom,

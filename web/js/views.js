@@ -7,7 +7,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   TILT_MODES, tiltMode, tiltsDesk, tiltsWindows, tiltClasses, cueFlipped,
   GRAVITIES, gravityMode, gravityOn,
   URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL, STAMP_WORDS, STAMP_INKS, stampOf, stampInk, setting, setSetting, unsetSetting, envSync, benchHere, decidedBy, isBench, ENV_KEYS, ENV_NAMES } from './model.js';
-import { GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
+import { sectionsOf, GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
   lay, gridOf, cellW, ensureBox, PLACED, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
   isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN, formOf, tilesOf } from './grid.js';
@@ -58,10 +58,19 @@ function gridBar(c){
   const sh = shelvesOf(c.id), at = shelfAt(c.id);
   /* The name is a name (decision 227): the map it opened is the zoom now. */
   const deskBtn = (label)=>`<b class="deskname">${esc(label)}</b>`;
+  /* **The lip names the section you are in** (decision 304), and the name
+     opens the board's contents. Decision 227 had it open nothing once the map
+     became the zoom; a board with headings has a list worth opening, so on
+     one it does, and on any other it still opens nothing. The section is
+     patched in place as you scroll (`litSection()`), never rendered. */
+  const secs = sectionsOf(c.id);
+  const secAt = secs.length ? (LIPSEC.cid===c.id && LIPSEC.name) || '' : '';
+  const secBtn = secs.length ? `<button class="lipsec" data-act="sections" data-id="${esc(c.id)}" title="Contents">${
+      ic('chev',11)}<span class="secname">${esc(secAt)}</span></button>` : '';
   const where = `    <div class="where">
       ${/* A container is as many boards as you make of it now (decision
            219), so its name opens the same map the desk's does. */''}
-      <span class="here">${deskBtn(boardName(c))}</span>
+      <span class="here"${secs.length?` data-act="sections" data-id="${esc(c.id)}"`:''}>${deskBtn(boardName(c))}</span>${secBtn}
       ${has(c,'magic')?`<span class="magicmark big" title="Collects by rule">${ic('sparkle',14)}</span>`:''}
       ${/* The dots are the **shelves of this board**, laid out the way they
            actually are, with the one you are standing on lit. A row of dots
@@ -943,7 +952,15 @@ function settingsBody(sec, cid){
       <button class="pill" data-act="export">${ic('archive',13)} Export a backup</button>
       <button class="pill" data-act="import">${ic('undo',13)} Restore from a backup</button>
     </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>` : '',
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>
+    ${/* The project dashboards (decision 304): on the desk once, by itself,
+          on a desk that already had things on it; here for a fresh desk, or
+          to bring back one that was thrown away. Nothing is pasted. */''}
+    <div class="section-h" style="margin-top:18px"><h2>Project dashboards</h2><div class="rule"></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="pill" data-act="dashboards">${ic('grid',13)} Put them on the desk</button>
+    </div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Bureau, Composer’s Key and EveryPark, each a board of what is next, the open questions, and pages about it. One already on the desk is brought up to date, and anything you wrote on it stays.</div>` : '',
     at('about') ? `
 
     <div class="section-h"><h2>Version</h2><div class="rule"></div></div>
@@ -954,6 +971,10 @@ function settingsBody(sec, cid){
     </div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">An installed copy serves itself from its own cache, so it can be a version behind until its second launch. This is the one that is running right now.</div>` : '',
     at('board') ? `<div class="woven">${objectPanelBody(inside ? cid : ROOT, null)}</div>
+    ${/* Everything on this board as words, for somewhere else (decision 304) */''}
+    ${inside ? `<div class="field" style="margin-top:12px"><button class="pill" data-act="copymd" data-id="${esc(cid)}">${
+      ic('copy',13)} Copy this board as text</button>
+      <div class="mini" style="--k:var(--brass);margin-top:6px">Everything on it, checks and answers included, as text you can paste to Claude or anywhere else.</div></div>` : ''}
     ${inside ? benchSection(cid) : ''}
     <div class="section-h" style="margin-top:18px"><h2>Board settings</h2><div class="rule"></div></div>
     <div class="section-h"><h2>The board</h2><div class="rule"></div></div>
@@ -2003,6 +2024,7 @@ function render(){
      patches the dots in place rather than rendering, because re-laying a board
      out on every scroll event is the one thing a scroll must never do. */
   if(now && (S.device!=='phone' || flowed)) now.addEventListener('scroll', onBoardScroll, {passive:true});
+  litSection(now);
   bindSortables();
   sizeGrid();
   repositionPanel();   // a bubble is pinned to a tile, and the tiles just moved
@@ -2086,10 +2108,50 @@ function tileUnder(sc, grid, g){
    and on a phone that scrolls. The dots are patched in place rather than
    re-rendered: laying a board out on every scroll event is the one thing a
    scroller must never make you do. */
+/* ---- sections — decision 304 -------------------------------------------
+   Which heading you are under is the last one whose top has gone past the
+   top third of the screen: a heading half way down is what you are about to
+   read, not what you are reading. Asked of the elements rather than the
+   boxes, so a zoom, a pad or a list view all answer the same way. */
+const LIPSEC = {cid:null, name:''};
+const GOING = {at:0};
+const GOING_MS = 1600;
+function litSection(sc){
+  sc = sc || $('#app .scroll'); if(!sc) return;
+  const cid=(S.view==='drawer'&&S.drawerId)||ROOT, el=$('#app .lipsec .secname');
+  if(!el) return;
+  const top = sc.getBoundingClientRect().top + sc.clientHeight/3;
+  let name = '';
+  sectionsOf(cid).forEach(x=>{ const t = sc.querySelector(`[data-row="${x.o.id}"]`);
+    if(t && t.getBoundingClientRect().top <= top) name = x.o.title || 'Untitled'; });
+  LIPSEC.cid = cid; LIPSEC.name = name;
+  if(el.textContent !== name) el.textContent = name;
+}
+/* Go to a heading: its top at the top of the screen, and on a phone its left
+   edge at the screen's left, so the section reads from its first line. A
+   scroll the app makes, so the snap leaves it where it lands. */
+function goSection(id){
+  const sc=$('#app .scroll'), t=sc && sc.querySelector(`[data-row="${id}"]`);
+  if(!t) return false;
+  const a=sc.getBoundingClientRect(), b=t.getBoundingClientRect();
+  const to = {top: Math.max(0, sc.scrollTop + b.top - a.top), behavior:'smooth'};
+  if(S.device==='phone') to.left = Math.max(0, sc.scrollLeft + b.left - a.left);
+  /* The press that asked for this was a finger, and the snap answers a
+     finger's scroll by easing to the nearest cell as soon as the scroll
+     pauses: in WebKit that was a few cells into the glide, and the board
+     stopped there. The scroll is the app's, so the snap stands back while
+     it glides (`GOING`; the finger's own listeners run after this one, so
+     forgetting the finger here would be undone at once). */
+  GOING.at = GLIDE.at = Date.now();
+  SCROLL.top = to.top; if(to.left!=null) SCROLL.left = to.left;
+  try{ sc.scrollTo(to); }catch(_){ sc.scrollTop = to.top; if(to.left!=null) sc.scrollLeft = to.left; }
+  return true;
+}
 function onBoardScroll(e){
   const sc=e.currentTarget;
   const cid=(S.view==='drawer'&&S.drawerId)||ROOT;
   SCROLL.top = sc.scrollTop; SCROLL.left = sc.scrollLeft;
+  litSection(sc);
   snapSoon(sc);
   const g=gridOf(dev(), cid), grid=sc.querySelector('#drawergrid');
   const cell=CELL[dev()]+g.gap;
@@ -2245,6 +2307,7 @@ function snapBoard(sc){
   if(!sc || !sc.isConnected || FINGER.n || $('#app .lifted, .pluckchip')) return;
   if(rigidSwipe()) return;            // the rigid swipe lands on its own tile
   if(Date.now() - FINGER.at > USER_SCROLL_MS) return;
+  if(Date.now() - GOING.at < GOING_MS) return;      // going to a heading (304)
   const grid = sc.querySelector('#drawergrid'); if(!grid) return;
   const g = gridOf(dev(), grid.dataset.gridfor||ROOT), cell = CELL[dev()] + g.gap;
   if(!(cell > 4)) return;
@@ -2552,7 +2615,7 @@ function sizeGrid(){
   }
 }
 
-export { holdView, zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+export { goSection, litSection, holdView, zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock, setTuck, tucked };

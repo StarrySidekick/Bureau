@@ -8,7 +8,7 @@ import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel, sampleTile } from './panels.js';
-import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit, setTuck } from './views.js';
+import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit, setTuck, goSection } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
@@ -1262,6 +1262,8 @@ function onDown(e){
        startedOnFace:!!e.target.closest('.btnface'),
        // a line on a list front opens its own object, not the list (239)
        line:(e.target.closest('.lline[data-open]')||{dataset:{}}).dataset.open||null,
+       // …and a line on a contents page goes to its heading (decision 304)
+       sec:(e.target.closest('.lline[data-gosec]')||{dataset:{}}).dataset.gosec||null,
        /* Dragging any member of a selection moves the lot, keeping their
           relative positions — the offsets are captured up front. Since
           decision 180 it is `travelWith()` rather than the selection alone,
@@ -2222,12 +2224,19 @@ function onUp(e){
        tile again, and everything else the click does still happens. */
     /* A tap on a list front's line is that line's tap (decision 239): the
        list is the index and the line is the thing. */
+    if(g.sec && byId(g.sec)){
+      gestureFlags.tapped = {id: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
+      goSection(g.sec); return;
+    }
     if(g.line && byId(g.line)){
       /* The click that trails it lands on whatever the line and the finger's
          release have in common, which is the list's own tile — so the tap is
          recorded against both, or the echo opens the list behind the note. */
       gestureFlags.tapped = {id: g.line, also: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
-      tileTap(g.line); return;
+      // a portal on a list goes where it points, as its own face would
+      const lo = byId(g.line);
+      if(has(lo,'button') && lo.link && lo.link.target) fireButton(lo); else tileTap(g.line);
+      return;
     }
     /* …and where it landed, because the click can arrive on something else
        entirely: see tapEcho() in wire.js. */

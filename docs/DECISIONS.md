@@ -12890,3 +12890,92 @@ and screenshots every board. Found on the way, not fixed: a list and a
 checklist show their newest first, so a paste writes their children
 backwards to read in order; and a table wider than about four columns is
 clipped in the reader on a phone rather than scrolling.
+
+## 304. Sections, the Contents, links between pages, and the project dashboards ship (v3.00, 2026-10-05)
+
+Timothy looked at decision 303's three wikis and asked for a frank read. It
+was that they were brochures: the first screen told him what his own
+projects are, the actionable parts were four screens down, nothing could be
+found but by scrolling, pages could not point at each other, every page was
+the same 4×3 corkboard tile, and a second paste made a second board. He
+asked for every change proposed, and for the dashboards to be in the app
+without a paste.
+
+**A board has sections.** `heading` is an attribute (every Label carries it
+from its type, so every label already on a desk is one); a section is a
+heading and the rows down to the next heading's row. `sectionsOf(cid)` in
+grid.js is the one reader, top to bottom then left to right, with how many
+things stand in each (not decorations, backgrounds or a contents page).
+
+**The Contents** (`contents`, in the List family) is the list face's lines
+read off its board instead of out of itself: a heading's number, its name,
+how many under it. A press on a line scrolls the board to the heading
+(`goSection()` in views.js; `data-gosec`, answered in gestures.js and
+wire.js the way a list line's `data-open` is). Nothing is stored.
+
+**The lip names the section you are in**, patched in place on every scroll
+(`litSection()`, never a render): the last heading whose top has passed the
+top third of the screen, empty above the first. Its name and the section
+both open the board's contents as a menu (`sectionMenu()`). This takes back
+decision 227's "the name opens nothing" on a board with headings only.
+
+Found on the phone engine and nowhere else: the board's snap answers a
+finger's scroll by easing to the nearest cell once the scroll pauses, and
+the tap on a contents line counted as a finger, so in WebKit the glide
+stopped two cells in. `goSection()` sets `GOING`, and `snapBoard()` stands
+back while it glides. The finger's own listeners run after the tap's, which
+is why forgetting the finger there did not work.
+
+**Links between pages.** `[[Title]]` or `[[Title|words]]` in a body is a
+link (`md()`; `plain()` prints the words). It is resolved when pressed, not
+when drawn, by `linkTarget(title, from)` in model.js: nearest first, the
+container it is written in and then out to the desk, so every project's
+*Open questions* is its own. The reader ends a page with **Linked from**
+(`linkedFrom()`, `readHTML()` in tiles.js), as its last paragraph so it
+paginates with the words. A name nothing answers to says so.
+
+Two holes this opened, closed: a question opened from a list line had no
+tile face to answer on, so the reader carries the same `data-answer` box
+the face does; and a portal on a list did nothing when pressed, so a list
+line that is a portal goes where it points (`fireButton()`).
+
+**The paste comes back** (GRAMMAR §3a). `arrange: "rows"` packs a
+container's children in reading order (`packSpot()`), a full-width heading
+starting a floor nothing climbs above, so a board is written as a sequence
+with sizes and no cells. `update: true` finds the container the last paste
+made (by `key` only when there is one, so a shipped board never pours
+itself into some other drawer of the same name) and brings it up to date:
+children matched by key, else title; only title, body and address
+refreshed, and each only while it still says what the last paste wrote
+(`sp`, a hash per field, on everything a paste makes); checks, answers,
+dates, positions untouched; a missing child added at the bottom unless an
+earlier paste laid it and it was taken away (`laid` on the container). One
+undo. `words` sets the Words door's keys; `status` asks for the front line.
+
+**A front can say what is open inside** (`status:'open'`, Board settings
+→ *Its front says*): "4 to do · 2 to answer", counted however deep
+(`openSaid()` in tiles.js).
+
+**A board can be copied as text** (Board settings → *Copy this board as
+text*; `asMarkdown()` of a container): headings, pages, checks with their
+ticks, questions with their answers, links, nested containers, in board
+order, without the furniture. This is how an answer written in Bureau gets
+back to a Claude session.
+
+**The dashboards ship.** `web/js/dashboards.js` is Bureau, Composer's Key
+and EveryPark in the paste grammar, pure data: on the first screen four
+portals, the Contents, *Next*, *Open questions* and a short *About*; below,
+a section per subject, each a heading and two lists whose lines open pages,
+with portals to the repos' docs rather than copies of them. Migration 63
+leaves `dashPending` and boot lays them once on a desk that already had
+things (a fresh desk is the sample, and gets them from Settings → About →
+*Project dashboards*). A new `DASH_V` brings the ones still on the desk up to
+date by §3a's rules and never puts back one thrown away. `scripts/wiki-paste.mjs`
+now writes `docs/examples/wiki.json` from the same data, and
+`test/wiki-look.mjs` screenshots the shipped boards.
+
+Tested in WebKit first (`test/safari.mjs` block 24: a contents line goes to
+its heading and stays, the lip's menu goes to another, a link opens its page
+which lists what links to it, a front says what is open; shots 24 to 24d).
+Smoke: `sectionsOk` (reading order, the contents, links, an update keeping
+what was written, ticked and thrown away, the board as text).

@@ -671,6 +671,50 @@ await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId 
 out.theGearIsOnTheLip = [gDesk, gIn].every(g => g.inLip && g.right && g.pastName && g.inside && !g.front && g.opened);
 out.gearAt = JSON.stringify({ gDesk, gIn });
 
+// ---- the project dashboards, sections and links (decision 304) -----------
+// Laid the way Settings' button lays them; then real taps: a Contents line
+// goes to its heading and the lip names it, the lip's name opens the same
+// list, a [[link]] in a page opens the page it names (which says what links
+// to it), and a project's front says what is open inside.
+await page.evaluate(() => { BUREAU.dashboards(true); const S = BUREAU.state;
+  S.view = 'drawer'; S.drawerId = S.objects.find(o => o.sk === 'composerskey').id; BUREAU.render(); });
+await nap(700);
+await shot('24-dashboard');
+const lipSays = () => page.evaluate(() => (document.querySelector('.lipsec .secname') || {}).textContent || '');
+const headTop = t => page.evaluate(t => { const sc = document.querySelector('#app .scroll');
+  const el = [...document.querySelectorAll('#app .grid .drawer')].find(e => e.textContent.trim() === t);
+  return el ? Math.round(el.getBoundingClientRect().top - sc.getBoundingClientRect().top) : null; }, t);
+await page.locator('.tocline', { hasText: 'Mechanics' }).first().tap(); await nap(1300);
+const mech = { lip: await lipSays(), top: await headTop('Mechanics') };
+await shot('24b-contents-jump');
+// …and stays there: the snap once eased it back a few cells into the glide
+await nap(700); mech.later = await headTop('Mechanics');
+await page.locator('.toplip .here').tap(); await nap(400);
+const menuRows = await page.evaluate(() => [...document.querySelectorAll('#ctx button[data-act="gosec"]')].map(b => b.textContent.trim()));
+await page.locator('#ctx button[data-act="gosec"]', { hasText: 'The world' }).tap(); await nap(1300);
+const world = { lip: await lipSays(), top: await headTop('The world') };
+out.aContentsLineGoesThere = mech.lip === 'Mechanics' && mech.top !== null && Math.abs(mech.top) < 60
+  && Math.abs(mech.later) < 60 || JSON.stringify(mech);
+out.theLipOpensTheContents = menuRows.length === 3 && world.lip === 'The world' && Math.abs(world.top) < 60
+  || JSON.stringify({ menuRows, world });
+const ids = await page.evaluate(() => { const S = BUREAU.state, ck = S.objects.find(o => o.sk === 'composerskey');
+  const under = (o, root) => { for (let p = o.parent; p; p = (S.objects.find(x => x.id === p) || {}).parent) if (p === root) return true; return false; };
+  const f = t => S.objects.find(o => o.title === t && under(o, ck.id));
+  return { time: f('Everything in time').id, metro: f('The Metronome').id }; });
+await page.evaluate(id => BUREAU.read(id), ids.time); await nap(900);
+await page.locator('#sheetHost a.wlink', { hasText: 'The Metronome' }).first().tap(); await nap(900);
+const link = await page.evaluate(() => ({ reading: BUREAU.state.readId,
+  back: [...document.querySelectorAll('#sheetHost .backlinks a')].map(a => a.textContent.trim()) }));
+await shot('24c-link');
+out.aLinkOpensThePage = link.reading === ids.metro && link.back.includes('Everything in time') || JSON.stringify(link);
+await page.evaluate(() => { document.querySelector('#sheetHost [data-sheet="close"]')?.click(); }); await nap(500);
+await page.evaluate(() => { const S = BUREAU.state; S.readId = null; S.view = 'desk'; S.drawerId = null; BUREAU.render(); }); await nap(500);
+const fstat = await page.evaluate(() => { const S = BUREAU.state, b = S.objects.find(o => o.sk === 'bureau');
+  const el = document.querySelector(`#app [data-drawer="${b.id}"] .fstat`);
+  return el ? { text: el.textContent.trim(), shown: el.getBoundingClientRect().height > 0 } : null; });
+out.aFrontSaysWhatIsOpen = !!(fstat && fstat.shown && /to do/.test(fstat.text)) || JSON.stringify(fstat);
+await shot('24d-fronts');
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

@@ -2,7 +2,7 @@ import { $, $$, esc, ic, uid, D, ROOT, clamp, pastTense, outURL } from './util.j
 import { SETUPS, setupOpen, closeSetup, setupAnswer, setupNext, setupBack, setupSkip } from './setup.js';
 import { rankKey } from './rank.js';
 import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
-  FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
+  linkTarget, FACES, MANUAL, byId, container, cfgOf, isContainer, isAncestor, relate, deskOf,
   unrelate, sensedDevice, reset, T, dz, dev, calViewOf, RULE_MAX, acceptFor, acceptAny,
   boardLocked, repeatOf, repeats, heldObjects, heldCount, marginOf, marginPlus, homeFor,
   layoutOf, setClFit, genKindOf, makesAnything , makesSmart, groupMates, groupTogether, isDesk, faceOf, kindHas,
@@ -13,18 +13,18 @@ import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour,
 import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal, unstamp, rekind } from './mutations.js';
-import { keepStill, spinTo, pending, placeAtPending, tileTap, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
+import { keepStill, spinTo, pending, placeAtPending, tileTap, fireButton, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView, setTuck } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView, setTuck, goSection } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
 import { wordsToType, clearTypeWords, clearOwnWords, wordFrom } from './words.js';
 import { openPanel, closePanel, refreshPanel, panelKey, panelBack, draft, modalNewObject, modalNewKind, modalMove, renderPreview, holdPanel,
   objectPanel,
-  drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, openMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
+  drawerFromSelection, openCtx, closeCtx, ringJustOpened, sortMenu, sectionMenu, openMenu, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd,
   schedulePanel, quickISO, SCHED, SCHED_PENS, plansPanel, tagFirstPanel,
   familyPanel, becomePanel, lifeFirstPanel, donePanel, ringInto, variantPatch } from './panels.js';
 import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
@@ -32,7 +32,7 @@ import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn, tileArrives } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
-import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel } from './persist.js';
+import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards } from './persist.js';
 
 /* A sorting drawer, made with its rule already in it. Both ways into
    tagFirstPanel() land here — a tag that exists and a tag you typed — so the
@@ -1154,6 +1154,25 @@ function act(name, el){
       save(); render(); refreshPanel();
       break;
     }
+    /* The lip's name opens the board's contents, and a line in it goes there
+       (decision 304). With no headings the name opens nothing, as before. */
+    // the shipped project dashboards, laid or brought up to date (decision 304)
+    case 'dashboards': {
+      const t = shipDashboards(true);
+      const laid = t ? t.made.filter(id=>(byId(id)||{}).parent===ROOT).length : 0;
+      render(); refreshPanel();
+      toast(laid ? `Put ${laid===1?'a dashboard':laid+' dashboards'} on the desk`
+        : t && t.updated ? 'Brought the dashboards up to date' : 'The dashboards are already on the desk', true);
+      break;
+    }
+    case 'sections': {
+      sectionMenu(el, el.dataset.id || ((S.view==='drawer' && S.drawerId) || ROOT));
+      break;
+    }
+    case 'gosec': {
+      closeCtx(); goSection(el.dataset.id);
+      break;
+    }
     case 'togglelayout': {
       const cid = (el.dataset.id) || ((S.view==='drawer' && S.drawerId) || ROOT);
       const t = cfgOf(cid); if(!t) break;
@@ -1657,6 +1676,16 @@ function wire(){
       objectPanel(a); return; }
     const ur=t.closest('[data-unrel]');
     if(ur){ const [a,b]=ur.dataset.unrel.split(':'); unrelate(a,b); save(); refreshPanel(); render(); return; }
+    /* A link to another page (decision 304): found by name from where it is
+       written, nearest first. A drawer is gone into, so the page closes. */
+    const wl=t.closest('[data-wlink]');
+    if(wl){
+      const from = S.readId || S.writeId || (wl.closest('[data-row]')||{dataset:{}}).dataset.row || null;
+      const to = linkTarget(wl.dataset.wlink, from);
+      if(!to){ toast(`Nothing called “${wl.dataset.wlink}” yet`); return; }
+      if(isContainer(byId(to)) && (S.readId || S.writeId)) closeSheet();
+      openObj(to); return;
+    }
     const or2=t.closest('[data-openrel]');
     if(or2){ openObj(or2.dataset.openrel); return; }
 
@@ -2226,8 +2255,14 @@ function wire(){
     if(rk){ rekind(rk.dataset.rekind); render(); return; }
     /* A line on a list front opens what it names (decision 239). Asked before
        the tile it sits in, which would otherwise open the list itself. */
+    // a line on a contents page goes to its heading (decision 304)
+    const gs=t.closest('.grid .lline[data-gosec]');
+    if(gs){ const tile=gs.closest('[data-row]');
+      if(!(tile && justTapped(tile.dataset.row))) goSection(gs.dataset.gosec); return; }
     const ln=t.closest('.grid .lline[data-open]');
-    if(ln){ if(!justTapped(ln.dataset.open)) tileTap(ln.dataset.open); return; }
+    if(ln){ if(!justTapped(ln.dataset.open)){ const lo = byId(ln.dataset.open);
+        if(has(lo,'button') && lo.link && lo.link.target) fireButton(lo); else tileTap(ln.dataset.open); }
+      return; }
     // a breadcrumb or a tile — both open the drawer
     const dr=t.closest('[data-drawer]');
     if(dr && (dr.tagName==='B' || dr.classList.contains('drawer'))){

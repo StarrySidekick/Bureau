@@ -1,7 +1,7 @@
 import { wordStyle, wordOf, wordKey, inkOf, isWritten } from './words.js';
 import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT, pastTense } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  clPerCell,
+  clPerCell, linkedFrom, allUnder,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
   dev, spawnByOf, genKindOf, genSaid, doesOf,
   projCoverOf, lifeArtOf, backOf, tugOf,
@@ -11,7 +11,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, stampsOf, stampInk, isZone, zoneSaid, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn, setting, isInbox } from './model.js';
-import { GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
+import { sectionsOf, GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf, stampIt } from './mutations.js';
@@ -150,6 +150,21 @@ const deadSaid = o => has(o,'deadline') && o.dead ? `due ${D.said(o.dead)}`
    front and a checklist — so whether a container told you what it was worth
    depended on which coat it had on. `rollup()` answers null unless the
    container asked for one, so this is safe to hang on anything. */
+/* **A front that says what is open inside** (decision 304), when it is
+   asked to (`status`): how many things are still to check off and how many
+   questions are still unanswered, however deep. The question a project is
+   asked from across the desk is "what is waiting on me in there", and the
+   front can answer it without being opened. */
+function openSaid(o){
+  if(!o || o.status!=='open') return '';
+  const all = allUnder(o).filter(x=>!x.done);
+  const todo = all.filter(x=>has(x,'check')).length;
+  const qs = all.filter(x=>has(x,'answer') && !answered(x)).length;
+  const bits = [];
+  if(todo) bits.push(`${todo} to do`);
+  if(qs) bits.push(`${qs} to answer`);
+  return `<span class="fstat">${esc(bits.join(' · ') || 'Nothing open')}</span>`;
+}
 const rollTag = c => { const r=rollup(c);
   return r ? `<span class="rollup">${esc(r)}</span>` : ''; };
 
@@ -2132,6 +2147,30 @@ function drawTileFace(o, arr, box, persp){
      a drawer, and the front is its index, so the line **opens it** as its own
      tile would (`data-open`, answered in gestures.js and wire.js). A thing that
      ticks still gets its box, and the box still plucks it out on a hold. */
+  /* **The contents page** (decision 304): the list face's lines, read off
+     the board it lies on rather than out of itself. A line is a heading and
+     how many things stand under it; a press scrolls the board there
+     (`data-gosec`, answered in gestures.js and wire.js the way a list line's
+     `data-open` is). Live: put down, move or rename a label and the next
+     render says so, because nothing is stored. */
+  if(!cont && has(o,'contents')){
+    const home = o.parent || ROOT;
+    const secs = sectionsOf(home, dev());
+    const per=clPerCell(), rows=Math.max(1, (box.h|0) * per);
+    const head = rows>=2;
+    return `<div class="drawer dtile cltile listtile tocface${per>1?' cldense':''} ${dressAs('bd','gilt')}${sel}" data-row="${o.id}"
+        role="button" tabindex="0" title="${esc(o.title||'Contents')}"
+        style="--c:${colour};--clrows:${rows};${place}">
+      <div class="dbody"><div class="clist" style="--clk:0${head?';--cltab:17px':''}">
+        ${head?`<span class="clhead cltab"><b>${esc(o.title||'Contents')}</b><u>${secs.length}</u></span>`:''}
+        ${secs.map((x,i)=>
+        `<span class="cline lline tocline" data-gosec="${x.o.id}" title="Go to ${esc(x.o.title||'Untitled')}">
+           <i class="clmark tocnum">${i+1}</i><span class="cltext">${esc(x.o.title||'Untitled')}</span><u class="clcount">${x.n}</u></span>`).join('')
+        || `<span class="clempty">No headings yet: put a label on this board</span>`}</div></div>
+      ${handles}
+    </div>`;
+  }
+
   if(cont && faceOf(o)==='list'){
     const items=childrenOf(o).filter(x=>!x.done);
     const adds=showsAddBox(o, box);
@@ -2636,7 +2675,7 @@ function drawTileFace(o, arr, box, persp){
       <span class="dmark">${ic(has(o,'magic')?'sparkle':iconOf(o),18)}</span>
       <div class="dtop">${nameField(o)}
         ${has(o,'magic')?`<span class="magicmark" title="Collects by rule">${ic('sparkle',11)}</span>`:''}
-        ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}</div>
+        ${rollup(o)?`<span class="rollup">${esc(rollup(o))}</span>`:''}${openSaid(o)}</div>
       <div class="dfoot${doors?' doors':''}">${knobHTML(o, ring)}${
         doors?knobHTML(o, ring):''}</div>
       ${handles}
@@ -3821,6 +3860,22 @@ const headOf = o => o.media&&o.media.src
 const written = o => { const b = o.body || '';
   return b.trim() && b.trim() !== String(K(o.kind).body || '').trim() ? b : ''; };
 const NOTHING_YET = '<p class="thin">Nothing written yet.</p>';
+/* **The page as the reader sets it**: the words, then what links here
+   (decision 304), as the last paragraph of the page so it paginates with the
+   words rather than crowding the head. A press on a name opens that page
+   (`data-openrel`, as the editor's relation chips do). */
+const linkedSaid = o => linkedFrom(o).map(x=>x.id).join(',');
+function readHTML(o){
+  const from = linkedFrom(o);
+  /* A question read on its own page keeps its answer box (decision 304):
+     opened from a list line there is no tile face to answer on. The same
+     `data-answer` field the face carries, so both write one answer. */
+  const ans = has(o,'answer') ? `<p class="readanswer"><textarea data-answer="${o.id}" rows="3"
+      placeholder="Write the answer…">${esc(o.answer||'')}</textarea></p>` : '';
+  return (written(o) ? md(written(o)) : (ans ? '' : NOTHING_YET)) + ans + (from.length
+    ? `<p class="backlinks"><span>Linked from</span> ${from.map(x=>
+        `<a data-openrel="${x.id}" role="link">${esc(x.title||'Untitled')}</a>`).join(' · ')}</p>` : '');
+}
 
 /* Split `el`, already on the ruler's page and overflowing it, so that as much
    of it as fits stays; return the rest as a new element of the same kind, or
@@ -3976,7 +4031,8 @@ function pagesOf(o, box){
                box.fs?box.fs.toFixed(1):''}`:'',
              // the typeface, size, spacing and layout the page is set in, and
              // the face it wears when it is a page rather than the tile
-             wordKey(o), box ? '' : faceLook(o).key].join('|');
+             wordKey(o), box ? '' : faceLook(o).key, box ? '' : linkedSaid(o),
+             box ? '' : String(o.answer||'')].join('|');
   if(PAGES.key===key) return PAGES.list;
 
   const ruler=document.createElement('div');
@@ -3994,7 +4050,7 @@ function pagesOf(o, box){
            // the ruler has to measure at the size the words will be *set* at,
            // or the breaks are for a different typeface entirely
            if(box.fs){ cell.style.fontSize=box.fs+'px'; cell.style.lineHeight='1.45'; } }
-  cell.innerHTML=headOf(o)+(written(o) ? md(written(o)) : NOTHING_YET);
+  cell.innerHTML=headOf(o)+readHTML(o);
 
   /* **A paragraph runs on to the next page.** Breaking only *between* blocks
      meant one paragraph taller than a page was given a page to itself and cut
@@ -4063,7 +4119,7 @@ function bookOf(o, left, right){
     // the same sheet, the same size — the column inside it scrolls instead of
     // the paper growing to fit what is on it
     return `${book}<div class="spread scrolling ${sheetOf(o)}" style="${facePaper(fc)}"><i class="dgrain"></i>
-      <div class="page">${headOf(o)}${written(o) ? md(written(o)) : NOTHING_YET}</div>
+      <div class="page">${headOf(o)}${readHTML(o)}</div>
     </div>${bar('')}</div>`;
   }
   const pages=pagesOf(o), two=spreadNow(o), step=two?2:1;

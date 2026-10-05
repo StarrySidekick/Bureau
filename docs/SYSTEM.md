@@ -689,6 +689,26 @@ Each container is its own coordinate space, and every device has its own.
 New objects land at the size their type declares — 6×6 for a drawer, 4×4 for
 most things, a wide sliver for a task — and can be dragged down to 1×1.
 
+### 8a. Sections, the Contents, and links (decision 304)
+
+A board is read like a page, so it can have **sections**: anything carrying
+`heading` (every Label does, from its type) starts one, and it runs down to
+the next heading's row. `sectionsOf(cid)` in grid.js is the one reader. Three
+things use it: the **Contents** object (`contents`), whose lines are the
+headings with how many things sit under each and go to one when pressed; the
+**top lip**, which names the section you are in as you scroll and opens the
+same list from the board's name; and **Copy this board as text** in Board
+settings, which writes a board out under its headings.
+
+A body can link another page by name, `[[Title]]`, found nearest first from
+where the link is written (`linkTarget()`), and the reader ends a page with
+what links to it (`linkedFrom()`). Nothing about a link is stored; a page
+renamed or made later is found by whatever it is called when pressed.
+
+The **project dashboards** (`web/js/dashboards.js`) are boards written this
+way and shipped with the app; see decision 304 and GRAMMAR §3a for how they
+are kept current without touching what was written on them.
+
 ## 9. Surfaces
 
 There are exactly **two views**: the desk, and a drawer. Everything else is one
