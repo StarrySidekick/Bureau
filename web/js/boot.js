@@ -13,7 +13,7 @@ import { shelfRows, shelvesOf, shelfAt, setShelf, freeSpot, anySpot, roomFor, bo
   isBoard, boardsOf, addBoard, removeBoard, rangeOfKind, randomSizeOf, inRange, TILE, viewRows, flows, zoomOf, zoomRange, setZoom, startOf, snapZoom, boardHolds, fitAll, fitBoard, MARGIN, formOf, setForm, setTileDim, tilesOf } from './grid.js';
 import { create, setPin, togglePin, del, delMany, delDrawer, undo, redo, toggleDone, spawnNext, setGridSize,
   CONTROLS, ctlSaid, ctlIsOn, ctlPress,
-  holdIt, unholdIt , toast, someKind, furnish, loadTexts } from './mutations.js';
+  holdIt, unholdIt , toast, someKind, furnish, loadTexts, readLine } from './mutations.js';
 import { applyLook, applyStyle, STYLES, panelSlots, borderSlots, knobSlots, plateSlots, textureSlots,
   bindingSlots, stockSlots, famSlots, famAll, dress, styleKey, stockNow, randomLook,
   palNow, CHECKS } from './look.js';
@@ -29,7 +29,7 @@ import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
 import { gravityReport, gravitySettle, gravityApply, gravityWake,
   gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
-import { load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards } from './persist.js';
+import { load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom, openCard } from './sheet.js';
 import { openPaint, closePaint, paintOpen, PT, artLayer } from './paint.js';
 import { gather } from './mutations.js';
@@ -103,6 +103,9 @@ if(!restored) writeNow();
 /* The project dashboards (decision 304): laid on an existing desk the once
    migration 63 asks for, and brought up to date when the shipped ones move.
    After the first render, because placing needs a measured board. */
+/* The day's backup (decision 305): the desk as this session found it,
+   before anything in it changes. Asynchronous, and nothing waits on it. */
+if(restored) dailyBackup();
 if(restored){
   const t = shipDashboards();
   if(t && (t.made.length || t.updated)){
@@ -171,7 +174,7 @@ window.BUREAU = {
   migrated(d){ migrate(d); return d; },
   // a counter's readout and a thing in the drawer front (decisions 252, 254)
   countOf, inFront,
-  paste: pasteObjects, dashboards: shipDashboards, linkTarget, linkedFrom, boardText: id => asMarkdown(byId(id)), relate, pin: togglePin, setPin, renderSheet,
+  paste: pasteObjects, readLine, dashboards: shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup, linkTarget, linkedFrom, boardText: id => asMarkdown(byId(id)), relate, pin: togglePin, setPin, renderSheet,
   /* The instruments, so a test can press one and read what it did rather than
      driving a gesture to find out. */
   activeTap, actOf, isActive, metroGoing, stopAllMetros, checkAlarms, zoom: openZoom,

@@ -1,5 +1,5 @@
 import { $, $$, esc, ic, D, md, clamp, ROOT } from './util.js';
-import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf,
+import { S, K, T, byId, has, isContainer, containers, container, childrenOf, chainOf, stepOf,
   deskTitle, rootObj, cfgOf, deskIds, deskHere, deskOf, isDesk, allTags, dev,
   beginPass, endPass, inFront,
   layoutOf, takesTyping, genSaid, makesAnything, CALVIEWS, calViewOf, calCols, CL_FITS, clFit,
@@ -953,6 +953,13 @@ function settingsBody(sec, cid){
       <button class="pill" data-act="import">${ic('undo',13)} Restore from a backup</button>
     </div>
     <div class="mini" style="--k:var(--brass);margin-top:6px">Everything lives on this device only. Export moves a desk between devices by hand — real sync comes later.</div>
+    ${/* The automatic backups (decision 305): listed on a press, because
+          they are read out of IndexedDB and a panel is drawn at once. */''}
+    <div class="section-h" style="margin-top:18px"><h2>Backups</h2><div class="rule"></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="pill" data-act="backups">${ic('undo',13)} Go back to an earlier desk</button>
+    </div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Bureau keeps the desk as each of the last seven days began, and a copy before anything that changes a lot at once. Going back keeps the desk you had as a backup too.</div>
     ${/* The project dashboards (decision 304): on the desk once, by itself,
           on a desk that already had things on it; here for a fresh desk, or
           to bring back one that was thrown away. Nothing is pasted. */''}
@@ -2131,11 +2138,22 @@ function litSection(sc){
    edge at the screen's left, so the section reads from its first line. A
    scroll the app makes, so the snap leaves it where it lands. */
 function goSection(id){
-  const sc=$('#app .scroll'), t=sc && sc.querySelector(`[data-row="${id}"]`);
+  const sc=$('#app .scroll'), t=sc && sc.querySelector(`[data-row="${id}"], [data-drawer="${id}"]`);
   if(!t) return false;
   const a=sc.getBoundingClientRect(), b=t.getBoundingClientRect();
   const to = {top: Math.max(0, sc.scrollTop + b.top - a.top), behavior:'smooth'};
-  if(S.device==='phone') to.left = Math.max(0, sc.scrollLeft + b.left - a.left);
+  /* On a phone the board's own left edge goes to the screen's, so the
+     columns sit where they always do and a thing half way across stays half
+     way across; on a wider board than the screen, the thing's left edge. */
+  if(S.device==='phone'){
+    const o = byId(id), cid = (S.view==='drawer' && S.drawerId) || ROOT;
+    const box = o && lay(o, dev(), cid), gap = gridOf(dev(), cid).gap || 0;
+    // the board's first column, worked back from the thing's own edge and
+    // column, since the grid element carries a pad of empty cells either side
+    const step = box && box.w ? (b.width + gap)/box.w : 0;
+    const first = box && box.x && step ? b.left - (box.x-1)*step : b.left;
+    to.left = Math.max(0, sc.scrollLeft + first - a.left);
+  }
   /* The press that asked for this was a finger, and the snap answers a
      finger's scroll by easing to the nearest cell as soon as the scroll
      pauses: in WebKit that was a few cells into the glide, and the board
@@ -2145,6 +2163,25 @@ function goSection(id){
   GOING.at = GLIDE.at = Date.now();
   SCROLL.top = to.top; if(to.left!=null) SCROLL.left = to.left;
   try{ sc.scrollTo(to); }catch(_){ sc.scrollTop = to.top; if(to.left!=null) sc.scrollLeft = to.left; }
+  return true;
+}
+/* **Go to a thing where it lives** (decision 305): the board it is on,
+   scrolled to it, and it lit a moment. A step inside a list or checklist is
+   shown by the list it is in, on the board of the project it belongs to;
+   anything else by its own container. */
+function goThere(id){
+  const o = byId(id); if(!o) return false;
+  let board = stepOf(o) || null, at = o;
+  if(board){ while(at.parent && at.parent!==board.id){ const up = byId(at.parent); if(!up) break; at = up; } }
+  else { board = byId(o.parent) || null; }
+  const cid = board ? board.id : ROOT;
+  S.view = cid===ROOT ? 'desk' : 'drawer'; S.drawerId = cid===ROOT ? null : cid;
+  render();
+  requestAnimationFrame(()=>{
+    goSection(at.id);
+    const el = document.querySelector(`#app .grid [data-row="${at.id}"], #app .grid [data-drawer="${at.id}"]`);
+    if(el){ el.classList.add('wanted'); setTimeout(()=>el.classList.remove('wanted'), 1600); }
+  });
   return true;
 }
 function onBoardScroll(e){
@@ -2615,7 +2652,7 @@ function sizeGrid(){
   }
 }
 
-export { goSection, litSection, holdView, zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
+export { goThere, goSection, litSection, holdView, zoomCommit, zoomFit, landOnShelf, wireSnap, render, renderSoon, sizeGrid, shelfTop, shelfLeft, shelfShift, centreDesk,
   reveal, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, viewHTML, previewHTML,
   goShelf, goShelfTo, sideDrawer, goSideDrawer, boardDimsField, shelfCountField, railToolsField, railToolsOf, RAIL_TOOLS,
   settingsPanel, toggleSettings, railObj, flipBlock, setTuck, tucked };

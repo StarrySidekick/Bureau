@@ -10,14 +10,14 @@ import { S, K, KINDS, KEYS, refreshKinds, ATTRS, attrsOf, has, SHAPES,
 import { gridOf, lay, boxOk, freeSpot, anySpot, fitSpot, roomFor, sizeOfKind, toPhoneSize, keepSize,
   shelvesOf, shelfAt, setShelf, addBoard, removeBoard, onBoard, isBoard, startOf, randomSpot, colsOf, shelfRows, boardsOf, randomSizeOf, zoomOf, TILE, formOf, setForm, setTileDim } from './grid.js';
 import { applyLook, applyStyle, setLookVal, lookVal, STYLES, setSlot, objColour, darkMode } from './look.js';
-import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
+import { dealTop, furnish, toast, fits, makeCompound, guessKind, quickAdd, madeSaid, readLine, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, unbin, emptyBin, sortInbox, undo, redo, pushUndo,
   pushSet, pushSets, setPin, togglePin, drawerForTag, create, spawnInto, randomThing,
   holdIt, holdMany, unholdIt, unholdMany, undoToast, someKind, becomeKind , toggleFree, galleryOf, hangPainting, reachedGoal, unstamp, rekind } from './mutations.js';
 import { keepStill, spinTo, pending, placeAtPending, tileTap, fireButton, turnPage, clearPages, intoOf, TOOLS } from './tiles.js';
 import { paintKey, openPaint, wirePaint } from './paint.js';
 import { bpmOf, minsOf, burnOf, sidesOf, metroGoing, startMetro, mindTheTime, actOf, deckTop } from './active.js';
 import { DECOR, LIFE_ART } from './decor.js';
-import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView, setTuck, goSection } from './views.js';
+import { wireSnap, render, renderSoon, sizeGrid, toggleSettings, settingsPanel, reveal, goShelf, goShelfTo, openOverview, closeOverview, refreshOverview, overviewOn, overAsk, overCid, flipBlock, railToolsOf, landOnShelf, zoomFit, holdView, setTuck, goSection, goThere } from './views.js';
 import { closeGuide, guideOpen, saveGuide } from './guide.js';
 import { openObj, openWriter, openRead, openViewer, closeSheet, renderSheet, words,
   mdKey, mdTool, copyObject } from './sheet.js';
@@ -32,7 +32,7 @@ import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn, tileArrives } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
-import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards } from './persist.js';
+import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards, backupList, restoreBackup } from './persist.js';
 
 /* A sorting drawer, made with its rule already in it. Both ways into
    tagFirstPanel() land here — a tag that exists and a tag you typed — so the
@@ -1156,6 +1156,27 @@ function act(name, el){
     }
     /* The lip's name opens the board's contents, and a line in it goes there
        (decision 304). With no headings the name opens nothing, as before. */
+    /* The automatic backups (decision 305): a menu of them off the button,
+       and a press on one goes back to it. Going back saves the desk it
+       replaces first, so it is never the last word. */
+    case 'backups': {
+      backupList().then(list=>{
+        const when = at => { try{ return new Date(at).toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}); }catch(_){ return ''; } };
+        openMenu(el, `<div class="ctxhead">Go back to</div>${list.length ? list.map(b=>
+          `<button data-act="restoreback" data-id="${esc(b.key)}">${esc(b.label||'A backup')}<span class="ctxsub">${b.n} · ${esc(when(b.at))}</span></button>`).join('')
+          : `<div class="ctxhead" style="text-transform:none;letter-spacing:0">None yet: one is kept each day Bureau is opened</div>`}`);
+      });
+      break;
+    }
+    case 'restoreback': {
+      closeCtx();
+      restoreBackup(el.dataset.id).then(ok=>{
+        if(!ok){ toast('Could not go back to that one'); return; }
+        S.view='desk'; S.drawerId=null; S.openId=null; closePanel(); render(); renderSheet();
+        toast('Back to that desk · the one you had is kept as a backup');
+      });
+      break;
+    }
     // the shipped project dashboards, laid or brought up to date (decision 304)
     case 'dashboards': {
       const t = shipDashboards(true);
@@ -2255,6 +2276,10 @@ function wire(){
     if(rk){ rekind(rk.dataset.rekind); render(); return; }
     /* A line on a list front opens what it names (decision 239). Asked before
        the tile it sits in, which would otherwise open the list itself. */
+    // a line on Now goes to that step in its project (decision 305)
+    const gt=t.closest('.grid .lline[data-goto]');
+    if(gt){ const tile=gt.closest('[data-drawer]');
+      if(!(tile && justTapped(tile.dataset.drawer))) goThere(gt.dataset.goto); return; }
     // a line on a contents page goes to its heading (decision 304)
     const gs=t.closest('.grid .lline[data-gosec]');
     if(gs){ const tile=gs.closest('[data-row]');
@@ -2779,13 +2804,23 @@ function wire(){
         const made = guess ? quickAdd(said, kind, dest.id) : create(kind,{parent:dest.id, title:text});
         if(!made) return;
         e.target.value=''; save(); render();
-        toast(guess ? `A ${K(made.kind).nm.toLowerCase()}, into ${dest.title||'the drawer'}` : `Filed in ${dest.title||'the drawer'}`);
+        // what the line was read as, and where it went (decision 305)
+        const went = byId(made.parent) || dest;
+        toast(guess ? madeSaid(made, 'into '+(went.title||'the drawer')) : `Filed in ${dest.title||'the drawer'}`);
         const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
         return;
       }
       if(!fits(kind, src.parent)) return;
       const t = guess ? quickAdd(said, kind, src.parent) : create(kind,{parent:src.parent, title:text});
       if(!t) return;
+      /* An @place on the line sent it somewhere else (decision 305): it is
+         placed there as anything new is, and the toast says where. */
+      if((t.parent||ROOT)!==(src.parent||ROOT)){
+        e.target.value=''; save(); render();
+        toast(madeSaid(t, 'into '+((byId(t.parent)||{}).title||'the drawer')));
+        const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
+        return;
+      }
       /* Land it directly beneath the field that made it, at the **type's**
          size. It used to be the spawner's own width by one row, which was the
          task's shape written out by hand — right for a task and wrong for
@@ -2794,8 +2829,9 @@ function wire(){
       const want={x:b.x, y:b.y+b.h, w, h};
       t[dv] = boxOk(want,t.id,dv,src.parent) ? want : (fitSpot(w,h,dv,src.parent) || anySpot(w,h,dv,src.parent));
       e.target.value=''; save(); render();
-      // a notepad says what the line became, since it chose (decision 258)
-      if(guess) toast(`Made a ${K(t.kind).nm.toLowerCase()}`);
+      // a notepad says what the line became, since it chose (decision 258),
+      // and what it read off it (305)
+      if(guess) toast(madeSaid(t));
       const el=document.querySelector(`[data-fieldfor="${src.id}"]`); el&&el.focus();
       return;
     }

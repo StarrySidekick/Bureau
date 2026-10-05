@@ -18,7 +18,7 @@
    `key` equal to its old key (the title, lowercased, after the project's
    key and a colon) or it arrives as a new thing beside the old one. */
 
-const DASH_V = 1;
+const DASH_V = 2;
 
 const H = title => ({type:'label', title, w:8, h:1});
 const page = (title, body) => ({type:'note', title, body});
@@ -260,6 +260,10 @@ const everypark = {type:'project', key:'everypark', title:'EveryPark', color:10,
   Object.assign(page('House rules for an icon', 'Drawn, not emoji. A 24-unit grid, stroke 2, `currentColor`, no color of its own. Drawn in Procreate; whether a file becomes a raster or a vector decides how it comes in.'), {w:4, h:5}),
 ]};
 
-const DASHBOARDS = [bureau, composers, everypark];
+/* **Now** (decision 305) sits on the desk beside them: anything due, and
+   the next step of each of these. */
+const now = {type:'now', key:'now', title:'Now'};
+
+const DASHBOARDS = [now, bureau, composers, everypark];
 
 export { DASH_V, DASHBOARDS };

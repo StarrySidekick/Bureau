@@ -3,7 +3,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   repeatOf, repeats, nextRepeat, faceOf, childrenOf, TILT_MODES, tiltMode, GRAVITIES, gravityMode,
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
-  placeOf, cfgOf, isHeld, stampsOf, isZone, zoneWrites, zoneSaid, ZONE_TRAITS, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid, setting, setSetting, isShelved } from './model.js';
+  placeOf, cfgOf, isHeld, stampsOf, isZone, zoneWrites, zoneSaid, ZONE_TRAITS, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid, setting, setSetting, isShelved, isGone, prioOf } from './model.js';
 import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
@@ -930,6 +930,101 @@ const ERRANDS = ['buy','call','email','text','send','pay','book','fix','clean','
   'read','watch','make','get','pick','return','schedule','order','check','remember','cancel',
   'renew','submit','print','post','ship','wash','water','feed','take','bring','ask','tell',
   'reply','draft','plan','sort','file','move','update','install','charge','collect','visit'];
+/* ---- reading a line — decision 305 --------------------------------------
+   Capture without deciding (STOCKTAKE §3.3). A line typed anywhere (a
+   notepad, an inbox, a list's add box) is read for **when**, **how much it
+   matters** and **where it goes**, so a thought lands dated and filed without
+   a menu: "call Sam friday", "dentist oct 12 !!", "buy oil @kitchen
+   tomorrow". What was understood is taken off the name and said in the toast,
+   with Undo, so the reading is visible and cheap to refuse.
+
+   A day is read **only at the end of the line, at its start, or after on,
+   by or due**: "Call Sam friday" is dated and "Watch Friday Night Lights" is
+   not. Weekdays mean the next one to come (a weekday that is today means a
+   week on, unless it says "this"); a month and day this year, or next year
+   once it has passed. `!` to `!!!` is a priority of 3 to 5; `@name` is the
+   first drawer whose name starts with it; `#tag` is a tag. The old cues
+   (`!today`, `!tomorrow`, `!week`) still work. */
+const WEEKDAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+const wkIdx = w => WEEKDAYS.findIndex(d=>d.startsWith(w) && w.length>=3);
+const moIdx = m => MONTHS.findIndex(d=>d.startsWith(m) && m.length>=3);
+const WD = '(sun|mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sunday|monday|tuesday|wednesday|thursday|friday|saturday)';
+const MO = '(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)';
+/* [pattern, the day it means, months on, may it open the line]. Only the
+   words that are almost never a title may open one: "Today show recap" is a
+   title, "Tomorrow pick up the lens" is not. */
+const DAY_PHRASES = [
+  [/(today|tonight)/, m=>0, null, m=>m[1]==='tonight'],
+  [/(tomorrow|tmrw|tmr)/, ()=>1, null, ()=>true],
+  [/(?:this )?weekend/, ()=>{ const w=D.today().getDay(); return w===6 ? 0 : 6-w; }, null, ()=>true],
+  [/next week/, ()=>{ const w=D.today().getDay(); return ((8-w)%7)||7; }, null, ()=>true],
+  [/in (\d{1,3}) (day|days|week|weeks|month|months)/, m=>{ const n=+m[1], u=m[2][0]; return u==='d' ? n : u==='w' ? n*7 : 0; }, m=>m[2][0]==='m' ? +m[1] : 0],
+  [new RegExp('(this |next )?'+WD), m=>{ const want=wkIdx(m[2]), now=D.today().getDay();
+      let d=(want-now+7)%7; if(d===0 && m[1]!=='this ') d=7; return d; }],
+  [new RegExp(MO+' (\\d{1,2})(?:st|nd|rd|th)?'), m=>({mo:moIdx(m[1]), day:+m[2]})],
+  [new RegExp('(\\d{1,2})(?:st|nd|rd|th)? '+MO), m=>({mo:moIdx(m[2]), day:+m[1]})],
+  [/(\d{4})-(\d{2})-(\d{2})/, m=>({iso:`${m[1]}-${m[2]}-${m[3]}`})],
+];
+function dayFrom(v, months){
+  if(v==null) return null;
+  if(typeof v==='number'){ const d=D.add(D.today(), v); if(months){ d.setMonth(d.getMonth()+months); } return D.iso(d); }
+  if(v.iso) return v.iso;
+  if(v.mo<0 || !(v.day>=1 && v.day<=31)) return null;
+  const t=D.today(); let d=new Date(t.getFullYear(), v.mo, v.day);
+  if(d.getMonth()!==v.mo) return null;
+  // a day passed within the month is late this year, not next year
+  if(d < D.add(t, -31)) d=new Date(t.getFullYear()+1, v.mo, v.day);
+  return D.iso(d);
+}
+function readLine(text){
+  let t = ' '+String(text||'').replace(/\s+/g,' ').trim()+' ';
+  const out = {due:null, prio:null, tags:[], into:null, said:[]};
+  // the old cues first, exactly as they were
+  if(/!today\b/i.test(t)){ out.due=T; t=t.replace(/!today\b/i,' '); }
+  else if(/!tomorrow\b/i.test(t)){ out.due=dz(1); t=t.replace(/!tomorrow\b/i,' '); }
+  else if(/!week\b/i.test(t)){ out.due=dz(7); t=t.replace(/!week\b/i,' '); }
+  t = t.replace(/\s#([\w-]+)/g, (m,g)=>{ out.tags.push(g); return ' '; });
+  t = t.replace(/\s(!{1,3})(?=\s)/, (m,b)=>{ out.prio = 2+b.length; return ' '; });
+  // a place, by the start of its name: @kitchen, @low-tide
+  t = t.replace(/\s@([\w'’-]+)/, (m,w)=>{
+    const k = w.toLowerCase().replace(/[-'’]/g,'');
+    const c = S.objects.find(o=>o && isContainer(o) && !has(o,'magic') && !isGone(o)
+      && String(o.title||'').toLowerCase().replace(/[^a-z0-9]/g,'').startsWith(k));
+    if(!c) return m;
+    out.into = c; return ' ';
+  });
+  if(!out.due){
+    for(const [re, fn, mfn, opens] of DAY_PHRASES){
+      const src = re.source;
+      const cue = new RegExp('(\\s(?:on|by|due)\\s)'+src+'(?=\\s)', 'i');
+      const end = new RegExp('(\\s)'+src+'\\s*$', 'i');
+      const start = new RegExp('^(\\s)'+src+'(?=\\s\\S)', 'i');
+      const lower = h => h && [h[0].toLowerCase(), ...h.slice(2).map(x=>x==null ? x : x.toLowerCase())];
+      let hit = t.match(cue) || t.match(end), grp = lower(hit);
+      if(!hit){ hit = t.match(start); grp = lower(hit); if(hit && !(opens && opens(grp))) hit = null; }
+      if(!hit) continue;
+      const v = fn(grp), d = dayFrom(v, mfn ? mfn(grp) : 0);
+      if(!d) continue;
+      out.due = d; t = t.replace(hit[0], ' ');
+      break;
+    }
+  }
+  out.text = t.replace(/\s+/g,' ').replace(/\s+([,.;:!?])/g,'$1').trim() || String(text||'').trim();
+  return out;
+}
+/* What a line became, for the toast: "A task, due Friday, into Kitchen". */
+function madeSaid(o, where){
+  if(!o) return '';
+  const bits = [`A ${K(o.kind).nm.toLowerCase()}`];
+  if(o.due && o.due!==T){ const h = D.human(o.due);
+    bits.push('due '+(/^(today|tomorrow|yesterday)$/i.test(h) ? h.toLowerCase() : h)); }
+  else if(o.due===T && has(o,'check')) bits.push('for today');
+  if(prioOf(o)!=null && prioOf(o)>=3) bits.push('priority '+prioOf(o));
+  if(where) bits.push(where);
+  return bits.join(', ');
+}
+
 function guessKind(text){
   const t = String(text||'').trim(), lo = t.toLowerCase();
   const ok = k => KINDS[k] && !isCut(k) ? k : null;
@@ -942,6 +1037,8 @@ function guessKind(text){
   if(/\?\s*$/.test(t)) return {kind: ok('question') || 'note', text:t};
   if(/^["“'‘]/.test(t)) return {kind: ok('quote') || 'note', text:t.replace(/^["“'‘]|["”'’]$/g, '').trim() || t};
   if(/!(today|tomorrow|week)\b/i.test(t) || ERRANDS.includes(first)) return {kind: ok('task') || 'note', text:t};
+  // a line that names a day is something to do on it (decision 305)
+  if(readLine(t).due) return {kind: ok('task') || 'note', text:t};
   const words = (t.match(/\S+/g)||[]).length;
   return {kind: words<=12 ? (ok('thought') || 'note') : 'note', text:t};
 }
@@ -975,18 +1072,18 @@ function reachedGoal(o, n){
 
 function quickAdd(text, kind, drawerId){
   let t=text.trim(); if(!t) return null;
-  let k=kind||'task', due=null; const tags=[];
+  let k=kind||'task';
   const slash=t.match(/^\/(\w+)\s+/);
   if(slash){ const found=KEYS.find(x=>x.startsWith(slash[1].toLowerCase())); if(found){ k=found; t=t.slice(slash[0].length); } }
-  t=t.replace(/#([\w-]+)/g,(m,g)=>{tags.push(g);return '';});
-  if(/!today\b/i.test(t)){ due=T; t=t.replace(/!today\b/i,''); }
-  if(/!tomorrow\b/i.test(t)){ due=dz(1); t=t.replace(/!tomorrow\b/i,''); }
-  if(/!week\b/i.test(t)){ due=dz(7); t=t.replace(/!week\b/i,''); }
-  t=t.replace(/\s+/g,' ').trim();
+  // when, how much and where, read off the line (decision 305)
+  const r = readLine(t); t = r.text;
+  const home = r.into ? homeFor(r.into.id) : drawerId;
+  quickAdd.last = r;
   // a shelf is finite: a line typed into a full board makes nothing and says so
-  if(!fits(k, drawerId || homeFor((S.view==='drawer' && S.drawerId) || ROOT))) return null;
-  const o=create(k,{title:t, tags, parent:drawerId||undefined, body:''});
-  if(due) o.due=due; else if(!kindHas(k,'date')) o.due=null;
+  if(!fits(k, home || homeFor((S.view==='drawer' && S.drawerId) || ROOT))) return null;
+  const o=create(k,{title:t, tags:r.tags, parent:home||undefined, body:''});
+  if(r.due) o.due=r.due; else if(!kindHas(k,'date')) o.due=null;
+  if(r.prio!=null) o.prio=r.prio;
   return o;
 }
 
@@ -1016,11 +1113,12 @@ function inboxTake(c, text, patch){
   const dest = pipeFor(c, g.kind);
   const o = quickAdd(g.text, g.kind, dest ? dest.id : c.id);
   if(!o) return null;
-  if(!/!(today|tomorrow|week)\b/i.test(raw) && !(patch && 'due' in patch)) o.due = null;
+  if(!readLine(raw).due && !(patch && 'due' in patch)) o.due = null;
   if(patch) Object.assign(o, patch);
   pushUndo('Written in', [{add:o.id}]);
-  const what = K(o.kind).nm.toLowerCase();
-  toast(dest ? `A ${what}, down the pipe to ${dest.title||'its drawer'}` : `A ${what}, in the inbox`, true);
+  const went = byId(o.parent);
+  toast(madeSaid(o, o.parent===c.id ? 'in the inbox'
+    : dest && o.parent===dest.id ? `down the pipe to ${dest.title||'its drawer'}` : `into ${(went||{}).title||'its drawer'}`), true);
   return o;
 }
 /* Everything already waiting in an inbox, sent down whichever pipe carries
@@ -1666,7 +1764,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

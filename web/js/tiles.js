@@ -1,7 +1,7 @@
 import { wordStyle, wordOf, wordKey, inkOf, isWritten } from './words.js';
 import { esc, ic, clamp, D, md, plain, oneline, outURL, whereTo, ROOT, pastTense } from './util.js';
 import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, childrenOf, container,
-  clPerCell, linkedFrom, allUnder,
+  clPerCell, linkedFrom, allUnder, stepOf,
   rollup, streak, barPct, barSteps, barFilled, barGrid, projectStat, progressOf, tlSpan,
   dev, spawnByOf, genKindOf, genSaid, doesOf,
   projCoverOf, lifeArtOf, backOf, tugOf,
@@ -2174,6 +2174,10 @@ function drawTileFace(o, arr, box, persp){
   if(cont && faceOf(o)==='list'){
     const items=childrenOf(o).filter(x=>!x.done);
     const adds=showsAddBox(o, box);
+    /* A list that is Now (decision 305) names the project each next step is
+       from, and a press on a line's words goes to that step where it lives
+       (`data-goto`) rather than opening it on its own. */
+    const nowFace = has(o,'magic') && !!(o.filter && o.filter.next);
     const per=clPerCell();
     const rows=Math.max(1, (box.h|0) * per);
     const head = o.clhead!=='0' && rows>=2;
@@ -2182,13 +2186,14 @@ function drawTileFace(o, arr, box, persp){
       return `<button class="drawer dtile cltile listtile clidle ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
           style="--c:${colour};${place}">
         <div class="dtop">${nameField(o)}</div>
-        <div class="dbody"><span class="clempty">Nothing yet — open it to add</span></div>
+        <div class="dbody"><span class="clempty">${nowFace ? 'Nothing due, and every project is clear' : 'Nothing yet — open it to add'}</span></div>
         ${handles}
       </button>`;
     }
     const said = x => has(x,'rating')&&x.rating ? `<u class="clstars">${'★'.repeat(x.rating)}</u>`
       : x.due && (x.due!==T || isLate(x)) ? `<u class="cldue${isLate(x)?' late':''}">${esc(D.human(x.due))}</u>`
-      : isContainer(x) ? `<u class="clcount">${childrenOf(x).filter(y=>!y.done).length}</u>` : '';
+      : isContainer(x) ? `<u class="clcount">${childrenOf(x).filter(y=>!y.done).length}</u>`
+      : nowFace && stepOf(x) ? `<u class="clfrom">${esc(stepOf(x).title||'')}</u>` : '';
     return `<${adds?'div':'button'} class="drawer dtile cltile listtile${per>1?' cldense':''} ${dressAs('bd','gilt')}${sel}" data-drawer="${o.id}"
         ${adds?'role="button" tabindex="0"':''} title="${esc(o.title||'Untitled')}"
         style="--c:${colour};--clrows:${rows};${place}">
@@ -2198,7 +2203,7 @@ function drawTileFace(o, arr, box, persp){
         ${adds?`<label class="cladd">${ic('plus',11)}
           <input data-contadd="${o.id}" placeholder="Add a ${esc(genSaid(o))}…"></label>`:''}</div>`:''}
         ${items.map(x=>
-        `<span class="cline lline" data-open="${x.id}"${has(x,'check')?` data-pluck="${x.id}"`:''}
+        `<span class="cline lline" ${nowFace ? 'data-goto' : 'data-open'}="${x.id}"${has(x,'check')?` data-pluck="${x.id}"`:''}
            title="${esc(x.title||'Untitled')}">
            ${has(x,'check')
              ? `<i class="clbox" data-check="${x.id}" title="Check it — or hold it to take it out"></i>`

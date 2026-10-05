@@ -4204,3 +4204,10 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
 .drawer .fstat{flex:1 0 100%;order:9;text-align:center;font:600 10.5px/1.25 var(--sans, system-ui);
   color:var(--dink-2);letter-spacing:.01em;font-variant-numeric:tabular-nums;margin-top:1px}
 .drawer.sz-mini .fstat,.drawer.sz-thin .fstat,.drawer.sz-short .fstat{display:none}
+/* **Now** (decision 305): each next step names its project at the line's
+   end, small, in the list's own quiet ink; a thing gone to lights a moment */
+.cltile .clfrom{flex:0 1 auto;max-width:42%;margin-left:auto;padding-left:8px;font:600 10.5px/1.2 var(--sans, system-ui);
+  color:var(--dink-3, var(--ink-3));text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drawer.wanted{animation:wanted 1.5s ease-out}
+@keyframes wanted{0%,30%{box-shadow:0 0 0 3px var(--glow, #d9b56a), 0 0 22px color-mix(in srgb, var(--glow, #d9b56a) 60%, transparent)}100%{box-shadow:none}}
+@media (prefers-reduced-motion: reduce){.drawer.wanted{animation:none;outline:3px solid var(--glow, #d9b56a)}}

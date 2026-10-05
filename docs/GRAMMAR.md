@@ -48,7 +48,7 @@ cannot yet say *where*, or put something into a drawer that already exists.
 ## 3. A paste, field by field
 
 A paste is a JSON **array of specs** (a single spec also works). Fences
-(` ```json `) are tolerated. A bare string is a task: `"Call the dentist"`.
+(` ```json `) are tolerated. A bare string is a task: `"Call the dentist"`, and `"Call the dentist friday !!"` is one due Friday at priority 4.
 
 ```json
 [
@@ -68,7 +68,7 @@ A paste is a JSON **array of specs** (a single spec also works). Fences
 | Key | What it sets | Notes |
 | --- | --- | --- |
 | `type` | The type | A key from §8 (`task`, `drawer`, `pj_novel`). Names and near spellings also resolve, and anything unknown becomes a `note`, silently. Write the key. A project or life type (`pj_*`, `lf_*`) arrives with its bench already laid out inside, as it does when made in the app. |
-| `title` | The name | Plain, specific, American English, sentence case. |
+| `title` | The name | Plain, specific, American English, sentence case. A **bare string** child is a task read the way a typed line is (decision 305): a day at its end ("call Sam friday") and `!` to `!!!` for priority come off the name. |
 | `children` | Things inside it | Specs or bare strings. A type that cannot hold things is **made a drawer** if it is given children. |
 | `body` | The words | Markdown, §6. |
 | `tags` | Tags | An array of strings. |
@@ -263,6 +263,11 @@ These are Timothy's standing preferences, gathered from `INTENT.md`,
   column of names that open; a board of 4×3 notes is a corkboard of cut-off
   sentences. Write a list's children last to first: it shows its newest
   first.
+- **A project's next step is its first unchecked thing, in reading order.**
+  A container with `status: true` feeds the desk's **Now** (`now`): what is
+  due, and each such project's next step. So put a project's *Next* checklist
+  first on its board, its steps in the order they should be done, undated
+  (`"due": null`) unless they really fall on a day.
 - **Link pages with `[[Title]]`**, and give a board that will be refreshed
   a `key` and `update: true` (§3a).
 - **Say what could not be pasted.** If the board needs strings, positions or
@@ -301,6 +306,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `checklist` | Checklist | 4×6 | yes | Tasks you can check off and add to without opening it |
 | `inbox` | Inbox | 4×5 | yes | Write anything. It becomes what it reads as, and copper pipes tied to it carry each kind to its drawer |
 | `contents` | Contents | 4×5 |  | The headings on its board, in order: press one to go there |
+| `now` | Now | 4×6 | yes | What to do now: anything due, and the next step of every project |
 
 **Calendar** (`m_calendar`)
 

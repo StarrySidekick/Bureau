@@ -747,6 +747,16 @@ const BUILTIN_KINDS = {
      every render, the way a sorting drawer collects. */
   contents:{nm:'Contents', ic:'list', c:12, key:'', ds:'The headings on its board, in order: press one to go there',
      size:[4,5], phoneSize:[4,5], onclick:'none', attrs:['contents'], body:'' },
+  /* **Now** (decision 305): the one place that answers "what do I do now",
+     which STOCKTAKE §3.4 found Bureau, organised by place, did not have. It
+     collects (a sorting drawer, `filter.next`): anything to check off that is
+     due or late, and the **next step of every project** whose front reports
+     what is open, meaning the first thing to check off in its reading order.
+     Check one and the project's step after it takes its place; nothing is
+     stored but the rule. A line names the project it came from, and a press
+     on the words goes there. */
+  now:     {nm:'Now', ic:'check', c:6, key:'', ds:'What to do now: anything due, and the next step of every project',
+     face:'list', layout:'list', attrs:['container','magic'], filter:{next:true}, size:[4,6], phoneSize:[4,6], body:'' },
   /* **Counter is a category** (decision 265): the ways of showing an
      amount. The wheels are the Ticker, the first of them; the Progress bar is
      the second. Either may count *to* something (`goal`), and says what
@@ -838,7 +848,7 @@ const BUILTIN_KINDS = {
      family that names a type, and these must not take a Note away from the
      Note's own family or a Character away from the Fragment. */
   m_list:    {cat:true, master:true, lead:'list', nm:'List', ic:'list', c:4,
-     ds:'A list of anything, or of things to check off', family:['list','checklist','inbox','contents'], famSub:'Which list?', attrs:[], body:'' },
+     ds:'A list of anything, or of things to check off', family:['list','checklist','inbox','contents','now'], famSub:'Which list?', attrs:[], body:'' },
   m_calendar:{cat:true, master:true, lead:'calendar', nm:'Calendar', ic:'calendar', c:7,
      ds:'Things laid out along time', family:['calendar','timeline','appt'], famSub:'Which?', attrs:[], body:'' },
   m_collage: {cat:true, master:true, lead:'moodboard', nm:'Collage', ic:'image', c:14,
@@ -1140,6 +1150,7 @@ const WORKSHOP_SIZES = {
   pj_device:{size:[2,2], range:[[1,4],[1,4]], phone:null},
   checklist:{size:[4,6], range:[[2,8],[3,13]], phone:null},
   contents:{size:[4,5], range:[[2,8],[2,12]], phone:null},
+  now:{size:[4,6], range:[[2,8],[3,14]], phone:null},
   timeline:{size:[8,3], range:[[4,8],[3,6]], phone:null},
   appt:{size:[3,1], range:[[2,4],[1,3]], phone:null},
   tag:{size:[2,1], range:[[1,3],[1,2]], phone:null},
@@ -2669,6 +2680,7 @@ function inContainer(c,o){
     // calendar that cannot answer "what is happening that week".
     if(isContainer(o) && !showsContainers(c)) return false;
     if(f.due==='today') return !!o.due && D.parse(o.due)<=D.today();
+    if(f.next) return isNow(o);
     /* Loose: on a desk rather than filed in anything. This is what an inbox
        actually is — the things you have made and not yet put away — and it is
        a *rule*, so the inbox collects them where they lie rather than taking
@@ -2943,13 +2955,51 @@ const upOf = id => {
   if(!PARENTS){ PARENTS = new Map(); S.objects.forEach(o=>PARENTS.set(o.id, o)); }
   return PARENTS.get(id);
 };
-const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; };
-const endPass   = ()=>{ KIDS = null; PARENTS = null; };
+let NEXTS = null;
+const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; NEXTS = null; };
+const endPass   = ()=>{ KIDS = null; PARENTS = null; NEXTS = null; };
+/* ---- what to do now — decision 305 -------------------------------------
+   A project that reports what is open (`status`, decision 304) has a next
+   step: the first thing to check off in its reading order, a board read top
+   to bottom and then left to right, and a list or checklist inside it in the
+   order it shows. Asked once per pass and remembered, since a Now on the desk
+   asks it of every object. */
+function firstStep(c, dv, depth){
+  if(!c || depth > 4) return null;
+  const live = o => o && !o.done && !isGone(o);
+  const kids = depth===0
+    ? S.objects.filter(o=>live(o) && o.parent===c.id).sort((a,b)=>{
+        const p = a[dv]||{}, q = b[dv]||{};
+        return (p.y||1e9)-(q.y||1e9) || (p.x||0)-(q.x||0); })
+    : childrenOf(c).filter(live);
+  for(const o of kids){
+    if(has(o,'check')) return o;
+    if(isContainer(o) && !has(o,'magic')){ const r = firstStep(o, dv, depth+1); if(r) return r; }
+  }
+  return null;
+}
+function nextSteps(){
+  if(KIDS && NEXTS) return NEXTS;
+  const out = new Map(), dv = dev();
+  S.objects.forEach(r=>{
+    if(!r || r.status!=='open' || !isContainer(r) || has(r,'magic') || r.done || isGone(r)) return;
+    const f = firstStep(r, dv, 0); if(f) out.set(f.id, r);
+  });
+  if(KIDS) NEXTS = out;
+  return out;
+}
+const isNow = o => has(o,'check') && !o.done
+  && ((!!o.due && D.parse(o.due) <= D.today()) || nextSteps().has(o.id));
+// the project a step is the next one of, for the line that names it
+const stepOf = o => nextSteps().get(o && o.id) || null;
+/* Late first, then today, then each project's next step by project name. */
+const NOW_SORT = (a,b)=> (a.due ? 0 : 1) - (b.due ? 0 : 1) || String(a.due||'').localeCompare(String(b.due||''))
+  || String((stepOf(a)||{}).title||'').localeCompare(String((stepOf(b)||{}).title||'')) || (a.ord||0)-(b.ord||0);
 function childrenOf(c){
   if(!c) return [];
   if(KIDS){ const hit=KIDS.get(c.id); if(hit) return hit; }
   const list = S.objects.filter(o=>inContainer(c,o));
-  const s = SORTS[sortOf(c)];
+  const s = (c.filter && c.filter.next && has(c,'magic')) ? [null, NOW_SORT] : SORTS[sortOf(c)];
   list.sort(s ? s[1] : (a,b)=>(a.ord||0)-(b.ord||0));
   if(KIDS) KIDS.set(c.id, list);
   return list;
@@ -3860,7 +3910,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { linkTarget, linkedFrom, linksIn, homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
+export { stepOf, isNow, linkTarget, linkedFrom, linksIn, homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, ENV_KEYS, ENV_NAMES, isBench, envSync, setting, setSetting, putLook, unsetSetting, benchHere, lookNow, decidedBy, withoutEnv, envDepth, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,

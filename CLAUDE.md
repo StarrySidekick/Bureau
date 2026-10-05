@@ -487,6 +487,16 @@ EveryPark are dashboards in `web/js/dashboards.js`**: laid once by migration
 63, refreshed when `DASH_V` moves, and in Settings → About for a fresh desk.
 Edit them there and bump `DASH_V`; never by hand on the desk.
 
+**v3.01** (decision 305): **a desk that helps.** Automatic **backups** in
+IndexedDB (`dailyBackup()`, `backupBefore()`, `restoreBackup()` in
+persist.js; Settings → About). **A typed line is read** (`readLine()` in
+mutations.js): its day, `!` priority, `#tags` and `@place` come off the name,
+a day only at the line's end, after on/by/due, or opening it for the words
+never a title; the toast says what was understood (`madeSaid()`). **Now**
+(`now`, `filter.next`, `isNow()`/`nextSteps()` in model.js): what is due, and
+each `status` project's next step in reading order; its lines go there
+(`goThere()` in views.js). AI is decision 306.
+
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
 `docs/ROADMAP.md` holds the current plan in dependency order, and

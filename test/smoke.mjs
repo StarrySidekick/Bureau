@@ -719,6 +719,48 @@ const CHROME = process.env.BUREAU_CHROME;
     return ok ? true : JSON.stringify(Object.assign(r, { md: r.md.slice(0, 200) }));
   });
 
+  /* A line is read for its day, its priority and its place, and only where
+     a day is plainly meant (decision 305); Now collects what is due and each
+     reporting project's next step, and the step after it once one is checked;
+     a backup kept and gone back to brings the desk back. */
+  const helpsOk = await page.evaluate(async () => {
+    const S = BUREAU.state, iso = n => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+    const r = l => BUREAU.readLine(l), bad = [];
+    const want = [['call Sam friday', 'call Sam', true], ['Watch Friday Night Lights', 'Watch Friday Night Lights', false],
+      ['Today show recap', 'Today show recap', false], ['tomorrow pick up the lens', 'pick up the lens', iso(1)],
+      ['review notes in 3 days', 'review notes', iso(3)], ['fix the bug !!', 'fix the bug', false]];
+    want.forEach(([l, t, d]) => { const x = r(l);
+      if (x.text !== t || (d === true ? !x.due : d === false ? !!x.due : x.due !== d)) bad.push(l + ' → ' + JSON.stringify([x.text, x.due])); });
+    if (r('fix the bug !!').prio !== 4) bad.push('priority');
+    const before = new Set(S.objects.map(o => o.id));
+    BUREAU.paste(JSON.stringify([{ type: 'project', title: 'Helps', key: 'helps', arrange: 'rows', status: true, children: [
+      { type: 'checklist', title: 'Next', children: [{ type: 'task', title: 'Second step', due: null }, { type: 'task', title: 'First step', due: null }] } ] },
+      { type: 'now', title: 'Now here' }]));
+    const mine = () => S.objects.filter(o => !before.has(o.id)), at = t => mine().find(o => o.title === t);
+    const nowKids = () => BUREAU.kids(at('Now here').id).map(id => (S.objects.find(o => o.id === id) || {}).title);
+    const k1 = nowKids();
+    at('First step').done = true; BUREAU.render();
+    const k2 = nowKids();
+    if (!k1.includes('First step') || k1.includes('Second step')) bad.push('now before ' + k1.join('|'));
+    if (!k2.includes('Second step') || k2.includes('First step')) bad.push('now after ' + k2.join('|'));
+    const gone = new Set(mine().map(o => o.id)); S.objects = S.objects.filter(o => !gone.has(o.id)); BUREAU.render();
+    /* A backup of the desk as it is now, gone back to after the desk is cut
+       down: the desk every later block was written against comes back. (The
+       day's backup is not used: in this run it was taken at an earlier
+       reload, before blocks the later ones read.) */
+    await BUREAU.backupBefore('this test');
+    const list = await BUREAU.backupList(), mark = list.find(b => b.label === 'Before this test');
+    if (!mark) bad.push('no backup'); else {
+      const keep = S.objects; S.objects = S.objects.slice(0, 4);
+      const ok = await BUREAU.restoreBackup(mark.key);
+      if (!ok || BUREAU.state.objects.length !== mark.n) { bad.push('restore ' + BUREAU.state.objects.length + ' of ' + mark.n); BUREAU.state.objects = keep; }
+      const list2 = await BUREAU.backupList();
+      if (!list2.some(b => /^Before restoring/.test(b.label))) bad.push('no backup of the desk replaced');
+      BUREAU.render(); }
+    return bad.length ? bad.join('; ') : true;
+  });
+
   // --- magic rules: a magic drawer collects by rule, and completed things
   // leave their own drawer for the archive (decisions 15 and 2)
   const magicOk = await page.evaluate(() => {
@@ -2251,12 +2293,13 @@ const CHROME = process.env.BUREAU_CHROME;
       inside: all.every(x => x.x >= 1 && x.w <= 8
         && x.x + x.w - 1 <= BUREAU.shelvesOf('root', 'phone').w * BUREAU.TILE),
       clear,
-      /* …bar the three project dashboards, which migration 63 lays on any
-         desk that comes from before them (decision 304): nothing else. */
+      /* …bar the shipped dashboards, which migration 63 lays on any desk
+         that comes from before them (decision 304): the three projects and
+         Now (decision 305), and nothing else. */
       nothingElseAdded: (() => { const S = BUREAU.state;
         const dash = new Set(S.objects.filter(o => o.sk && o.parent === 'root').map(o => o.id));
         const under = o => { for (let p = o, n = 0; p && n < 50; p = S.objects.find(x => x.id === p.parent), n++) if (dash.has(p.id)) return true; return false; };
-        return dash.size === 3 && S.objects.filter(o => !under(o)).length === 4; })(),
+        return dash.size === 4 && S.objects.filter(o => !under(o)).length === 4; })(),
       /* the Mac's boxes as they were, one beside the next: since decision 287
          the board is fitted to what is on it at load, which moves every
          number on it by the same margin and nothing in relation to anything */
@@ -11614,7 +11657,7 @@ const CHROME = process.env.BUREAU_CHROME;
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
-    pasteOk, pasteWhere, sectionsOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
+    pasteOk, pasteWhere, sectionsOk, helpsOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,

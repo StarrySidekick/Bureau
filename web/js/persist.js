@@ -3,7 +3,7 @@ import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defau
 import { WORD_KEYS } from './words.js';
 import { DASH_V, DASHBOARDS } from './dashboards.js';
 import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold, boxOk, growDown } from './grid.js';
-import { toast, create, makeCompound, pushUndo } from './mutations.js';
+import { toast, create, makeCompound, pushUndo, readLine } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
@@ -21,7 +21,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '3.00';
+const APP_VERSION = '3.01';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1607,6 +1607,82 @@ function importBackup(file){
 }
 
 /* ============================================================
+   19b′ · the safety net — automatic backups (decision 305)
+   ============================================================
+   STOCKTAKE §3.1: everything lived in one browser's storage and the only
+   backup was an export by hand. Now the desk is copied into IndexedDB (not
+   localStorage, which holds the live desk and caps near 5MB) **once a day,
+   as it was when the day began**, the last seven days kept; and once more,
+   under a label, before anything that changes a lot at once (a restore, a
+   Claude flat-pack unfolding). Settings → About lists them, and a restore
+   first saves the desk it replaces, so a restore can itself be undone by
+   restoring. Pictures are not copied: their bytes stay in the asset store,
+   which a restore points back at. */
+const BACKDB='bureau-backups', BACKSTORE='snaps', BACK_DAYS=7, BACK_BEFORE=5;
+let _bdb=null;
+function bdb(){
+  if(_bdb) return _bdb;
+  _bdb = new Promise((res,rej)=>{
+    const r=indexedDB.open(BACKDB,1);
+    r.onupgradeneeded=()=>{ r.result.createObjectStore(BACKSTORE); };
+    r.onsuccess=()=>res(r.result);
+    r.onerror=()=>rej(r.error);
+  }).catch(()=>null);
+  return _bdb;
+}
+const backTx = (mode, fn) => bdb().then(d=>d && new Promise(res=>{
+  const tx=d.transaction(BACKSTORE, mode), st=tx.objectStore(BACKSTORE);
+  let out=null; Promise.resolve(fn(st, v=>{ out=v; })).catch(()=>{});
+  tx.oncomplete=()=>res(out); tx.onerror=()=>res(null); tx.onabort=()=>res(null);
+})).catch(()=>null);
+function backupKeep(key, label){
+  const snap = snapshot();
+  const rec = {key, label, at:new Date().toISOString(), n:snap.objects.length, json:JSON.stringify(snap)};
+  return backTx('readwrite', st=>{ st.put(rec, key); });
+}
+// every backup's label and size, newest first, without the desk inside
+function backupList(){
+  return backTx('readonly', (st, give)=>new Promise(res=>{
+    const out=[]; const rq=st.openCursor();
+    rq.onsuccess=()=>{ const c=rq.result;
+      if(c){ const v=c.value||{}; out.push({key:c.key, label:v.label, at:v.at, n:v.n}); c.continue(); }
+      else { out.sort((a,b)=>String(b.at).localeCompare(String(a.at))); give(out); res(); } };
+    rq.onerror=()=>{ give(out); res(); };
+  })).then(v=>v||[]);
+}
+function trimBackups(){
+  return backupList().then(list=>{
+    const days = list.filter(b=>/^day:/.test(b.key)), before = list.filter(b=>/^before:/.test(b.key));
+    const gone = [...days.slice(BACK_DAYS), ...before.slice(BACK_BEFORE)].map(b=>b.key);
+    if(gone.length) return backTx('readwrite', st=>{ gone.forEach(k=>st.delete(k)); });
+  });
+}
+// once a day: the desk as the day found it
+function dailyBackup(){
+  const key = 'day:'+D.iso(D.today());
+  const day = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+  return backupList().then(list=>{
+    if(list.some(b=>b.key===key)) return false;
+    return backupKeep(key, day+', as the day began').then(trimBackups).then(()=>true);
+  }).catch(()=>false);
+}
+// before something that changes a lot at once
+function backupBefore(label){
+  return backupKeep('before:'+Date.now(), 'Before '+label).then(trimBackups).catch(()=>null);
+}
+function restoreBackup(key){
+  return backTx('readonly', (st, give)=>new Promise(res=>{
+    const rq=st.get(key); rq.onsuccess=()=>{ give(rq.result||null); res(); }; rq.onerror=()=>{ give(null); res(); };
+  })).then(rec=>{
+    if(!rec || !rec.json) return false;
+    return backupBefore('restoring '+(rec.label||'a backup')).then(()=>{
+      if(!adopt(JSON.parse(rec.json))) return false;
+      writeNow(); hydrateAssets(); return true;
+    });
+  }).catch(()=>false);
+}
+
+/* ============================================================
    19c · assets — image bytes live in IndexedDB, never in the JSON
    ============================================================
    localStorage caps around 5MB and holds the whole desk, so pictures cannot go
@@ -1990,7 +2066,12 @@ function upsertInto(o, spec, tally){
 
 function addSpec(spec, parentId, tally, ctx){
   if(spec==null) return;
-  if(typeof spec==='string') spec={type:'task', title:spec};   // a bare line is a task
+  /* A bare line is a task, read the way a typed line is (decision 305): its
+     day and its priority come off the name. Not its @place: a paste says
+     where things go by where it puts them. */
+  if(typeof spec==='string'){ const r = readLine(spec.replace(/\s@[\w'’-]+/g,' '));
+    spec = Object.assign({type:'task', title:r.text}, r.due ? {due:r.due} : {}, r.prio!=null ? {prio:r.prio} : {},
+      r.tags.length ? {tags:r.tags} : {}); }
   if(spec.update && !(ctx && ctx.pack)){
     const was = existingFor(spec, parentId);
     if(was){ upsertInto(was, spec, tally); return was; }
@@ -2081,9 +2162,15 @@ function shipDashboards(force){
   if(!fresh && (cfg.dashV||0) >= DASH_V) return null;
   const tally = {drawers:0, objects:0, made:[], sets:[], updated:0};
   DASHBOARDS.forEach(d=>{
-    const spec = Object.assign(JSON.parse(JSON.stringify(d)), {update:true, arrange:'rows', status:true});
+    const spec = Object.assign(JSON.parse(JSON.stringify(d)), {update:true},
+      Array.isArray(d.children) ? {arrange:'rows', status:true} : {});
     const there = existingFor(spec, ROOT);
-    if(!there && !(force || (cfg.dashPending && !laid.has(spec.key)))) return;   // taken away: stays away
+    /* Made when: asked for (the button), laid for the first time (migration
+       63), or new since the dashboards were laid here (Now, decision 305).
+       One laid before and not here now was taken away, and stays away; a desk
+       that never had them (the sample) is never given them unasked. */
+    const fresh1 = !laid.has(spec.key) && (cfg.dashPending || laid.size);
+    if(!there && !(force || fresh1)) return;
     addSpec(spec, ROOT, tally);
     laid.add(spec.key);
   });
@@ -2119,6 +2206,6 @@ function pasteObjects(text, parentId){
   toast(said || (tally.sets.length ? 'Up to date' : 'Nothing new to add'), !!(tally.made.length || tally.sets.length));
 }
 
-export { shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
+export { dailyBackup, backupBefore, backupList, restoreBackup, shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, importMedia, importFile, imgFor,
   pasteObjects, install };

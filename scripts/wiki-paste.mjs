@@ -6,6 +6,6 @@
 import { writeFileSync } from 'node:fs';
 import { DASHBOARDS } from '../web/js/dashboards.js';
 
-const out = DASHBOARDS.map(d => Object.assign({}, d, { update: true, arrange: 'rows', status: true }));
+const out = DASHBOARDS.map(d => Object.assign({}, d, { update: true }, Array.isArray(d.children) ? { arrange: 'rows', status: true } : {}));
 writeFileSync(new URL('../docs/examples/wiki.json', import.meta.url), JSON.stringify(out, null, 2) + '\n');
 console.log('wrote docs/examples/wiki.json,', out.length, 'boards,', JSON.stringify(out).length, 'chars');

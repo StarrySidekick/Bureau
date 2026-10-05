@@ -715,6 +715,52 @@ const fstat = await page.evaluate(() => { const S = BUREAU.state, b = S.objects.
 out.aFrontSaysWhatIsOpen = !!(fstat && fstat.shown && /to do/.test(fstat.text)) || JSON.stringify(fstat);
 await shot('24d-fronts');
 
+// ---- capture reads a line, Now, and the backups (decision 305) ------------
+// A line typed into a project's notepad is read for its day and its place;
+// Now on the desk shows what is due and each project's next step, a check
+// brings up the step after it, and its words go to the step where it lives;
+// a backup kept and gone back to brings the desk back.
+await page.evaluate(() => { BUREAU.dashboards(true); const S = BUREAU.state;
+  S.view = 'drawer'; S.drawerId = S.objects.find(o => o.sk === 'composerskey').id; BUREAU.render(); });
+await nap(600);
+const said = [];
+for (const line of ['call Sam friday', 'buy oil @kitchen tomorrow']) {
+  await page.locator('#app .padline').first().tap();
+  await page.locator('#app input[data-fieldfor]').first().fill(line);
+  await page.locator('#app input[data-fieldfor]').first().press('Enter'); await nap(450);
+  said.push(await page.evaluate(() => (document.querySelector('#toast') || {}).textContent || ''));
+}
+const typed = await page.evaluate(() => { const S = BUREAU.state, f = t => S.objects.find(o => o.title === t) || {};
+  const fri = (() => { const d = new Date(); d.setHours(0,0,0,0); let n = (5 - d.getDay() + 7) % 7 || 7; d.setDate(d.getDate() + n);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  return { sam: f('call Sam').due === fri && f('call Sam').kind === 'task',
+    oil: (S.objects.find(o => o.id === f('buy oil').parent) || {}).title === 'Kitchen' }; });
+out.aLineIsRead = typed.sam && typed.oil && /due Friday/.test(said[0]) && /into Kitchen/.test(said[1]) || JSON.stringify({ typed, said });
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const n = S.objects.find(o => o.sk === 'now'); document.querySelector(`[data-drawer="${n.id}"]`).scrollIntoView({ block: 'center' }); });
+await nap(500);
+const nowLines = () => page.evaluate(() => [...document.querySelectorAll('#app .lline[data-goto]')].map(l => l.textContent.replace(/\s+/g, ' ').trim()));
+const nowBefore = await nowLines();
+await shot('25-now');
+await page.locator('.lline[data-goto]', { hasText: 'Play the dungeon' }).locator('.clbox').tap(); await nap(900);
+const nowAfter = await nowLines();
+await page.locator('.lline[data-goto]', { hasText: 'Listen to the motif' }).locator('.cltext').tap(); await nap(1300);
+const went = await page.evaluate(() => { const S = BUREAU.state, sc = document.querySelector('#app .scroll');
+  const next = [...document.querySelectorAll('#app .grid .drawer')].find(e => /^Next/.test(e.textContent.trim()));
+  const r = next && next.getBoundingClientRect(), a = sc.getBoundingClientRect();
+  return { at: (S.objects.find(o => o.id === S.drawerId) || {}).title, top: r ? Math.round(r.top - a.top) : null,
+    onScreen: !!r && r.left >= a.left - 2 && r.right <= a.right + 2 }; });
+await shot('25b-now-went');
+out.nowIsWhatIsNext = nowBefore.some(l => /Play the dungeon.*Composer/.test(l)) && nowBefore.some(l => /Bureau$/.test(l))
+  && nowAfter.some(l => /Listen to the motif/.test(l)) && !nowAfter.some(l => /Play the dungeon/.test(l))
+  && went.at === 'Composer’s Key' && went.onScreen && Math.abs(went.top) < 60 || JSON.stringify({ nowBefore, nowAfter, went });
+out.aBackupGoesBack = await page.evaluate(async () => { const S = BUREAU.state, n0 = S.objects.length;
+  await BUREAU.dailyBackup(); const list = await BUREAU.backupList(), day = list.find(b => /^day:/.test(b.key));
+  if (!day) return 'no day backup: ' + JSON.stringify(list);
+  S.objects = S.objects.slice(0, 5); BUREAU.render();
+  const ok = await BUREAU.restoreBackup(day.key), list2 = await BUREAU.backupList();
+  return ok && BUREAU.state.objects.length === day.n && list2.some(b => /^Before restoring/.test(b.label)) || JSON.stringify({ ok, n0, day, n: BUREAU.state.objects.length }); });
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

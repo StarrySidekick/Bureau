@@ -1,5 +1,11 @@
 [
   {
+    "type": "now",
+    "key": "now",
+    "title": "Now",
+    "update": true
+  },
+  {
     "type": "project",
     "key": "bureau",
     "title": "Bureau",

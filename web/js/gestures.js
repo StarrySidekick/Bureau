@@ -8,7 +8,7 @@ import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
 import { modalNewObject, shapeRing, holdPanel, openCtx, closeCtx, schedulePanel, refreshPanel,
   closePanel, sampleTile } from './panels.js';
-import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit, setTuck, goSection } from './views.js';
+import { render, shelfShift, reveal, openOverview, closeOverview, overviewOn, overCid, zoomCommit, setTuck, goSection, goThere } from './views.js';
 import { gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
 import { closeSheet, renderSheet } from './sheet.js';
 import { pagerBegin, pagerMove, pagerEnd, pagerCancel, pagerOn, leaveTile, toss, fileTo , zoomedIn,
@@ -1264,6 +1264,8 @@ function onDown(e){
        line:(e.target.closest('.lline[data-open]')||{dataset:{}}).dataset.open||null,
        // …and a line on a contents page goes to its heading (decision 304)
        sec:(e.target.closest('.lline[data-gosec]')||{dataset:{}}).dataset.gosec||null,
+       // …and a line on Now goes to the step where it lives (decision 305)
+       go:(e.target.closest('.lline[data-goto]')||{dataset:{}}).dataset.goto||null,
        /* Dragging any member of a selection moves the lot, keeping their
           relative positions — the offsets are captured up front. Since
           decision 180 it is `travelWith()` rather than the selection alone,
@@ -2224,6 +2226,10 @@ function onUp(e){
        tile again, and everything else the click does still happens. */
     /* A tap on a list front's line is that line's tap (decision 239): the
        list is the index and the line is the thing. */
+    if(g.go && byId(g.go)){
+      gestureFlags.tapped = {id: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
+      goThere(g.go); return;
+    }
     if(g.sec && byId(g.sec)){
       gestureFlags.tapped = {id: g.id, at: Date.now(), x: e.clientX, y: e.clientY};
       goSection(g.sec); return;

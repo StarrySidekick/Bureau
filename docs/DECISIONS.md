@@ -12979,3 +12979,64 @@ its heading and stays, the lip's menu goes to another, a link opens its page
 which lists what links to it, a front says what is open; shots 24 to 24d).
 Smoke: `sectionsOk` (reading order, the contents, links, an update keeping
 what was written, ticked and thrown away, the board as text).
+
+## 305. A desk that helps: the backups, a line that is read, and Now (v3.01, 2026-10-05)
+
+Timothy, after decision 304: *"let's further refine usability, keep pushing,
+even if additions or changes are a pivot for Bureau. Physical objects in
+digital space is still a goal but let's make them more adaptive and magical,
+seamless, integrated with your goals and tasks, paired with AI possibilities
+to scope and build quickly but rooted in that physicality that gives one
+personal structure and clarity."* Read against STOCKTAKE §3, whose ranked list
+of what stops him living in Bureau was still open at three of five: a safety
+net for the data, capture without deciding, and "what do I do now?". This
+decision is those three, local and free; the AI half is 306.
+
+**The backups.** The desk is copied into IndexedDB (`bureau-backups`, beside
+the asset store; localStorage holds the live desk and caps near 5MB) once a
+day **as the day began**, the first launch of a saved desk each day, seven
+days kept; and once more under a label before anything that changes a lot at
+once (`backupBefore()`): a restore, a flat-pack unfolding (306). Settings →
+About → *Go back to an earlier desk* lists them; going back saves the desk it
+replaces first, so it is never the last word. Pictures are not copied: their
+bytes stay in the asset store the restored objects point at.
+
+**A line is read** (`readLine()` in mutations.js), wherever a line is typed:
+a notepad, an inbox, a list's add box, and a paste's bare-string task. Its
+day (today, tonight, tomorrow, a weekday, this weekend, next week, in N days,
+weeks or months, a month and day, an ISO date), its priority (`!` to `!!!`,
+3 to 5), its tags and its place (`@kitchen`, the first drawer whose name
+starts with it) come off the name, and the toast says what was understood
+(`madeSaid()`): "A task, due Friday, into Kitchen". **A day is read only at
+the end of the line, after on, by or due, or at its start for the few words
+that are never a title** (tomorrow, tonight, this weekend, next week), so
+"Call Sam friday" is dated and "Watch Friday Night Lights" and "Today show
+recap" are not. A weekday is the next one (today's weekday is a week on,
+unless it says "this"); a month and day passed within the last month is late
+this year rather than next year. A line that names a day reads as a task.
+The old cues (`!today`) still work.
+
+**Now** (`now`, in the List family): a sorting drawer whose rule
+(`filter.next`, `isNow()` in model.js) is anything to check off that is due
+or late, and **the next step of every project whose front reports what is
+open** (`status`, decision 304): its first unchecked thing in reading order,
+a board top to bottom then left to right and a list inside it in the order it
+shows (`firstStep()`, `nextSteps()`, remembered for the length of a pass).
+It shows late first, then today, then the steps by project (`NOW_SORT`), each
+step naming its project at the line's end (`.clfrom`). Check one and the
+project's step after it takes its place. A press on a line's words goes to
+the step where it lives (`goThere()`: the project's board, scrolled to the
+list it is in, lit a moment) rather than opening it alone. It ships on the
+desk with the dashboards (`DASH_V` 2): a key never laid before is laid on the
+next update of a desk that has them, and a desk that never had them is still
+given nothing unasked.
+
+`goSection()` learned two things on the way: a container's tile is
+`data-drawer`, not `data-row`; and on a phone the board's first column goes
+to the screen's left, worked back from the thing's own box, because the grid
+element carries a pad of empty cells either side.
+
+Tested in WebKit first (`test/safari.mjs` block 25: lines typed into a real
+notepad are dated and filed, Now's check brings the next step and its words
+go there with the list on screen, a backup goes back; shots 25, 25b). Smoke:
+`helpsOk` (the reading cases, Now before and after a check, a backup).
