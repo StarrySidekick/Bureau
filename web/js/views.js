@@ -21,7 +21,8 @@ import { openGuide } from './guide.js';
    this imports sprayAt() from there, and neither is called while the modules
    are loading. That is the graph the app already has; keep it that way. */
 import { sprayAt, SPRAYS, sprayNow, sprayMark, hopIntoCollector , applyZoom, zoomOut, zoomedIn, CAM_DIMS } from './motion.js';
-import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install } from './persist.js';
+import { APP_VERSION, DATA_V, save, saveIfDirty, storeSize, install, aiCfg } from './persist.js';
+import { AI_MODELS, modelOf } from './ai.js';
 import { TOOLART } from './active.js';
 import { holdsFinger } from './gestures.js';
 
@@ -181,9 +182,9 @@ function gridBar(c){
    is on the top lip, on every board, so a `gear` still stored in a board's
    `rail` is passed over here rather than drawn twice. The Gear *object*
    (`tgear`) is still a thing you can put on a board. */
-const RAIL_TOOLS = ['glass','block','lock','swipe','spool','stamp','coin'];
+const RAIL_TOOLS = ['glass','block','lock','swipe','spool','stamp','pen','coin'];
 const RAIL_NAMES = {glass:'Magnifying glass', block:'Letter block', lock:'Padlock',
-  swipe:'Swipe switch', spool:'Spool of thread', stamp:'Rubber stamp', coin:'Spiral coin'};
+  swipe:'Swipe switch', spool:'Spool of thread', stamp:'Rubber stamp', pen:'Fountain pen', coin:'Spiral coin'};
 const RAIL_DEFAULT = {left:['glass','block'], right:['lock']};
 function railToolsOf(cid){
   const r = (cfgOf(cid)||{}).rail;
@@ -247,6 +248,8 @@ function railTool(t, c){
   if(t==='spool') return railObj('spool', 'spool', c.id,
     S.threading ? 'Tying — press two things, or the spool to stop' : 'Spool of thread — press it, then two things to tie', !!S.threading);
   if(t==='coin') return railObj('coin', 'coinspin', c.id, 'Spiral coin — one of anything, anywhere on this board');
+  // the pen asks Claude for this board (decision 306)
+  if(t==='pen') return railObj('pen', 'askpen', c.id, c.id===ROOT ? 'Fountain pen: ask Claude to build a board' : 'Fountain pen: ask Claude to fill in this board');
   /* The stamp in a drawer front prints the board's word in the board's ink
      (`stampw`/`stampink` on the board, set beside this row). Decision 292. */
   if(t==='stamp'){ const st = stampOf(cfgOf(c.id)||{}), on = !!(S.stamping && S.stamping.from===c.id);
@@ -837,6 +840,9 @@ const SETSECS = {
   plans:  ['Benches',    'grid',    'boards set up for one kind of work, to lay out again'],
   /* Your Things is the head of About (decision 255). */
   paste:  ['Paste an Object', 'plus',    'objects described as JSON'],
+  /* Claude (decision 306): the person's own key and which model, kept on
+     this device and never in the desk. */
+  claude: ['Claude', 'sparkle', 'your key, and which Claude builds boards for you'],
   about:  ['About',      'help',    'how much there is, getting it out, which Bureau this is, and starting over']
 };
 function settingsPanel(sec, cid){
@@ -1281,6 +1287,7 @@ function settingsBody(sec, cid){
       <button class="pill solid" data-act="pastego">${ic('plus',13)} Add to the desk</button>
       <button class="pill" data-act="pasteschema">${ic('help',13)} What it accepts</button>
     </div>` : '',
+    at('claude') ? claudeSection() : '',
     at('about') ? `
     <div class="section-h"><h2>Start over</h2><div class="rule"></div></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1289,6 +1296,34 @@ function settingsBody(sec, cid){
     </div>` : '',
     `<div style="height:20px"></div>`
   ].join('');
+}
+
+/* ---- Settings → Claude — decision 306 ------------------------------------
+   The key is a password field that is never filled back in: once kept, the
+   door says it is kept and shows its last four characters, and Take it away
+   removes it. What is sent, and when, is said here in plain words, because
+   it is the one place Bureau talks to anything but the device it is on. */
+function claudeSection(){
+  const cfg = aiCfg() || {}, has = !!cfg.key, model = modelOf();
+  return `
+    <div class="section-h"><h2>Your key</h2><div class="rule"></div></div>
+    ${has ? `<div class="mini" style="--k:var(--brass)">A key ending <b>${esc(cfg.key.slice(-4))}</b> is kept on this device.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="pill" data-act="aitest">${ic('check',13)} Try it</button>
+        <button class="pill" data-act="aiforget" style="color:#C0563F">Take it away</button></div>`
+    : `<div class="mini" style="--k:var(--brass)">An Anthropic API key, from <b>console.anthropic.com</b>, lets the fountain pen ask Claude. Each ask is billed to that account.</div>
+      <input id="aikey" class="pfield" type="password" autocomplete="off" spellcheck="false"
+        placeholder="sk-ant-…" style="width:100%;margin-top:8px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="pill solid" data-act="aikeep">${ic('check',13)} Keep it</button></div>`}
+    <div class="section-h" style="margin-top:18px"><h2>Which Claude</h2><div class="rule"></div></div>
+    <div class="rows">${AI_MODELS.map(([id, nm, ds])=>
+      `<div class="row${id===model?' on':''}" data-aimodel="${id}" role="button" tabindex="0">
+        <span class="kindmark">${ic(id===model?'check':'sparkle',13)}</span>
+        <div class="body"><div class="title">${esc(nm)}</div><div class="snip">${esc(ds)}</div></div></div>`).join('')}</div>
+    <div class="section-h" style="margin-top:18px"><h2>What is sent</h2><div class="rule"></div></div>
+    <div class="mini" style="--k:var(--brass)">Nothing, until you press something that asks. Then only what the ask is about goes to Anthropic: what you typed, and the board it is for (its names, pages and answers), never the whole desk. The key stays on this device, outside the desk, so a backup or an export never carries it.</div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Put the <b>fountain pen</b> on a board (Doodad → Tool) or in a drawer front. On the desk it builds a board, which arrives as a flat-pack to unfold; in a drawer it fills that drawer in. Hold a task for <b>Break Down</b>, a question for <b>Draft Answer</b>.</div>`;
 }
 
 /* ============================================================

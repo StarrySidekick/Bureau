@@ -29,10 +29,11 @@ import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
 import { gravityReport, gravitySettle, gravityApply, gravityWake,
   gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
-import { load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup } from './persist.js';
+import { load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup, aiCfg, setAiCfg } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom, openCard } from './sheet.js';
 import { openPaint, closePaint, paintOpen, PT, artLayer } from './paint.js';
 import { gather } from './mutations.js';
+import { AI, aiSchemas, grammarPrompt, askBuild, askSteps, askAnswer, askFill, unfold, openAsk, toSpec } from './ai.js';
 import { tugOf } from './model.js';
 import { DECOR, DECOR_KEYS, decorSVG, decorSuits, decorFor, decorRest } from './decor.js';
 
@@ -143,6 +144,11 @@ setMinuteHandler(()=>{
 mindTheTime();
 
 window.BUREAU = {
+  /* Claude (decision 306), with a stand-in for the network: a test sets
+     `aiStub` to a function that takes the request body and returns what the
+     API would, so nothing leaves the machine and no key is needed. */
+  set aiStub(f){ AI.stub = f || null; }, get aiAsking(){ return [...AI.asking]; },
+  grammarPrompt, askBuild, askSteps, askAnswer, askFill, unfold, openAsk, toSpec, aiSchemas, aiCfg, setAiCfg,
   someKind, furnish, loadTexts, rangeOfKind, randomSizeOf, inRange,
   get state(){ return S; }, render, create, save: writeNow, saveSoon: save,
   // making a type the way the picker does, pressing a tile the way a finger

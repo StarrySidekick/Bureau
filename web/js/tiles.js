@@ -27,6 +27,7 @@ import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ,
 import { save } from './persist.js';
 import { needsSetup, openSetup } from './setup.js';
 import { openRank } from './rank.js';
+import { AI, parcelTap, packCount } from './ai.js';
 
 /* ============================================================
    7 · rendering — drawers
@@ -699,6 +700,8 @@ function tileTap(id){
   /* **An inked stamp** (decision 292): every press lands an impression and
      does nothing else, until the stamp itself is pressed again. */
   if(S.stamping && actOf(o)!=='tstamp'){ if(stampIt(id, S.stamping)) render(); return; }
+  /* A flat-pack unfolds where it lies (decision 306), or asks again. */
+  if(shapeOf(o)==='parcel'){ parcelTap(id); return; }
   /* A copper pipe is a way through (decision 286): pressing it takes you to
      the drawer at its other end, and an untied pipe says how to tie it. */
   if(isPipe(o)){
@@ -1719,7 +1722,8 @@ function drawTileFace(o, arr, box, persp){
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
   }${hasPersp(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
   }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
-  const sel = S.sel.includes(o.id) ? ' selected' : '';
+  // `asking`: Claude is working on this one (decision 306), drawn as a glow
+  const sel = (S.sel.includes(o.id) ? ' selected' : '') + (AI.asking.has(o.id) ? ' asking' : '');
 
   /* ---- a Button is a button — decision 243 -------------------------------
      Square, it is a photograph of a real one (`bimg`), and the whole tile is
@@ -1739,6 +1743,22 @@ function drawTileFace(o, arr, box, persp){
     return `<button class="drawer otile cardtile bd-none${sel}" data-row="${o.id}"
         title="${esc(o.title||'Card')}${down?' · face down':''}" style="--c:${colour};${place}">
       ${chips}<span class="dkcard ${down?'down':'up'}">${down ? backHTML(backOf(o)) : cardFace(o)}</span>
+      ${handles}
+    </button>`;
+  }
+
+  /* ---- a flat-pack — decision 306 ----------------------------------------
+     Brown paper and twine, and a tag on the knot: what is inside and what a
+     press will do. One cell is the parcel alone. */
+  if(shapeOf(o)==='parcel'){
+    const packing = AI.asking.has(o.id), failed = !packing && !o.pack;
+    // short, because the tag is small: the whole sentence is the tooltip
+    const said = packing ? 'Packing' : failed ? 'Ask again' : `${packCount(o.pack)} things`;
+    const long = packing ? 'Claude is packing it' : failed ? (o.err || 'Press to ask again') : 'Press to unfold it';
+    return `<button class="drawer otile parceltile${packing?' packing':''}${failed?' parcelerr':''}${sel}" data-row="${o.id}"
+        title="${esc((o.title||'Flat-pack')+' — '+long)}" style="--c:${colour};${place}">
+      ${chips}<span class="parcel" aria-hidden="true"><i class="twine tv"></i><i class="twine th"></i><i class="bow"></i></span>
+      ${box.w*box.h>1 ? `<span class="parcellabel"><b>${esc(o.title||'Flat-pack')}</b><u>${esc(said)}</u></span>` : ''}
       ${handles}
     </button>`;
   }
@@ -3167,8 +3187,8 @@ function drawTileFace(o, arr, box, persp){
           words and an ellipsis — the answer is the thing a question on a
           board exists to hold. A textarea as many lines as the words need,
           up to three, and scrolls past that. */''}
-    ${asks?`<label class="ansbox">
-      <i>${answered(o)?ic('check',11):ic('help',11)}</i>
+    ${asks?`<label class="ansbox${o.drafted?' drafted':''}">
+      <i>${answered(o)?ic('check',11):o.drafted?ic('sparkle',11):ic('help',11)}</i>
       <textarea data-answer="${o.id}" rows="${Math.max(1, Math.min((box.h||2)>=3 ? 3 : 2,
           Math.ceil(String(o.answer||'').length / Math.max(8, (box.w||4)*7))))}"
         placeholder="${answered(o) || (box.w||4) < 3 ? '' : (box.w||4) < 4 ? 'Answer…' : 'Write the answer…'}">${esc(o.answer||'')}</textarea></label>`:''}
@@ -3875,8 +3895,11 @@ function readHTML(o){
   /* A question read on its own page keeps its answer box (decision 304):
      opened from a list line there is no tile face to answer on. The same
      `data-answer` field the face carries, so both write one answer. */
-  const ans = has(o,'answer') ? `<p class="readanswer"><textarea data-answer="${o.id}" rows="3"
-      placeholder="Write the answer…">${esc(o.answer||'')}</textarea></p>` : '';
+  /* Claude's draft (decision 306) says so under it, with the way to keep it
+     as it is; changing a word of it makes it yours too. */
+  const ans = has(o,'answer') ? `<p class="readanswer${o.drafted?' drafted':''}"><textarea data-answer="${o.id}" rows="${o.drafted?6:3}"
+      placeholder="Write the answer…">${esc(o.answer||'')}</textarea></p>${o.drafted
+      ? `<p class="draftnote">Claude’s draft. Change it, or <a data-keepdraft="${o.id}" role="button">keep it as it is</a>.</p>` : ''}` : '';
   return (written(o) ? md(written(o)) : (ans ? '' : NOTHING_YET)) + ans + (from.length
     ? `<p class="backlinks"><span>Linked from</span> ${from.map(x=>
         `<a data-openrel="${x.id}" role="link">${esc(x.title||'Untitled')}</a>`).join(' · ')}</p>` : '');
@@ -4037,7 +4060,7 @@ function pagesOf(o, box){
              // the typeface, size, spacing and layout the page is set in, and
              // the face it wears when it is a page rather than the tile
              wordKey(o), box ? '' : faceLook(o).key, box ? '' : linkedSaid(o),
-             box ? '' : String(o.answer||'')].join('|');
+             box ? '' : String(o.answer||'')+(o.drafted?'~draft':'')].join('|');
   if(PAGES.key===key) return PAGES.list;
 
   const ruler=document.createElement('div');

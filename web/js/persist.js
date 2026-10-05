@@ -21,7 +21,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '3.01';
+const APP_VERSION = '3.02';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -75,6 +75,25 @@ function save(){
 }
 function saveIfDirty(){ if(dirty) save(); }
 function storeSize(){ try{ return (localStorage.getItem(KEY)||'').length; }catch(e){ return 0; } }
+
+/* ---- Claude's key — decision 306 ----------------------------------------
+   The person's own Anthropic API key and the model they chose, under a key of
+   their own and **never in the desk**: not in `snapshot()`, so not in a save,
+   a backup, an export or anything pasted out. Erasing the desk leaves it;
+   Settings → Claude is where it is set and taken away. */
+const AI_KEY = 'bureau.ai';
+let AICFG;
+function aiCfg(){
+  if(AICFG!==undefined) return AICFG;
+  try{ AICFG = JSON.parse(localStorage.getItem(AI_KEY) || 'null'); }catch(e){ AICFG = null; }
+  return AICFG;
+}
+function setAiCfg(v){
+  AICFG = v && (v.key || v.model) ? {key:String(v.key||'').trim(), model:String(v.model||'')} : null;
+  try{ AICFG ? localStorage.setItem(AI_KEY, JSON.stringify(AICFG)) : localStorage.removeItem(AI_KEY); }
+  catch(e){ console.warn('Bureau could not keep the key:', e.message); }
+  return AICFG;
+}
 
 /* v1 → v2: drawers carried only {w,h} and were laid out by flow order. Replay
    that same dense flow once to give every drawer real x/y coordinates, so an
@@ -1928,7 +1947,7 @@ function kindFromName(n){
   const partial=KEYS.find(k=>k.startsWith(t)||t.startsWith(k));
   return partial||'note';
 }
-const SPEC_FIELDS=['body','due','dead','soft','till','done','count','rating','price','prio','loc','dur','url','repeat','rel','answer'];
+const SPEC_FIELDS=['body','due','dead','soft','till','done','count','rating','price','prio','loc','dur','url','repeat','rel','answer','pack'];
 
 /* **A pasted drawer can be a board** (decision 197). `plan` names one — by
    its name, its stock key or its id — and the container is made the way
@@ -2206,6 +2225,6 @@ function pasteObjects(text, parentId){
   toast(said || (tally.sets.length ? 'Up to date' : 'Nothing new to add'), !!(tally.made.length || tally.sets.length));
 }
 
-export { dailyBackup, backupBefore, backupList, restoreBackup, shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
+export { aiCfg, setAiCfg, addSpec, dailyBackup, backupBefore, backupList, restoreBackup, shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, importMedia, importFile, imgFor,
   pasteObjects, install };

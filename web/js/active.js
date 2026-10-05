@@ -179,6 +179,28 @@ TOOLART.stamp = (ink = '#A8322A') => `<defs><radialGradient id="ro-tk" cx=".35" 
     <circle cx="20" cy="10.2" r="7.4" fill="url(#ro-tk)"/>
     <path d="M15.2 8.4a5.4 5.4 0 0 1 3.4-3.6" stroke="#fff" stroke-opacity=".6" stroke-width="1.4"
       fill="none" stroke-linecap="round"/>`;
+/* **A fountain pen** (decision 306): black lacquer, a gold nib and clip,
+   lying across the cell nib down, the way a pen is put down on a desk. It is
+   how you ask Claude for something, so it is drawn as the thing you write
+   with rather than as a sparkle. */
+TOOLART.pen = () => `<defs>${BRASS('ro-pn')}
+      <linearGradient id="ro-pl" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#4A5A7E"/><stop offset=".35" stop-color="#16213A"/>
+        <stop offset="1" stop-color="#05080F"/></linearGradient></defs>
+    <path d="M10.5 33.5 33.5 10.5" stroke="#000" stroke-opacity=".28" stroke-width="7" stroke-linecap="round"/>
+    <g transform="rotate(-45 20 20)">
+      <path d="M3.6 20 12 17.2v5.6Z" fill="url(#ro-pn)"/>
+      <path d="M5 20h5.2" stroke="#5A3C0E" stroke-width=".6"/>
+      <circle cx="10" cy="20" r=".8" fill="#3A2608"/>
+      <rect x="11.4" y="17.4" width="4.2" height="5.2" rx="1" fill="#0B0F18"/>
+      <rect x="15.2" y="16.4" width="1.6" height="7.2" fill="url(#ro-pn)"/>
+      <rect x="16.6" y="16.5" width="14" height="7" rx="1.2" fill="url(#ro-pl)"/>
+      <rect x="30.2" y="16.3" width="1.6" height="7.4" fill="url(#ro-pn)"/>
+      <rect x="31.4" y="16.7" width="4.8" height="6.6" rx="3.2" fill="url(#ro-pl)"/>
+      <rect x="21" y="14.9" width="11.6" height="1.7" rx=".85" fill="url(#ro-pn)"/>
+      <circle cx="21.6" cy="15.8" r="1.1" fill="url(#ro-pn)"/>
+      <path d="M17.6 17.7h12.4" stroke="#fff" stroke-opacity=".35" stroke-width=".9" stroke-linecap="round"/>
+    </g>`;
 /* **The swipe switch** (decision 274): a brass toggle on a walnut plate, the
    lever thrown to the wave for a smooth scroll or to the steps for a rigid
    swipe, a tile at a time. What it shows is what a press changes to the
@@ -465,6 +487,7 @@ const ACTIVE = {
         + azRing(o.id, 'stampink', Object.entries(STAMP_INKS).map(([k,[n]])=>[k, n]), st.ink)
         + azSay('Press it, then press things to stamp them. Press it again to put it down.'); }
   }),
+  tpen:   tool('pen',   'Fountain pen', 'Ask Claude to build something', ()=>null),
   tswipe: tool('swipe', 'Swipe switch', 'Smooth scroll or a rigid swipe', ()=>!!(S.look && setting('flow')==='rigid')),
   /* ---- the metronome ---------------------------------------------------
      A wedge with a scale up it and a bar that swings. The swing is a CSS

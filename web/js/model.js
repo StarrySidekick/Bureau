@@ -589,7 +589,7 @@ const BUILTIN_KINDS = {
      /* **The tools and the counter are doodads too** (decision 240): one
         place for the small things that do something when pressed. */
      family:['button','m_counter','metronome','hourglass','candle','bell','clock','die','deck',
-             'tglass','tblock','tlock','tgear','tswipe','spool','tstamp','pipe','coin','anything'],
+             'tglass','tblock','tlock','tgear','tswipe','spool','tstamp','tpen','pipe','coin','anything'],
      famSub:'Which doodad?', master:true, lead:'clock',
      attrs:[], size:[3,4], onclick:'active', body:'' },
   /* **The Button** (decision 243): the Control, the Spawner and the old
@@ -652,7 +652,7 @@ const BUILTIN_KINDS = {
      tool is an instrument as far as the rest of the app is concerned. */
   tool:{cat:true, nm:'Tool', ic:'gear', c:12,
      ds:'The drawer front\u2019s tools, as things you can put on a board',
-     family:['tglass','tblock','tlock','tgear','tswipe','spool','tstamp','coin'],
+     family:['tglass','tblock','tlock','tgear','tswipe','spool','tstamp','tpen','coin'],
      famSub:'Which tool?',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   tglass:{act:'tglass', nm:'Magnifying glass', ic:'search', c:12, ds:'Searches the board it lies on',
@@ -676,6 +676,22 @@ const BUILTIN_KINDS = {
      stamp; the impression is a record on the thing it lands on (`stamps`). */
   tstamp:{act:'tstamp', nm:'Rubber stamp', ic:'check', c:12, ds:'Press it, then press things: each is stamped with its word and today\u2019s date',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', stampw:'Received', stampink:'red', body:'' },
+  /* **A fountain pen** (decision 306): press it and say what you want, and
+     Claude writes it. On the desk it builds a whole board, which arrives as
+     a flat-pack; inside a container it fills that board in. Needs a key in
+     Settings → Claude, and says so when pressed without one. */
+  tpen:  {act:'tpen',   nm:'Fountain pen', ic:'sparkle', c:12, ds:'Press it and say what to build: Claude writes it, as a flat-pack to unfold or into the board it lies on',
+     attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
+  /* **A flat-pack** (decision 306, USES.md §2): a whole board, packed flat
+     in brown paper and string, the way Claude delivers one. It is not a
+     container, it *carries* one (`pack`, a paste spec), and a press unfolds
+     it where it lies: the board is laid by the paste's own rules and the
+     parcel goes in the bin, one move. While Claude is still writing it is
+     `packing`; an ask that failed keeps its words (`ask`) so a press can ask
+     again. Made by the pen and by a paste; no picker offers it (`made`). */
+  flatpack:{shape:'parcel', made:true, nm:'Flat-pack', ic:'archive', c:12,
+     ds:'A board packed flat. Press it to unfold it where it lies',
+     attrs:[], size:[2,2], phoneSize:[2,2], body:'' },
   coin:  {act:'coin',   nm:'Spiral coin', ic:'spiral', c:12, ds:'Toss it and it makes one of anything, somewhere on the board',
      attrs:[], size:[1,1], phoneSize:[1,1], onclick:'active', body:'' },
   /* A **deck** is the one instrument that holds things, which is why it is a
@@ -1020,7 +1036,9 @@ const SECONDARY = [];
    the random thing, a telegram was a third kind of post nobody sent, and the
    Album project (`pj_album`) is the album. */
 const CUT_KINDS = ['magic','recipe','control','generator','tracker','anything','telegram','album'];
-const isCut = k => CUT_KINDS.includes(k);
+/* …and a type that only something else makes (`made`: the flat-pack, which
+   Claude packs) is offered nowhere either, the same way. */
+const isCut = k => CUT_KINDS.includes(k) || !!(KINDS[k] && KINDS[k].made);
 /* ---- shelved for now — decision 295 ------------------------------------
    Timothy, 2026-10-02: the benches not yet worked on as benches are hidden
    for the time being. A stock bench not in `BENCH_READY`, and a type that is
@@ -1202,6 +1220,8 @@ const WORKSHOP_SIZES = {
   spool:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   tstamp:{size:[1,1], range:[[1,2],[1,2]], phone:null},
   coin:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  tpen:{size:[1,1], range:[[1,2],[1,2]], phone:null},
+  flatpack:{size:[2,2], range:[[1,4],[1,4]], phone:null},
   deck:{size:[2,3], range:[[2,4],[3,6]], phone:null},
   counter:{size:[2,2], range:[[1,8],[1,4]], phone:null},
   outlink:{size:[2,2], range:[[1,4],[1,4]], phone:null},
@@ -2165,7 +2185,9 @@ const KNOBSIZES = {sm:'Small', md:'Medium', lg:'Large'};
 // was the compromise that read as neither
 const knobSizeOf = o => (o && o.knobsize) || 'md';
 // Answered is "there is something written in the box", not a flag of its own.
-const answered = o => !!String((o&&o.answer)||'').trim();
+/* A draft Claude wrote (`drafted`, decision 306) is not an answer yet: the
+   question still counts as one to answer until the draft is changed or kept. */
+const answered = o => !!String((o&&o.answer)||'').trim() && !o.drafted;
 
 /* An object's mark. A type carries one; an object may insist on another —
    the same object-then-type shape as its colour and its shape, so the icon on

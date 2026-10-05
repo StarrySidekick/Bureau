@@ -39,6 +39,7 @@ delivered as an object.
 | --- | --- | --- | --- |
 | **Paste** | Settings → *Paste an Object*, paste JSON, press the button | **Adds** to the desk. Every object goes through `create()`, so nothing can arrive that the app would not make itself. One undo takes the whole paste back. | **Everything you build.** |
 | **Backup** | Settings → import a backup file | **Replaces the whole desk.** | Never, for building. It erases what is there. |
+| **The fountain pen** | Press the pen (a Tool, or in a drawer front), say what to build | Claude in the app writes the same grammar, through a fixed list of 37 types, and the board arrives as a **flat-pack** to unfold (decision 306). | Building from the phone, without a chat. |
 
 A paste lands on the **desk**, at the first free spot big enough, on whichever
 device it is pasted on (the other device places it on its first render). It
@@ -114,6 +115,17 @@ instead of making a second:
 
 The project dashboards that ship with Bureau (`web/js/dashboards.js`,
 decision 304) are kept current this way.
+
+### 3b. A board in a parcel: `flatpack` and `pack`
+
+`{"type": "flatpack", "title": "The Lighthouse", "pack": { …a board… }}`
+puts down a parcel in brown paper and twine instead of the board itself
+(decision 306). `pack` is any spec this page describes, usually a `project`
+with `children`; pressing the parcel unfolds it there by the same rules
+(`arrange: "rows"` and `status` are added for you), the parcel goes in the
+bin, and one Undo folds it back. Use it when the board is a proposal he
+should open when he is ready rather than something that lands unasked. It is
+what the fountain pen makes.
 
 Anything else in a spec is **ignored**, including `rel`, `milestones`,
 `media` and every look field. Not an error: it simply does not arrive.
@@ -434,6 +446,7 @@ The `type` to write is the key in `code`. A name or a near spelling also works (
 | `tswipe` | Swipe switch | 1×1 |  | Flips every board between a smooth scroll and a rigid swipe, a tile at a time |
 | `spool` | Spool of thread | 1×1 |  | Press it, then two things, and they are tied with string |
 | `tstamp` | Rubber stamp | 1×1 |  | Press it, then press things: each is stamped with its word and today’s date |
+| `tpen` | Fountain pen | 1×1 |  | Press it and say what to build: Claude writes it, as a flat-pack to unfold or into the board it lies on |
 | `pipe` | Copper pipe | 1×1 |  | Tie it to a drawer with string: what goes in comes out there |
 | `coin` | Spiral coin | 1×1 |  | Toss it and it makes one of anything, somewhere on the board |
 

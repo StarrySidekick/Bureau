@@ -1764,7 +1764,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

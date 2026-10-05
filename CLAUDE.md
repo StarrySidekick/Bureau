@@ -495,7 +495,18 @@ a day only at the line's end, after on/by/due, or opening it for the words
 never a title; the toast says what was understood (`madeSaid()`). **Now**
 (`now`, `filter.next`, `isNow()`/`nextSteps()` in model.js): what is due, and
 each `status` project's next step in reading order; its lines go there
-(`goThere()` in views.js). AI is decision 306.
+(`goThere()` in views.js).
+**v3.02** (decision 306): **Claude in Bureau** (`web/js/ai.js`). It writes
+objects, never chat, in the paste grammar through an explicit list of types
+(`AI_TYPES`, `grammarPrompt()`), by raw `fetch` with structured outputs
+(`output_config.format`, flat schemas, every field required). The **fountain
+pen** (`tpen`, or `pen` in a drawer front) opens the Ask card (`openAsk()`); a
+board arrives as a **flat-pack** (`flatpack`, `pack`) that unfolds where it
+lies (`unfold()`: a backup, the paste's rules, the parcel to the bin, one
+move); the ring offers **Break Down**, **Draft Answer** (`drafted`, which
+`answered()` still counts as open) and **Fill In** once a key is set. The key
+is `aiCfg()`/`setAiCfg()` in persist.js under `bureau.ai`, **never in the
+desk**. Tests use `BUREAU.aiStub`, never the network.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -714,6 +725,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `sheet.js` | The three surfaces an object opens onto — reading, writing, and the picture — rendered into `#sheetHost`, **separately** from `render()`. |
 | `words.js` | How a written thing is set (decision 247): the typefaces, inks, papers and layouts, `wordOf()` through four layers, and `wordStyle()`, the one class-and-property answer the tile, the reader, the ruler and the writer all draw from. |
 | `paint.js` | **A custom look drawn by hand** (decision 271): `o.art`'s strokes, `artLayer()` for a tile, and the painter at `#paint`, which has its own listeners in the capture phase. |
+| `ai.js` | **Claude in Bureau** (decision 306): the request (`askClaude()`, structured outputs, no SDK), the system prompt built from the types (`grammarPrompt()`), the schemas, the Ask card, the flat-pack's packing and unfolding, and the ring's three verbs. `AI.stub` stands in for the network in tests. |
 | `setup.js` | The **setup card** (decision 229): the questions a new drawer, project, goal, counter and the rest ask on their first tap, `SETUPS` and `STEPS`, drawn into `#setup` beside `#app`. Every answer writes a field the editor already has. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |

@@ -29,6 +29,7 @@ import { render, settingsPanel, boardDimsField, shelfCountField, railToolsField 
 import { openingFor, zoomInto, CAMERA, growSheet } from './motion.js';
 import { plans, planTop, planSize } from './plans.js';
 import { save } from './persist.js';
+import { aiReady } from './ai.js';
 import { FONTS, INKS, PAPERS, WEIGHTS, CASES, TRACKS, ALIGNS, VALIGNS, LEADS, SHOWS, HALOS, LAYERS,
   FACEMD, RSIZES, MEASURES, PARAS, DROPS, DOCS, wordOf, wordFrom, wordStyle, isWritten, typeHasWords, ownWords } from './words.js';
 import { sheetOf } from './tiles.js';
@@ -2974,6 +2975,14 @@ function openCtx(x,y,id){
     if(!isContainer(o)) items.push(it(`become:${id}`, 'flag', 'Convert into Project'));
   }
   // Clip (decision 180).
+  /* Claude, once there is a key (decision 306): a task broken into its
+     steps, a question drafted, a drawer filled in. Without a key the ring
+     stays as it was; the pen and Settings → Claude are the way in. */
+  if(!many && aiReady() && !boardLocked()){
+    if(has(o,'check') && !o.done && !isContainer(o)) items.push(it(`aisteps:${id}`, 'sparkle', 'Break Down'));
+    if(has(o,'answer') && !answered(o)) items.push(it(`aianswer:${id}`, 'sparkle', 'Draft Answer'));
+    if(isContainer(o) && !has(o,'magic') && !isActive(o) && o.id!==BIN) items.push(it(`aifill:${id}`, 'sparkle', 'Fill In'));
+  }
   if(many) items.push(it(`group:${id}`, 'layers', `Group ${sel.length}`));
   if(!many && groupOf(o)) items.push(it(`ungroup:${id}`, 'cut', 'Ungroup'));
   items.push(it(`intodrawer:${id}`, 'folder', 'Add to New Drawer'));

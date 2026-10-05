@@ -761,6 +761,83 @@ out.aBackupGoesBack = await page.evaluate(async () => { const S = BUREAU.state, 
   const ok = await BUREAU.restoreBackup(day.key), list2 = await BUREAU.backupList();
   return ok && BUREAU.state.objects.length === day.n && list2.some(b => /^Before restoring/.test(b.label)) || JSON.stringify({ ok, n0, day, n: BUREAU.state.objects.length }); });
 
+// ---- Claude in Bureau (decision 306) ----------------------------------------
+// With a stand-in for the network: the pen in the desk's front opens the Ask
+// card; Build puts a parcel beside it at once that says it is packing, and
+// fills it when the answer comes; a press unfolds it into a board where it
+// lay (the parcel in the bin, one Undo to fold it back); a task breaks into
+// its steps, a question gets a draft that still counts as open, a drawer
+// fills in under what it has; and the ring offers all three.
+await page.evaluate(() => {
+  const S = BUREAU.state; S.view = 'desk'; S.drawerId = null;
+  window.SENT = [];
+  const reply = obj => new Promise(r => setTimeout(() => r({ stop_reason: 'end_turn', content: [{ type: 'text', text: JSON.stringify(obj) }] }), 400));
+  const leaf = (type, title, more) => Object.assign({ type, title, body: '', due: '', w: 0, h: 0 }, more || {});
+  BUREAU.aiStub = body => { SENT.push(body); const req = body.output_config.format.schema.required;
+    if (req.includes('about')) return reply({ title: 'The Lighthouse', about: 'A short film about a keeper who stops answering the radio.',
+      said: 'A board for the film.', children: [
+        Object.assign(leaf('contents', 'Contents'), { children: [] }),
+        Object.assign(leaf('checklist', 'Next', { w: 4, h: 4 }), { children: [leaf('task', 'Write the logline'), leaf('task', 'Scout the lighthouse'), leaf('task', 'Cast the keeper')] }),
+        Object.assign(leaf('label', 'The story', { w: 8, h: 1 }), { children: [] }),
+        Object.assign(leaf('list', 'Open questions', { w: 4, h: 5 }), { children: [leaf('question', 'Black and white or color?')] })] });
+    if (req.includes('steps')) return reply({ steps: ['Pick the date', 'Book the van', 'Drive out at dawn'], said: 'Three steps.' });
+    if (req.includes('answer')) return reply({ answer: 'Black and white: the lighthouse is the only light in the film.' });
+    return reply({ said: 'The shoot, added.', children: [Object.assign(leaf('label', 'The shoot', { w: 8, h: 1 }), { children: [] }),
+      Object.assign(leaf('checklist', 'Kit', { w: 4, h: 4 }), { children: [leaf('task', 'Tripod')] })] }); };
+  S.deskCfg.rail = { left: ['glass', 'block'], right: ['lock', 'pen'] };
+  BUREAU.render();
+});
+await nap(500);
+await page.locator('#app .railobj.ro-pen').first().tap(); await nap(600);
+const askCard = await page.evaluate(() => ({ panel: (document.querySelector('#panel.open') || {}).dataset?.panel, box: !!document.querySelector('#askbox') }));
+await page.locator('#askbox').fill('A short film about a lighthouse keeper');
+await page.locator('#panel [data-act="askgo"]').first().tap(); await nap(120);
+const packing = await page.evaluate(() => { const p = BUREAU.state.objects.find(o => o.kind === 'flatpack' && o.parent === 'root');
+  const el = p && document.querySelector(`#app [data-row="${p.id}"]`), sc = document.querySelector('#app .scroll').getBoundingClientRect();
+  const r = el && el.getBoundingClientRect();
+  return { id: p && p.id, packing: !!el && el.classList.contains('packing'), onScreen: !!r && r.top >= sc.top && r.bottom <= sc.bottom && r.left >= sc.left - 1 && r.right <= sc.right + 1 }; });
+await shot('26-packing');
+await nap(900);
+const packed = await page.evaluate(id => { const p = BUREAU.state.objects.find(o => o.id === id), el = document.querySelector(`#app [data-row="${id}"]`);
+  return { title: p.title, kids: (p.pack.children || []).length, tag: el && el.querySelector('.parcellabel')?.textContent.trim(), packing: !!el && el.classList.contains('packing') }; }, packing.id);
+await shot('26b-packed');
+out.thePenAsksAndAParcelArrives = askCard.panel === 'ask' && askCard.box && packing.packing && packing.onScreen
+  && packed.title === 'The Lighthouse' && /things/.test(packed.tag || '') && !packed.packing || JSON.stringify({ askCard, packing, packed });
+await page.locator(`#app [data-row="${packing.id}"]`).tap(); await nap(700);
+const unfolded = await page.evaluate(id => { const S = BUREAU.state, p = S.objects.find(o => o.id === id),
+    b = S.objects.find(o => o.title === 'The Lighthouse' && o.kind === 'project'), el = b && document.querySelector(`#app [data-drawer="${b.id}"]`);
+  const kids = b ? S.objects.filter(o => o.parent === b.id) : [], at = o => o.phone || {};
+  const order = kids.filter(o => o.kind !== 'notepad').sort((x, y) => at(x).y - at(y).y || at(x).x - at(y).x).map(o => o.title);
+  return { inBin: p.parent === '__bin', board: !!b, shown: !!el, undo: S.undo[S.undo.length - 1].label, order, open: b && b.status }; }, packing.id);
+await shot('26c-unfolded');
+const folded = await page.evaluate(id => { BUREAU.undo(); const S = BUREAU.state;
+  const r = { back: (S.objects.find(o => o.id === id) || {}).parent === 'root', gone: !S.objects.some(o => o.title === 'The Lighthouse' && o.kind === 'project') };
+  BUREAU.unfold(id); return r; }, packing.id);
+out.itUnfoldsWhereItLay = unfolded.inBin && unfolded.board && unfolded.shown && unfolded.undo === 'Unfolded' && unfolded.open === 'open'
+  && unfolded.order.indexOf('About') > unfolded.order.indexOf('Next') && unfolded.order.indexOf('About') < unfolded.order.indexOf('The story')
+  && folded.back && folded.gone || JSON.stringify({ unfolded, folded });
+const verbs = await page.evaluate(async () => { const S = BUREAU.state, b = S.objects.find(o => o.title === 'The Lighthouse' && o.kind === 'project');
+  S.view = 'drawer'; S.drawerId = b.id; BUREAU.render();
+  const t = BUREAU.create('task', { parent: b.id, title: 'Shoot the storm scene' }); t.due = null; BUREAU.render();
+  const q = S.objects.find(o => o.title === 'Black and white or color?');
+  const ring = id => { BUREAU.ctx(200, 300, id); const r = [...document.querySelectorAll('[data-c]')].map(n => n.dataset.c.split(':')[0]);
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); return r; };
+  const rings = { task: ring(t.id), question: ring(q.id), board: ring(b.id) };
+  const p1 = BUREAU.askSteps(t.id); const glowing = BUREAU.aiAsking.includes(t.id); await p1;
+  await BUREAU.askAnswer(q.id);
+  const before = S.objects.filter(o => o.parent === b.id).length; await BUREAU.askFill(b.id, 'the shoot');
+  const kidsOf = id => S.objects.filter(o => o.parent === id);
+  return { rings, glowing, steps: t.kind === 'checklist' ? kidsOf(t.id).map(o => o.title) : t.kind, stepsUndo: S.undo.length,
+    q: { a: q.answer, drafted: q.drafted, open: BUREAU.state.objects.find(o => o.id === q.id) && !(q.answer && !q.drafted) },
+    added: S.objects.filter(o => o.parent === b.id).length - before,
+    sent: SENT.map(x => ({ model: x.model, effort: x.output_config.effort, cached: !!x.system[0].cache_control, fb: x.fallbacks })) }; });
+await nap(500);
+await shot('26d-filled');
+out.claudeWritesObjectsInPlace = verbs.rings.task.includes('aisteps') && verbs.rings.question.includes('aianswer') && verbs.rings.board.includes('aifill')
+  && verbs.glowing && Array.isArray(verbs.steps) && verbs.steps.length === 3 && verbs.q.drafted === true && /Black and white/.test(verbs.q.a)
+  && verbs.added === 2 && verbs.sent.every(x => x.model === 'claude-opus-5-5' && x.cached && x.fb === 'default') || JSON.stringify(verbs);
+await page.evaluate(() => { BUREAU.aiStub = null; BUREAU.state.deskCfg.rail = null; });
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

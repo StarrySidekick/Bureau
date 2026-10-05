@@ -13040,3 +13040,88 @@ Tested in WebKit first (`test/safari.mjs` block 25: lines typed into a real
 notepad are dated and filed, Now's check brings the next step and its words
 go there with the list on screen, a backup goes back; shots 25, 25b). Smoke:
 `helpsOk` (the reading cases, Now before and after a check, a backup).
+
+## 306. Claude in Bureau: the fountain pen, the flat-pack, and three verbs (v3.02, 2026-10-05)
+
+Timothy, 2026-10-05: *"physical objects in digital space is still a goal but
+let's make them more adaptive and magical, seamless, integrated with your
+goals and tasks, paired with ai possibilities to scope and build quickly but
+rooted in that physicality that gives one personal structure and clarity."*
+
+So Claude is in the app, and **it never writes a chat. It writes objects**,
+in the grammar a paste already uses (docs/GRAMMAR.md), and they arrive as
+things on the board, where you asked, as one move you can undo. `web/js/ai.js`
+holds all of it.
+
+**The fountain pen** (`tpen`, a Tool, also `pen` in a drawer front): press
+it and the **Ask card** opens (`openAsk()`), one box to say what you want.
+On the desk the card builds a board; inside a container it offers **Fill in**
+that board first and a new board second. Return sends.
+
+**A board arrives as a flat-pack** (`flatpack`, USES.md §2): a parcel in
+kraft paper and twine with a tag, put down beside the pen *at once*, saying
+"Packing" and glowing while Claude writes (decision 38: nothing waits). When
+the answer comes the parcel carries it (`pack`, a paste spec) and its tag
+says how many things are inside. **Press it and it unfolds where it lay**
+(`unfold()`): a backup first (`backupBefore`, decision 305), the board laid by
+the paste's own rules (`arrange:'rows'`, `status`), the parcel into the bin,
+one move. A parcel is a decision you can put off: unfold it now, later, or
+throw it away unopened. A failed ask keeps its words (`ask`) and its error,
+and a press asks again. A paste can carry one (`"type": "flatpack", "pack":
+{...}`); no picker offers it (`made` on the type, read by `isCut()`).
+
+**Three verbs on the ring**, shown only once there is a key: **Break Down**
+on a task (it becomes a checklist in place, `becomeKind`, holding three to
+seven steps first on top, all one move), **Draft Answer** on an unanswered
+question (written into its answer and marked `drafted`: italic, *"Claude's
+draft. Change it, or keep it as it is"* under it in the reader, and **still
+counted as open** by `answered()` until a word is changed or Keep is
+pressed, because a draft is not a decision), and **Fill In** on a container
+(the Ask card; what comes back is packed in reading order below the last
+thing on the board, `{pack:{floor}}`). Anything being worked on glows
+(`AI.asking`, `.asking`), and an answer that comes back for a thing undone or
+thrown away in the meantime is dropped.
+
+**The request.** Raw `fetch` to the Messages API (no SDK, because Bureau has
+no dependencies and no build step), with the browser header the SDK's own
+`dangerouslyAllowBrowser` sends. JSON comes back through **structured
+outputs** (`output_config.format`, a JSON schema): Opus 5.5 and Sonnet 5.5
+refuse a forced tool choice, and structured outputs is the same guarantee on
+every model offered. The schemas are flat (a board's things may hold things
+one level down, through `$defs`, never recursively), every object closed and
+every field required, with `""` and `0` meaning none, which keeps them
+inside the limits on optional and union fields. Opus 5.5 by default
+(Settings → Claude offers Sonnet 5.5 and Haiku 4.5), `effort` set per verb
+(low for steps, medium otherwise; Haiku takes none), refusal fallbacks on for
+the two models that have them, `max_tokens` 16000, a three-minute timeout,
+and `stop_reason` read before the text (refusal, too long). The system prompt
+(`grammarPrompt()`) is built from the running app's types, **an explicit list
+of 37** that are whole from a title, a body and what they hold (no tools, no
+media, nothing that needs a rule), plus how a board reads; it is marked for
+the prompt cache, and today's date and the ask go in the message so the cache
+holds. What is said about a board (`boardSaid()`) is its headings, things,
+pages and answers in reading order, capped, never the whole desk.
+
+**The key** is the person's own Anthropic API key, kept under `bureau.ai` in
+localStorage by `aiCfg()`/`setAiCfg()` in persist.js, **never in the desk**:
+not in a save, a backup, an export or a paste. Settings → Claude keeps it,
+shows its last four characters, tries it (the models list, which costs
+nothing) and takes it away, and says in plain words what is sent and when:
+nothing until a press that asks, then only what that ask is about. Note the
+origin is shared with Timothy's other GitHub Pages apps, so any of them could
+read it; that is acceptable for a personal key on a personal site and is
+said here so it is a decision rather than an accident.
+
+**A bug found on the way**: `hopIntoCollector()` handed the *live* tile to
+`fileTo()`, whose `picture()` strips and moves the element it is given, so
+anything made on a board with a sorting drawer that collects it flew into
+the drawer and vanished from the board until the next render. With Now on the
+desk (305) that was every task due today made there. It hands a clone now.
+
+Tested in WebKit first (`test/safari.mjs` block 26, against a stand-in for
+the network, `BUREAU.aiStub`: the pen in the front, the parcel packing on
+screen then packed, unfolding where it lay, Undo folding it back, the three
+verbs, the ring, and every request's model, cache mark and fallbacks; shots
+26 to 26d). Smoke: `claudeOk` (the key in no save, state or backup; the four
+schemas closed, required and not recursive; a list's order; the flat-pack
+offered nowhere; a pasted parcel unfolding).

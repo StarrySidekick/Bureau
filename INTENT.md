@@ -379,6 +379,24 @@ room. Decision 302 (v2.98) built the gear and the skill and scoped the rest
 as **`docs/NAVIGATION.md`**, whose §9 asks him six questions. Read it before
 building any of the navigation.
 
+### Added 2026-10-05 — adaptive, and Claude in it
+
+After the project dashboards (decisions 303, 304), in his words: *"take a
+look again and let's further refine usability, keep pushing, even if
+additions or changes are a pivot for bureau. physical objects in digital
+space is still a goal but let's make them more adaptive and magical,
+seamless, integrated with your goals and tasks, paired with ai possibilities
+to scope and build quickly but rooted in that physicality that gives one
+personal structure and clarity."*
+
+Read as: the objects are still the point, but they should do more of the work
+(Now, a line that is read, backups: decision 305), and AI is welcome **as
+long as what it makes is objects on the board**, never a chat beside it.
+Decision 306 is the first of that: the fountain pen, the flat-pack, and Break
+Down, Draft Answer and Fill In on the ring, with his own key. The obvious
+next steps along the same line are Claude filling a box drawn with the Magic
+Selector, and a board that can be asked what it is missing on its own.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

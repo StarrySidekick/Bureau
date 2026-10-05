@@ -32,6 +32,7 @@ import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn, tileArrives } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
+import { openAsk, askGo, parcelTap, askSteps, askAnswer, keepDraft, tryKey, keepKey, forgetKey, chooseModel } from './ai.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards, backupList, restoreBackup } from './persist.js';
 
 /* A sorting drawer, made with its rule already in it. Both ways into
@@ -1261,6 +1262,13 @@ function act(name, el){
     case 'newkind': modalNewKind(null); break;
     case 'install': if(install.deferred){ install.deferred.prompt(); install.deferred=null; } break;
     case 'pastego': { const b=$('#pastebox'); pasteObjects(b&&b.value, ROOT); if(b) b.value=''; break; }
+    /* Claude (decision 306): the pen in a drawer front, the Ask card's two
+       buttons, and Settings → Claude. */
+    case 'askpen': openAsk(el.dataset.id || ROOT); break;
+    case 'askgo': askGo(el.dataset.verb, el.dataset.id || ROOT, el.dataset.pen); break;
+    case 'aikeep': keepKey(); break;
+    case 'aiforget': forgetKey(); break;
+    case 'aitest': tryKey(); break;
     case 'pasteschema': {
       openPanel({key:'pasteschema', wide:true, title:'What the paste box accepts',
         sub:'An array of objects — only <b>title</b> really matters',
@@ -1313,6 +1321,7 @@ function toolPress(tool, cid, el){
   if(tool==='stamp') return act('stamp', {dataset:{id:board, row:el && el.dataset ? el.dataset.row : undefined}});
   if(tool==='coin')  return coinToss(board, el);
   if(tool==='swipe') return act('swipetoggle', as);
+  if(tool==='pen') return openAsk(board, el && el.dataset ? el.dataset.row : null);
 }
 /* **The spiral coin** (decision 220): one of anything, somewhere on this
    board — a kind from the same bag the spiral button and a spawner set to
@@ -1649,6 +1658,10 @@ function wire(){
          takes the box and the seed with it, which is what makes the answer
          look like the thing you chose. See becomeKind(). */
       else if(cmd==='become') becomePanel(id, 'project');
+      // Claude on the ring (decision 306)
+      else if(cmd==='aisteps') askSteps(id);
+      else if(cmd==='aianswer') askAnswer(id);
+      else if(cmd==='aifill') openAsk(id);
       /* The Void Drawer, without the gesture. The drag is the way you reach
          for it — the rail on a phone, the Home Knob on a Mac — and the menu is
          the one way in that is the same on both. */
@@ -2088,6 +2101,10 @@ function wire(){
     if(os){ const [oid,name]=os.dataset.osec.split(':'); objectPanel(oid, name); return; }
     const ss=t.closest('[data-ssec]');
     if(ss){ settingsPanel(ss.dataset.ssec); return; }
+    const am=t.closest('[data-aimodel]');
+    if(am){ chooseModel(am.dataset.aimodel); return; }
+    const kd=t.closest('[data-keepdraft]');
+    if(kd){ keepDraft(kd.dataset.keepdraft); return; }
 
     const mv=t.closest('[data-moveto]');
     if(mv){ const [oid,did]=mv.dataset.moveto.split(':');
@@ -2715,6 +2732,9 @@ function wire(){
     if(e.target.dataset.answer!=null){
       const o=byId(e.target.dataset.answer); if(!o) return;
       o.answer=e.target.value;
+      // a word changed in Claude's draft makes it yours (decision 306)
+      if(o.drafted){ delete o.drafted;
+        const d=e.target.closest('.drafted'); if(d) d.classList.remove('drafted'); }
       const tile=e.target.closest('.drawer');
       if(tile){ const on=!!o.answer.trim();
         tile.classList.toggle('answered', on); tile.classList.toggle('unanswered', !on); }
@@ -2776,6 +2796,9 @@ function wire(){
     // Return answers the setup card's one-line question; a list takes ⌘Return
     if(e.target.id==='setupin' && e.key==='Enter' && (e.target.tagName==='INPUT' || e.metaKey || e.ctrlKey)){
       e.preventDefault(); setupNext(); return; }
+    // Return sends the Ask card by its first button; Shift-Return is a new line
+    if(e.target.id==='askbox' && e.key==='Enter' && !e.shiftKey){ e.preventDefault();
+      const b=document.querySelector('#panel [data-act="askgo"].solid'); if(b) act('askgo', b); return; }
     if(e.target.dataset.rename && e.key==='Enter'){ e.preventDefault(); renameTo(e.target.dataset.rename); return; }
     if(e.target.dataset.rename && e.key==='Escape'){ closeCtx(); return; }
     if(e.target.id==='newtagin' && e.key==='Enter'){

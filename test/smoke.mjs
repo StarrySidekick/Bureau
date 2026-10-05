@@ -723,6 +723,46 @@ const CHROME = process.env.BUREAU_CHROME;
      a day is plainly meant (decision 305); Now collects what is due and each
      reporting project's next step, and the step after it once one is checked;
      a backup kept and gone back to brings the desk back. */
+  /* Claude in Bureau (decision 306), the parts that are not about a finger:
+     the key is never in the desk (a save or a backup), the four schemas keep
+     to the structured-output limits (every object closed, every field
+     required, nothing recursive), a list's lines arrive first on top, a
+     flat-pack is offered by no picker, and a paste can carry one that
+     unfolds into what it packs. */
+  const claudeOk = await page.evaluate(async () => {
+    const S = BUREAU.state, bad = [];
+    BUREAU.setAiCfg({ key: 'sk-ant-smoke-0000', model: 'claude-sonnet-5-5' }); BUREAU.save();
+    if ((localStorage.getItem('bureau.v1') || '').includes('sk-ant-smoke')) bad.push('key in the desk');
+    await BUREAU.backupBefore('the key test');
+    const kept = (await BUREAU.backupList()).find(b => b.label === 'Before the key test');
+    if (!kept) bad.push('no backup');
+    if (JSON.stringify(S).includes('sk-ant-smoke')) bad.push('key in state');
+    if (!/sk-ant-smoke/.test(localStorage.getItem('bureau.ai') || '')) bad.push('key not kept');
+    BUREAU.setAiCfg(null);
+    if (localStorage.getItem('bureau.ai')) bad.push('key not taken away');
+    const walk = (x, path, defs) => { if (!x || typeof x !== 'object') return;
+      if (x.$ref) { if (path.split('/').length > 12) bad.push('recursive at ' + path); return; }
+      if (x.type === 'object') { const ks = Object.keys(x.properties || {});
+        if (x.additionalProperties !== false) bad.push('open object at ' + path);
+        if (ks.some(k => !(x.required || []).includes(k))) bad.push('optional field at ' + path); }
+      Object.entries(x).forEach(([k, v]) => { if (v && typeof v === 'object') walk(v, path + '/' + k); }); };
+    const sc = BUREAU.aiSchemas(); Object.entries(sc).forEach(([k, v]) => walk(v, k));
+    const refs = JSON.stringify(sc.items.$defs.leaf).includes('$ref');
+    if (refs) bad.push('leaf refers to itself');
+    const sp = BUREAU.toSpec({ type: 'list', title: 'L', body: '', due: '', w: 0, h: 0, children: [
+      { type: 'note', title: 'First', body: '', due: '', w: 0, h: 0 }, { type: 'note', title: 'Second', body: '', due: 'soon', w: 0, h: 0 }] });
+    if (sp.children[0].title !== 'Second' || sp.children[1].due !== null) bad.push('toSpec ' + JSON.stringify(sp));
+    if (!BUREAU.isCut || BUREAU.isCut('flatpack') !== true) bad.push('flat-pack offered');
+    if (!/checklist" called "Next"/.test(BUREAU.grammarPrompt()) || /tglass|"bin"/.test(BUREAU.grammarPrompt())) bad.push('prompt');
+    BUREAU.paste(JSON.stringify({ type: 'flatpack', title: 'A parcel', pack: { type: 'project', title: 'Packed inside',
+      children: [{ type: 'note', title: 'Hello from the parcel' }] } }), 'root');
+    const parcel = S.objects.find(o => o.kind === 'flatpack' && o.title === 'A parcel');
+    if (!parcel || !parcel.pack) bad.push('no parcel'); else BUREAU.unfold(parcel.id);
+    const made = S.objects.find(o => o.title === 'Packed inside');
+    if (!made || !S.objects.some(o => o.parent === made.id && o.title === 'Hello from the parcel')) bad.push('did not unfold');
+    if (parcel && parcel.parent !== '__bin') bad.push('parcel not in the bin');
+    return bad.length ? bad : true;
+  });
   const helpsOk = await page.evaluate(async () => {
     const S = BUREAU.state, iso = n => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+n);
       return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
@@ -11657,7 +11697,7 @@ const CHROME = process.env.BUREAU_CHROME;
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
-    pasteOk, pasteWhere, sectionsOk, helpsOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
+    pasteOk, pasteWhere, sectionsOk, helpsOk, claudeOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,

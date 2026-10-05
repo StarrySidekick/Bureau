@@ -1148,11 +1148,16 @@ frame the settle began on. The *state* change is never deferred. See decision 59
 
 ## 12. Storage
 
-Local-first. No account, no backend, nothing transmitted.
+Local-first. No account, no backend, and nothing transmitted, except an ask
+the person makes of Claude with their own key, which sends only what that ask
+is about (decision 306).
 
 - **`localStorage['bureau.v1']`** holds the whole desk: `{v, savedAt,
   desks, pins, inbox, look, kinds, deskCfg, objects}`. Writes are debounced 250ms. All of it
   goes through `persist.js` — no other module touches localStorage.
+- **`localStorage['bureau.ai']`** holds the person's Anthropic key and chosen
+  model (`aiCfg()`/`setAiCfg()`), apart from the desk on purpose: it is in no
+  save, backup, export or paste. Decision 306.
 - **IndexedDB** (`bureau-assets`) holds media bytes — a picture as a data URL
   after downscaling, a sound or a video as the **Blob itself**, because base64
   is a third bigger and a third bigger on a phone recording is tens of megabytes
@@ -1184,8 +1189,11 @@ dragging one tile moved a different object.
 
 No backend, no account, no sync yet. No build step, bundler, framework, or
 dependency. No collaboration, plugins, or web clipper. No formula language. No
-block editor — the body is markdown in a textarea. No AI features in-app; the
-paste bridge covers generation without a key or a bill. No filter bar, no
+block editor — the body is markdown in a textarea. **AI writes objects, never
+chat** (decision 306, which takes back "no AI features in-app"): the fountain
+pen asks Claude with the person's own key, a board arrives as a flat-pack to
+unfold, and the ring offers Break Down, Draft Answer and Fill In. The paste
+bridge still covers generation without a key or a bill. No filter bar, no
 sidebar, no tabs, no modals, no arrange mode.
 
 Everything on the original requirements list is built except **sync between
@@ -1207,6 +1215,7 @@ or shown on a surface and drawn as a face on the board. See decision 71.
 | A board that has let go — the rigid-body solver | `gravity.js` |
 | Create, complete, delete, undo, repeat, pin, tag-drawer | `mutations.js` |
 | Storage, migrations, assets, export/import, paste | `persist.js` |
+| Claude: the request, the prompt, the schemas, the flat-pack, the verbs | `ai.js` |
 | The ten plans the desk ships with | `stockplans.js` |
 | Styles, the sixteen colour slots, tokens | `look.js` |
 | The one delegated listener set | `wire.js` |

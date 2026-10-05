@@ -587,7 +587,10 @@ function hopIntoCollector(id){
     .find(cid => { const c = byId(cid);
       return c && has(c,'magic') && cid !== (o.parent||ROOT)
           && childrenOf(c).some(x => x.id === id); });
-  if(dest) fileTo(src, from, dest);
+  /* A copy, never the tile: `fileTo()` flies the element it is handed, and
+     handed the live one it took the thing off the board until the next render
+     (a drop hands it the dragged tile, which a render has already detached). */
+  if(dest) fileTo(src.cloneNode(true), from, dest);
 }
 
 /* ---- a movement you drive with your fingers ---------------------------
