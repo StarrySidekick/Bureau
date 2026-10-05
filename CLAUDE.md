@@ -511,6 +511,13 @@ desk**. Tests use `BUREAU.aiStub`, never the network.
 **Claude…** on the shape ring (`ringask`); what it writes lands inside the box
 (`spotIn()`), the rest below. On the desk Claude is told only the names of
 what lies there (`boardSaid()`).
+**v3.04** (decision 308): **paper on paper.** A drop that would cover only
+things that lay (`lays()`, not containers, pipes or floats) lays on top
+instead of being refused (`boxOver()`, `z`, `--z`); looking for a place still
+wants clear board. A stack is computed, not stored (`stackOf()`,
+`pilesOn()`); the ring squares it into a pile (a tap drops it down as slips,
+`openPile()`), fans it into a cascade (a contents of its pages) or spreads it
+(`squareStack()`/`fanStack()`/`spreadStack()` in mutations.js).
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -847,6 +854,10 @@ attribute registry is `ATTRS`; the presets are `BUILTIN_KINDS` merged with
   array order positions nothing. There is no `grid-auto-flow` — an empty cell
   stays empty. Every move and resize goes through `boxOk()`, which refuses
   anything that would overlap or leave the columns; see `web/js/grid.js`.
+  **Except a drop of paper on paper** (decision 308): `boxOver()` lets a thing
+  that lays be put down over other things that lay, at a height `z`. Every
+  search for a place still asks `boxOk()`, so nothing lands under paper
+  unasked, and a container still never overlaps anything.
 - **Cells are square and the row height is measured, never assumed.** Columns
   are fluid, so `sizeGrid()` reads the real column width after layout and caches
   it in `COLW`, then makes `CELL` match. Don't hardcode a row height — `GRID`

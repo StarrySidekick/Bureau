@@ -709,6 +709,14 @@ The **project dashboards** (`web/js/dashboards.js`) are boards written this
 way and shipped with the app; see decision 304 and GRAMMAR §3a for how they
 are kept current without touching what was written on them.
 
+
+**Paper on paper** (decision 308). A drop that would cover only things that
+*lay* (anything but a container, a pipe or a floating thing) lays on top
+instead of being refused, at a height `z`. A **stack** is whatever overlaps
+whatever (`stackOf()`), never stored; the hold ring squares it into a
+**pile** (a tap drops it down as slips), fans it into a **cascade** whose
+names are a contents page, or spreads it back onto clear board. Searches for
+a place (`freeSpot()`) still want clear board.
 ## 9. Surfaces
 
 There are exactly **two views**: the desk, and a drawer. Everything else is one

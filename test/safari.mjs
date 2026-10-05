@@ -859,6 +859,66 @@ await shot('27b-room');
 out.aDrawnBoxIsFilledByClaude = room.ask && roomCard.verb === 'room' && filled.n === 2 && filled.inside || JSON.stringify({ room, roomCard, filled });
 await page.evaluate(() => { BUREAU.aiStub = null; BUREAU.state.deskCfg.rail = null; });
 
+// ---- paper on paper (decision 308) ------------------------------------------
+// A note carried over another is laid on top rather than refused, and is what
+// a finger finds there; Square Up piles a stack at one corner, a tap on the
+// pile drops its sheets down as slips, a slip opens its sheet; Fan Out lays
+// them a row apart with every name showing and pressable; Spread Out gives
+// each clear board again.
+const pp = await page.evaluate(() => { const S = BUREAU.state; S.look.locked = false; S.sel = [];
+  const d = BUREAU.create('drawer', { parent: 'root', title: 'Papers', noSeed: true });
+  const mk = (t, box, body) => { const o = BUREAU.create('note', { parent: d.id, title: t }); o.body = body; o.phone = box; return o.id; };
+  const ids = { d: d.id, a: mk('The pitch', { x: 1, y: 1, w: 4, h: 4 }, 'One page, what it is.'),
+    b: mk('Budget', { x: 1, y: 7, w: 4, h: 4 }, 'Under five thousand.'), c: mk('Schedule', { x: 5, y: 7, w: 3, h: 3 }, 'Three weekends in March.') };
+  S.view = 'drawer'; S.drawerId = d.id; BUREAU.render(); return ids; });
+await nap(500);
+const ppAt = id => page.evaluate(id => { const r = document.querySelector(`#app .grid .drawer[data-row="${id}"]`).getBoundingClientRect();
+  return { x: r.x + r.width / 2, y: r.y + 12, cell: parseFloat(document.querySelector('#drawergrid').style.getPropertyValue('--rowh')) || r.width / 4 }; }, id);
+const ppDrag = async (id, dx, dy) => { const st = await ppAt(id);
+  await page.mouse.move(st.x, st.y); await page.mouse.down(); await nap(350);
+  await page.mouse.move(st.x + dx * st.cell, st.y + dy * st.cell, { steps: 10 }); await nap(120);
+  const lifts = await page.evaluate(id => document.querySelector(`#app .grid .drawer[data-row="${id}"]`).classList.contains('laysover'), id);
+  await page.mouse.up(); await nap(400); return lifts; };
+const lifts = await ppDrag(pp.b, 0, -5);
+await ppDrag(pp.c, -3, -5);
+const laid = await page.evaluate(i => { const S = BUREAU.state, f = id => S.objects.find(o => o.id === id);
+  const ra = document.querySelector(`[data-row="${i.a}"]`).getBoundingClientRect();
+  const top = document.elementFromPoint(ra.x + 20, ra.bottom - 10)?.closest('[data-row]')?.dataset.row;
+  return { bz: f(i.b).z, cz: f(i.c).z, overlaps: f(i.b).phone.y < 5, topIsB: top === i.b, undo: S.undo[S.undo.length - 1].steps.some(x => x.set && x.set.k === 'z') }; }, pp);
+await shot('28-paper');
+out.paperLiesOnPaper = lifts && laid.bz === 1 && laid.cz === 2 && laid.overlaps && laid.topIsB && laid.undo || JSON.stringify({ lifts, laid });
+const piled = await page.evaluate(i => { BUREAU.ctx(200, 300, i.a); const ring = [...document.querySelectorAll('[data-c]')].map(n => n.dataset.c.split(':')[0]);
+  document.querySelector('[data-c^="square:"]').click(); const S = BUREAU.state, f = id => S.objects.find(o => o.id === id);
+  return { ring: ['square', 'fan', 'spread'].every(k => ring.includes(k)), corner: [i.a, i.b, i.c].every(id => f(id).phone.x === 1 && f(id).phone.y === 1),
+    top: document.querySelector(`[data-row="${i.a}"]`).classList.contains('piletop'), grouped: [i.a, i.b, i.c].every(id => f(id).grp && f(id).grp === f(i.a).grp) }; }, pp);
+await nap(400);
+await page.locator(`#app .grid .drawer[data-row="${pp.a}"]`).tap(); await nap(600);
+const slips = await page.evaluate(() => ({ open: document.querySelector('#ctx.open.pilemenu') != null, names: [...document.querySelectorAll('#ctx .pilestrip b')].map(n => n.textContent) }));
+await shot('28b-pile');
+await page.locator('#ctx .pilestrip').nth(2).tap(); await nap(800);
+const slipOpens = await page.evaluate(() => { const S = BUREAU.state; return (S.objects.find(o => o.id === S.readId) || {}).title; });
+await page.evaluate(() => { document.querySelector('#sheetHost [data-sheet="close"]')?.click(); }); await nap(500);
+out.aPileDropsDownAsSlips = piled.ring && piled.corner && piled.top && piled.grouped && slips.open
+  && slips.names.join('|') === 'The pitch|Schedule|Budget' && slipOpens === 'Budget' || JSON.stringify({ piled, slips, slipOpens });
+await page.evaluate(i => { BUREAU.state.readId = null; BUREAU.render(); BUREAU.ctx(200, 300, i.a); document.querySelector('[data-c^="fan:"]').click(); }, pp); await nap(500);
+const fannedOut = await page.evaluate(i => { const S = BUREAU.state, f = id => S.objects.find(o => o.id === id);
+  const col = [i.a, i.b, i.c].map(id => f(id)).sort((x, y) => x.phone.y - y.phone.y);
+  const tap = col[1], r = document.querySelector(`[data-row="${tap.id}"]`).getBoundingClientRect();
+  return { ys: col.map(o => o.phone.y), xs: col.map(o => o.phone.x), names: col.every(o => { const el = document.querySelector(`[data-row="${o.id}"]`), q = el.getBoundingClientRect();
+    return document.elementFromPoint(q.x + 30, q.y + 8)?.closest('[data-row]') === el; }), mid: tap.title, at: { x: r.x + 40, y: r.y + 10 } }; }, pp);
+await shot('28c-fanned');
+await page.touchscreen.tap(fannedOut.at.x, fannedOut.at.y); await nap(800);
+const midOpens = await page.evaluate(() => { const S = BUREAU.state; return (S.objects.find(o => o.id === S.readId) || {}).title; });
+await page.evaluate(() => { document.querySelector('#sheetHost [data-sheet="close"]')?.click(); }); await nap(400);
+out.aFanIsAContentsOfItsPages = fannedOut.ys.join() === '1,2,3' && fannedOut.xs.every(x => x === 1) && fannedOut.names && midOpens === fannedOut.mid
+  || JSON.stringify({ fannedOut, midOpens });
+const spreadOut = await page.evaluate(i => { const S = BUREAU.state; S.readId = null; BUREAU.render(); BUREAU.ctx(200, 300, i.a);
+  document.querySelector('[data-c^="spread:"]').click(); const f = id => S.objects.find(o => o.id === id);
+  const bx = [i.a, i.b, i.c].map(id => f(id).phone), ov = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  return { clear: !ov(bx[0], bx[1]) && !ov(bx[0], bx[2]) && !ov(bx[1], bx[2]), loose: [i.a, i.b, i.c].every(id => !f(id).z && !f(id).grp) }; }, pp);
+out.spreadOutGivesEachItsPlace = spreadOut.clear && spreadOut.loose || JSON.stringify(spreadOut);
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

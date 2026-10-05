@@ -2,7 +2,7 @@ import { $, $$, clamp, D, ROOT, BIN, esc } from './util.js';
 import { blockHold, frontHold, tileAway, tileHere } from './wire.js';
 import { S, byId, dev, has, isContainer, isAncestor, childrenOf, container, gatherKind, spanOf,
   sortOf, boardLocked, heldCount, homeFor, attrsOf, travelWith, isMedia, isInbox, isGone, pipesOf, pipeTo } from './model.js';
-import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom, formOf, tileRectOf, tilesOf, reachable } from './grid.js';
+import { CELL, gridOf, drawCols, drawRows, cellW, lay, boxOk, overlaps, hasBox, lays, boxOver, sizeOfKind, keepSize, isBoard, boardsOf, zoomOf, zoomRange, snapZoom, formOf, tileRectOf, tilesOf, reachable } from './grid.js';
 import { toast, gather, del, pushSets, holdIt, unholdIt, zoneDrop } from './mutations.js';
 import { pending, tileTap, fireButton, turnPage,
   scratchGrab, scratchTo, scratchGo } from './tiles.js';
@@ -649,6 +649,23 @@ function aimDrop(g, px, py){
   if(over && !g.group && canFile(g.id, intoAt(over))){
     g.dropEl=over; g.dropOn=intoAt(over); over.classList.add('dropinto');
   }
+}
+
+/* Each of `os`, just put down, above what it lies on that is not one of
+   them; the lot keeps the order it had among itself. */
+function layDown(os, home){
+  const dv = dev(), ids = new Set(os.map(o=>o.id));
+  let base = 0;
+  os.forEach(o=>{ if(!hasBox(o, dv)) return;
+    childrenOf(container(home)).forEach(x=>{
+      if(ids.has(x.id) || !lays(x) || !hasBox(x, dv) || !overlaps(lay(o), lay(x))) return;
+      base = Math.max(base, (x.z||0) + 1); }); });
+  const order = os.slice().sort((a,b)=>(a.z||0)-(b.z||0));
+  order.forEach((o,i)=>{
+    if(!lays(o)) return;
+    const onAny = base > 0 || (order.length > 1 && o.grp);
+    if(onAny) o.z = Math.max(1, base) + i; else delete o.z;
+  });
 }
 
 /* ---- throwing something off the desk ----------------------------------
@@ -1774,14 +1791,24 @@ function applyDrag(G, dx, dy){
       const moved=G.group.map(g2=>({id:g2.id, box:{x:g2.box.x+cx, y:g2.box.y+cy, w:g2.box.w, h:g2.box.h}}));
       G.moved=moved;
       const g0=gridOf();
+      /* …and a set that is all paper may lie on paper (decision 308): a pile
+         carried by its group is put down over what lays the way one sheet is. */
+      const allLay = G.group.every(g2=>lays(byId(g2.id)));
+      const hits = childrenOf(container(G.parent)).filter(o=>!ids.includes(o.id) && hasBox(o, dev()) &&
+             moved.some(m=>overlaps(m.box, lay(o))));
       G.ok = moved.every(m=>m.box.x>=1 && m.box.y>=1
               && m.box.x+m.box.w-1<=g0.cols && m.box.y+m.box.h-1<=g0.rows)
-        && !childrenOf(container(G.parent)).some(o=>!ids.includes(o.id) &&
-             moved.some(m=>overlaps(m.box, lay(o))));
+        && hits.every(o=>allLay && lays(o));
+      G.over = G.ok && hits.length > 0;
     } else {
       G.ok = boxOk(box, G.id, dev(), G.parent);
+      /* Paper on paper (decision 308): where it would only cover things that
+         lay, it is put down on top of them rather than refused. */
+      G.over = false;
+      if(!G.ok && boxOver(box, G.id, dev(), G.parent)){ G.ok = true; G.over = true; }
     }
     G.el.classList.toggle('invalid', !G.ok);
+    G.el.classList.toggle('laysover', !!G.over);
     if(G.type==='move'){
       /* Both: the animation's transform composes --carryx/--carryy and wins,
          and the inline one carries the tile if the sway never started (reduced
@@ -2134,8 +2161,8 @@ function onUp(e){
       if(aim.day || aim.tl) keep(d, ['due','till','parent','desk','phone']);
       else if(aim.on)       keep(d, ['parent','desk','phone']);
       else if(packs)        {}
-      else if(g.moved)      g.moved.forEach(m=>keep(byId(m.id), [dv]));
-      else if(g.cand)       keep(d, [dv]);
+      else if(g.moved)      g.moved.forEach(m=>keep(byId(m.id), [dv, 'z']));
+      else if(g.cand)       keep(d, [dv, 'z']);
       if(was.length) pushSets(aim.day||aim.tl ? 'Scheduled' : aim.on ? 'Filed' : 'Moved', was);
     }
     const swallow=id=>{ const el=document.querySelector(`[data-drawer="${id}"]`);
@@ -2192,6 +2219,10 @@ function onUp(e){
     if(packs){ render(); return; }
     if(d && g.moved && g.ok) g.moved.forEach(m=>{ const o=byId(m.id); if(o) o[dev()]={...m.box}; });
     else if(d && g.cand && g.ok) d[dev()]={...g.cand};
+    /* Laid on top (decision 308): above whatever it now lies on, a carried
+       set keeping its own order; put down on bare board it lies on nothing,
+       and its height above the board goes. */
+    if(d && g.ok && !packs) layDown(g.moved ? g.moved.map(m=>byId(m.id)).filter(Boolean) : [d], g.parent || d.parent || ROOT);
     // put down in a zone, it is given what the zone says (decision 293)
     const zoned = d && g.ok ? zoneDrop(g.moved ? g.moved.map(m=>m.id) : [d.id], g.parent || d.parent || ROOT) : null;
     save(); render();

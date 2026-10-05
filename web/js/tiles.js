@@ -11,7 +11,7 @@ import { S, K, T, byId, has, isContainer, faceOf, shapeOf, readOf, spreadOf, chi
   boardLocked, prioOf, repeatSaid, urgencyOf, urgeSaid, durSaid, standsProud, shelfDepth, bookDepth, faceCue, anyFaceCue,
   calViewOf, calShowOf, weekStartOf, calCols, borderOf, textureOf, marginOf, isFragmentKind, gravityOn,
   groupOf, sealOf, isSealed, stampsOf, stampInk, isZone, zoneSaid, habitPlan, habitPeriods, habitRun, relate, measureOf, amountSaid, inFront, countOf, countsOf, COUNTS, makesSmart, isHeld, isGone, isPipe, takesOf, pipeTo, habitOn, setting, isInbox } from './model.js';
-import { sectionsOf, GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
+import { pilesOn, sectionsOf, GRID, CELL, gridOf, drawCols, drawRows, lay, overlaps, boxOk, freeSpot, anySpot, fitSpot, roomFor, gridRows, sizeOfKind, sideways,
   ensureBox, shelfRows, viewRows, shelfOrigin, shelfAt, shelfOfBox, oneShelf, colsOf, flows, boardsOf, nearestBoard, isBoard, reachable, MEASURE, VIEW_COLS, padded, zoomOf, startOf, boardHolds, growDown } from './grid.js';
 import { dealTop, create, toast, fits, toggleDone, someKind, furnish, ctlSpec, ctlSaid, ctlIsOn,
   ctlForm, ctlNum, ctlIndex, ctlPress, pushSet, reachedGoal, goalOf, stampIt } from './mutations.js';
@@ -22,7 +22,7 @@ import { paintTarget, artLayer } from './paint.js';
 import { hexOf, objColour, stringColour, dress, dressAs, OBJ0, OBJN, CHECKS, bestInk, randomBoard } from './look.js';
 import { render, reveal } from './views.js';
 import { openObj, openWriter, openRead, openViewer, openCard } from './sheet.js';
-import { objectPanel, schedulePanel } from './panels.js';
+import { objectPanel, schedulePanel, openPile } from './panels.js';
 import { openTile, openingFor , zoomInto, zoomOut, zoomedIn, camScale, CAM_READ, CAMERA } from './motion.js';
 import { save } from './persist.js';
 import { needsSetup, openSetup } from './setup.js';
@@ -661,6 +661,21 @@ function playPress(id){
    point here when it wires the frame (decision 220). A registry rather than
    an import, so this module does not reach back into the one that calls it. */
 const TOOLS = {press:null};
+/* ---- paper on paper — decision 308 -------------------------------------
+   `PILES` is the board last drawn's stacks (`pilesOn()` in grid.js), read by
+   each tile as it draws and by a tap. A sheet's height above the board is
+   `--z` (board.css stacks the grid's children on it), and in a squared pile
+   each sheet under the top one sits a few pixels down and right of the one
+   above, so the pile shows its edges the way paper does: real tiles, no
+   picture of a pile. */
+let PILES = new Map();
+function pileStyle(o){
+  const z = o.z ? `--z:${Math.min(40, o.z|0)};` : '';
+  const pl = PILES.get(o.id);
+  if(!pl || !pl.squared || pl.i===pl.n-1) return z;
+  const d = Math.min(3, pl.n-1-pl.i);
+  return `${z}top:${d*3}px;left:${d*3}px;`;
+}
 /* **A notepad in the drawer front writes somewhere else** (decision 297).
    Forty pixels is no place to type, so a press goes to the drawer it writes
    into (`into`, or a string, or else the first inbox there is, a bench's
@@ -682,7 +697,7 @@ function writeAway(o){
   const f = document.querySelector(`#app [data-contadd="${to.id}"]`);
   if(f) f.focus();
 }
-function tileTap(id){
+function tileTap(id, plain){
   const o=byId(id); if(!o) return;
   /* A tap on a notepad is writing on it (decision 263): its field ignores the
      finger so a hold can carry the pad, and the tap hands it the caret. */
@@ -700,6 +715,10 @@ function tileTap(id){
   /* **An inked stamp** (decision 292): every press lands an impression and
      does nothing else, until the stamp itself is pressed again. */
   if(S.stamping && actOf(o)!=='tstamp'){ if(stampIt(id, S.stamping)) render(); return; }
+  /* The top of a squared pile drops the pile down as slips (decision 308);
+     a slip opens its sheet, `plain`, so the pile is not asked again. */
+  if(!plain){ const pl = PILES.get(id);
+    if(pl && pl.squared && pl.i===pl.n-1 && openPile(id)) return; }
   /* A flat-pack unfolds where it lies (decision 306), or asks again. */
   if(shapeOf(o)==='parcel'){ parcelTap(id); return; }
   /* A copper pipe is a way through (decision 286): pressing it takes you to
@@ -1721,9 +1740,11 @@ function drawTileFace(o, arr, box, persp){
   const place = `${wordStyle(o).vars}${ts!==1?`--tscale:${ts};`:''}${
     tilt?`--tilt:${tilt.deg}deg;--pinx:${tilt.right?'100%':'0%'};`:''
   }${hasPersp(o, persp, box) ? `--px:${persp.x};--py:${persp.y};--depth:${depthOf(o)};` : ''
-  }grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
+  }${pileStyle(o)}grid-column:${box.x} / span ${box.w};grid-row:${box.y} / span ${box.h}`;
   // `asking`: Claude is working on this one (decision 306), drawn as a glow
-  const sel = (S.sel.includes(o.id) ? ' selected' : '') + (AI.asking.has(o.id) ? ' asking' : '');
+  const pl = arr===false ? null : PILES.get(o.id);
+  const sel = (S.sel.includes(o.id) ? ' selected' : '') + (AI.asking.has(o.id) ? ' asking' : '')
+    + (pl ? (pl.squared ? (pl.i===pl.n-1 ? ' piletop' : ' pileunder') : ' instack') : '');
 
   /* ---- a Button is a button — decision 243 -------------------------------
      Square, it is a photograph of a real one (`bimg`), and the whole tile is
@@ -3627,6 +3648,11 @@ function gridOfContainer(cid){
   /* Before the tiles, not after: gridTile() takes each box out of FLOW as it
      draws it, so a sorted board has nothing left to read by the time the last
      tile is built. */
+  /* The stacks on this board (decision 308), before the tiles take their
+     boxes out of FLOW: which sheet is where in its pile or cascade. */
+  { const got = pilesOn(kids, o=>FLOW.get(o.id) || lay(o, dv, c.id));
+    // per board: a neighbour drawn for the pager must not wipe this one's
+    kids.forEach(k=>PILES.delete(k.id)); got.forEach((v, k)=>PILES.set(k, v)); }
   const strings=boardOverlay(kids, shift, g, dv, c.id);
   const lights=boardLights(kids, shift, g, dv, c.id);
   const tiles=kids.map(o=>gridTile(o,arr,c.id)).join('');

@@ -1,6 +1,6 @@
 import { wordOf } from './words.js';
 import { clamp, ROOT, BIN } from './util.js';
-import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront, isInbox, setting, isZone } from './model.js';
+import { S, dev, byId, has, childrenOf, container, cfgOf, deskOf, K, kindHas, inFront, isInbox, setting, isZone, isContainer, isPipe } from './model.js';
 
 /* ------------------------------------------------------------
    4b · the grid — one coordinate space per device
@@ -1050,7 +1050,7 @@ function sectionsOf(cid, dv){
     return {o:h.o, y:y0, n:counted.filter(y=>y>=y0 && y<y1).length};
   });
 }
-function boxOk(box, id, device, parentId, clear){
+function boxOk(box, id, device, parentId, clear, over){
   const g=gridOf(device, parentId||ROOT), dv=device||dev();
   if(box.x<1 || box.y<1 || box.w<1 || box.h<1) return false;
   /* The board is **finite** now: nine shelves, or one. A box past the last of
@@ -1076,15 +1076,82 @@ function boxOk(box, id, device, parentId, clear){
      a new tile is not laid down under a plant and a plant is not set down on
      a tile. A background is still under everything, which is what it is for.
      A drag still gets the rule above. */
-  const floats = d => has(d,'decor') || has(d,'backdrop') || wordOf(d,'layer')==='above';
   const me = id && byId(id);
   if(me && floats(me) && !clear) return true;
   // Only objects that have actually been placed can be collided with. Without
   // this, everything unplaced reads as sitting at 1,1 and blocks the corner.
   // a thing standing in the drawer front has given up its cells (decision 252)
+  /* `over` (decision 308): paper may lie on paper, so a thing that lays is
+     refused only by what does not. */
+  const laid = over && lays(me);
   return !childrenOf(container(parentId||ROOT))
-    .some(d=>d.id!==id && (clear ? !has(d,'backdrop') : !floats(d)) && !inFront(d) && hasBox(d,dv)
+    .some(d=>d.id!==id && (clear ? !has(d,'backdrop') : !floats(d)) && !(laid && lays(d)) && !inFront(d) && hasBox(d,dv)
              && overlaps(box, lay(d,device,parentId||ROOT)));
+}
+const floats = d => has(d,'decor') || has(d,'backdrop') || wordOf(d,'layer')==='above';
+
+/* ---- paper on paper — decision 308 --------------------------------------
+   Timothy, 2026-10-05: *"what if objects on boards can simply overlap like
+   actual paper to make space and create things like dropdowns and tables of
+   contents."* So a thing that **lays** (anything that is not a container, a
+   pipe or already floating) may be put down over other things that lay, and
+   lies on top of them (`z`). A container is still furniture: it is filed
+   into, never covered, and never covers. Only a drop asks this (`boxOver()`);
+   everything that *looks* for a place (`freeSpot()`, a paste, the coin) still
+   wants clear board, so nothing new is ever slid under paper unasked.
+
+   A **stack** is not a thing that is stored: it is whatever lies on whatever,
+   followed from one overlap to the next (`stackOf()`). Squared up it is a
+   **pile** (every sheet at one corner), fanned out it is a **cascade** (each a
+   row below the last, every name showing), and either can be grouped so it
+   moves as one. */
+const lays = o => !!o && !isContainer(o) && !isPipe(o) && !floats(o);
+const boxOver = (box, id, device, parentId) => boxOk(box, id, device, parentId, false, true);
+// what a thing put down here would lie on: the top of it, plus one
+function zAbove(box, id, device, parentId){
+  const dv = device||dev(), home = parentId||ROOT;
+  let top = 0, any = false;
+  childrenOf(container(home)).forEach(d=>{
+    if(d.id===id || !lays(d) || inFront(d) || !hasBox(d,dv) || !overlaps(box, lay(d,dv,home))) return;
+    any = true; top = Math.max(top, d.z||0);
+  });
+  return any ? top + 1 : 0;
+}
+function stackOf(o, device){
+  if(!lays(o)) return o ? [o] : [];
+  const dv = device||dev(), home = o.parent||ROOT;
+  if(has(container(home),'magic')) return [o];
+  const sibs = childrenOf(container(home)).filter(d=>lays(d) && !inFront(d) && hasBox(d,dv));
+  const seen = new Set([o.id]), out = [o], q = [o];
+  while(q.length){ const a = q.shift(), ab = lay(a,dv,home);
+    sibs.forEach(b=>{ if(!seen.has(b.id) && overlaps(ab, lay(b,dv,home))){ seen.add(b.id); out.push(b); q.push(b); } }); }
+  return out.sort((a,b)=>(a.z||0)-(b.z||0) || lay(a,dv,home).y-lay(b,dv,home).y || lay(a,dv,home).x-lay(b,dv,home).x);
+}
+// a pile: every sheet at one corner; a cascade: one column, a row apart, in order
+const squared = st => st.length>1 && st.every(x=>{ const a=lay(st[0]), b=lay(x); return a.x===b.x && a.y===b.y; });
+const fanned = st => st.length>1 && st.every((x,i)=>{ const a=lay(st[0]), b=lay(x); return b.x===a.x && b.y===a.y+i; });
+/* The stacks on a board being drawn, once per render rather than once per
+   tile. Every overlap has a thing with a `z` in it (only a drop or a squaring
+   writes one), so only those are followed: a board of three thousand things
+   and no paper on paper costs one pass over them. `boxOf` is the box the
+   board is drawing, which on a sorted board is not the stored one. */
+function pilesOn(kids, boxOf){
+  const out = new Map();
+  const zs = kids.filter(o=>o.z && lays(o));
+  if(!zs.length) return out;
+  const paper = kids.filter(o=>lays(o) && !inFront(o));
+  const seen = new Set();
+  zs.forEach(o=>{
+    if(seen.has(o.id)) return;
+    const st = [o], q = [o]; seen.add(o.id);
+    while(q.length){ const a = q.shift(), ab = boxOf(a);
+      paper.forEach(b=>{ if(!seen.has(b.id) && overlaps(ab, boxOf(b))){ seen.add(b.id); st.push(b); q.push(b); } }); }
+    if(st.length<2) return;
+    st.sort((a,b)=>(a.z||0)-(b.z||0) || boxOf(a).y-boxOf(b).y || boxOf(a).x-boxOf(b).x);
+    const a0 = boxOf(st[0]), sq = st.every(x=>{ const b = boxOf(x); return b.x===a0.x && b.y===a0.y; });
+    st.forEach((x,i)=>out.set(x.id, {i, n:st.length, squared:sq, ids:st.map(y=>y.id)}));
+  });
+  return out;
 }
 /* The lowest free spot, **on the shelf you are looking at first**. A board is
    nine screens now, so scanning from the top-left would put everything you
@@ -1469,7 +1536,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { sectionsOf, TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
+export { hasBox, lays, boxOver, zAbove, stackOf, squared, fanned, pilesOn, sectionsOf, TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, FRESH, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, FORMS, formOf, tiledBoard, tilesOf, tileRectOf, setForm, setTileDim, fitTiles, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, shelvesToHold, colsOf, gridKeyOf, shelvesOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

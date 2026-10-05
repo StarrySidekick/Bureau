@@ -448,7 +448,9 @@ html[data-style][data-surface="wood"] .grid::before{
   background-color:var(--wood);
   opacity:1;
 }
-.grid > *{position:relative;z-index:1}
+/* `--z` is how high a sheet lies on the paper under it (decision 308);
+   nothing set is the board itself, so everything else is drawn as before. */
+.grid > *{position:relative;z-index:calc(1 + var(--z, 0))}
 
 /* ---- the panel — the only shape a menu has ----------------------------
    There are no modals. Everything that used to be a card in the middle of a
@@ -4273,3 +4275,12 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
 .ansbox.drafted textarea,.readanswer.drafted textarea{font-style:italic;opacity:.86}
 .draftnote{font-size:.85em;opacity:.8;margin-top:4px}
 .draftnote a{text-decoration:underline;cursor:pointer}
+
+/* ---- paper on paper — decision 308 ----------------------------------------
+   Carried over other paper, a sheet lifts higher (a deeper shadow) instead of
+   turning red: letting go lays it on top. A squared pile's top sheet throws
+   a little more shadow than a sheet alone, and the sheets under it peek out
+   at its lower right edge (their offset is in pileStyle(), tiles.js). */
+.drawer.dragging.laysover{box-shadow:var(--shadow-lg), 0 14px 22px -6px rgba(0,0,0,.35)}
+.drawer.piletop{box-shadow:var(--shadow-lg, 0 4px 10px rgba(0,0,0,.25))}
+.drawer.pileunder{filter:brightness(.97)}

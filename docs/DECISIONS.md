@@ -13150,3 +13150,58 @@ on it, nothing inside and no pages. Inside a container it is unchanged.
 Tested in WebKit (`test/safari.mjs` block 27: the ring offers Claude for a
 drawn 4×6 box in a fresh drawer, the card's one verb is the room, and both
 things it writes land inside the box; shots 27, 27b).
+
+## 308. Paper on paper: overlap, piles and fans (v3.04, 2026-10-05)
+
+Timothy, 2026-10-05: *"big idea but simple: what if objects on boards can
+simply overlap like actual paper to make space and create things like
+dropdowns and tables of contents and things like that. overlapping and
+stacking for that would be great."*
+
+**This takes back part of the grid's first rule.** Since the beginning a move
+that would overlap was refused (`boxOk()`), so nothing you arranged ever
+moved without you. That rule stays for everything that *looks* for a place
+(`freeSpot()`, a paste, the coin, Claude): nothing is ever slid under paper
+unasked. What changes is **a drop**: a thing that **lays** (`lays()` in
+grid.js: anything but a container, a pipe or what already floats) carried
+over other things that lay is put down **on top of them** instead of being
+refused (`boxOver()`), and lies at a height above them (`z`, drawn as
+`--z`; `.grid > *` stacks on it). While carried it lifts higher (a deeper
+shadow, `.laysover`) rather than turning red. A container is still
+furniture: a drop on one files into it, and it is never covered and never
+covers. A carried group that is all paper lays the same way. `z` is in the
+drop's undo move, and a sheet put down on bare board loses it.
+
+**A stack is not stored.** It is whatever lies on whatever, followed from one
+overlap to the next (`stackOf()`), and drawn once per board per render
+(`pilesOn()`: only things with a `z` are followed, since every overlap has
+one, so a board with no paper on paper costs one pass). Three ways to put
+one in order, on the hold ring of any sheet in it, each one move with Undo:
+
+- **Square Up** (`squareStack()`): every sheet at the bottom one's corner,
+  the one you held on top. A **pile**: the sheets under the top one sit a
+  few pixels down and right (`pileStyle()`), so its edges show the way
+  paper's do, made of the real tiles. **A tap on a pile drops it down as
+  slips** (`openPile()` in panels.js), each sheet's name and first line on
+  its own strip, top first, falling out one after another; a slip opens its
+  sheet, and the foot fans or spreads the pile. That is the dropdown.
+- **Fan Out** (`fanStack()`): the sheets one row apart down a column in the
+  order they lie, so every name shows above the next, and pressing a name
+  opens that sheet. That is the table of contents, made of the pages
+  themselves. A tiled board grows a page to take the column.
+- **Spread Out** (`spreadStack()`): the bottom sheet stays and each other one
+  finds clear board nearest where it was, out of the stack and the group.
+
+Square Up and Fan Out **group** the stack (`grp`), so a pile or a fan is
+carried as one; to take one sheet out, Spread Out or Ungroup. The tap that
+opens the slips is kept from being closed by its own trailing click the way
+the shape ring's is (`ringJustOpened()`).
+
+Left for later, and worth doing: a paste or Claude laying a fan or a pile
+directly (`"arrange": "fan"`), and a pile in a list front.
+
+Tested in WebKit first (`test/safari.mjs` block 28, real mouse drags: a
+note laid over another is on top and is what a finger finds there, with
+`z` in the undo; the ring's three; the pile's slips in order and one
+opening its sheet; the fan's names each pressable; spread back to clear
+board; shots 28 to 28c).

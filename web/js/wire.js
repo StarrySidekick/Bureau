@@ -32,6 +32,7 @@ import { onDown, onMove, onUp, onCancel, onTouchStart, onTouchMove, onTouchEnd,
 import { enter, leaveTile, pagerOn, applyTilt, askTilt , zoomOut, zoomedIn, tileArrives } from './motion.js';
 import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
+import { squareStack, fanStack, spreadStack } from './mutations.js';
 import { openAsk, askGo, parcelTap, askSteps, askAnswer, keepDraft, tryKey, keepKey, forgetKey, chooseModel } from './ai.js';
 import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards, backupList, restoreBackup } from './persist.js';
 
@@ -1270,6 +1271,10 @@ function act(name, el){
     case 'askpen': openAsk(el.dataset.id || ROOT); break;
     case 'askgo': askGo(el.dataset.verb, el.dataset.id || ROOT, el.dataset.pen, el.dataset.room); break;
     case 'aikeep': keepKey(); break;
+    /* A pile's slips and its foot (decision 308). */
+    case 'pileopen': closeCtx(); if(el.dataset.id) tileTap(el.dataset.id, true); break;
+    case 'pilefan': closeCtx(); fanStack(el.dataset.id); break;
+    case 'pilespread': closeCtx(); spreadStack(el.dataset.id); break;
     case 'aiforget': forgetKey(); break;
     case 'aitest': tryKey(); break;
     case 'pasteschema': {
@@ -1665,6 +1670,10 @@ function wire(){
       else if(cmd==='aisteps') askSteps(id);
       else if(cmd==='aianswer') askAnswer(id);
       else if(cmd==='aifill') openAsk(id);
+      // a stack put in order (decision 308)
+      else if(cmd==='square') squareStack(id);
+      else if(cmd==='fan') fanStack(id);
+      else if(cmd==='spread') spreadStack(id);
       /* The Void Drawer, without the gesture. The drag is the way you reach
          for it — the rail on a phone, the Home Knob on a Mac — and the menu is
          the one way in that is the same on both. */

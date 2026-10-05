@@ -1,4 +1,4 @@
-import { $, $$, esc, ic, uid, clamp, D, ROOT, BIN, pastTense, outURL } from './util.js';
+import { $, $$, esc, ic, uid, clamp, D, ROOT, BIN, pastTense, outURL, plain as plainText } from './util.js';
 import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   URGES, workday, urgencyOf, urgeRank, urgeSaid, durSaid,
   WHENS, whenISO, RULE_MAX, rulesOf,
@@ -16,9 +16,9 @@ import { S, K, KINDS, KEYS, T, ATTRS, USER_ATTRS, FIELDS, fieldOf, OPS, ROLLS,
   slotRaw, homeFor, acceptAny, groupOf , boardLocked , SEALS, sealOf, isSealed, isDisc,
   makesOf, madeAtSize, isShelved, isShelvedPlan } from './model.js';
 import { newOfKind } from './wire.js';
-import { sectionsOf, GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind } from './grid.js';
+import { sectionsOf, GRID, lay, boxOk, freeSpot, anySpot, sizeOfKind, toPhoneSize, keepSize, inRange, rangeOfKind, stackOf, squared, fanned } from './grid.js';
 import { randomBoard, randomFront, hexOf, objColour, objSlots, famSlots, famAll, FAMS, styleKey, stockNow, CHECKS, checkNow } from './look.js';
-import { FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo } from './model.js';
+import { iconOf, FILLS, FILL_KEYS, isCut, BUTTON_IMGS, DOES, doesOf, SUITS, SUIT_NAMES, suitOf, backOf, TUGS, tugOf, inBin, isPipe, isInbox, PIPE_KINDS, takesOf, pipeTo } from './model.js';
 import { paintTarget, hasArt } from './paint.js';
 import { CLICKS, clickOf, gridTile, pending, PORTAL_SHAPES, PORTAL_STYLES, PORTAL_EDGES, WHEEL_COLOURS, WHEEL_INKS, WHEEL_FONTS, VINYLS, KSHAPES, kshapeOf, intoOf } from './tiles.js';
 import { isActive, activeZoom, activeSay, activeName, DICE, CLOCKS, BACKS, TOOLART } from './active.js';
@@ -189,7 +189,7 @@ function openMenu(anchor, html){
      list hung off a bar button — so the shape has to come *off* here as well
      as go on there. A popup that inherited a thumb hole would have one
      punched through whichever row happened to be under it. */
-  el.classList.remove('palette','radial','flung','shapering','renaming');
+  el.classList.remove('palette','radial','flung','shapering','renaming','pilemenu');
   el.style.removeProperty('--rad');
   el.classList.add('open');                 // measurable only once it is shown
   const r=$('#frame').getBoundingClientRect(), a=anchor.getBoundingClientRect();
@@ -385,6 +385,7 @@ function shapeRing(rect, cell, kind, page){
         ${m.art}<b>${esc(m.label)}</b></button>`;
     }).join('')}`;
   const r = $('#frame').getBoundingClientRect();
+  el.classList.remove('pilemenu');
   el.classList.add('open','palette','radial','shapering');
   el.classList.toggle('tworing', !!masters);
   el.style.setProperty('--rad', R+'px');
@@ -413,7 +414,11 @@ function ringReach(el, least){
    left the flag up wherever no click came (a synthetic release), eating the
    next real one; asking how long the ring has been open cannot go stale. */
 let RING_AT = 0;
-const ringJustOpened = ()=> $('#ctx').classList.contains('shapering') && Date.now() - RING_AT < 250;
+/* …and a pile's slips (decision 308), opened by a tap whose own trailing
+   click would otherwise close them the moment they appeared. */
+let PILE_AT = 0;
+const ringJustOpened = ()=> ($('#ctx').classList.contains('shapering') && Date.now() - RING_AT < 250)
+  || ($('#ctx').classList.contains('pilemenu') && Date.now() - PILE_AT < 450);
 // the ring asks its next question round the same box it was opened for
 const ringInto = (kind, page) => RINGAT && shapeRing(RINGAT.rect, RINGAT.cell, kind, page);
 
@@ -2989,6 +2994,16 @@ function openCtx(x,y,id){
     if(has(o,'answer') && !answered(o)) items.push(it(`aianswer:${id}`, 'sparkle', 'Draft Answer'));
     if(isContainer(o) && !has(o,'magic') && !isActive(o) && o.id!==BIN) items.push(it(`aifill:${id}`, 'sparkle', 'Fill In'));
   }
+  /* A stack (decision 308): square it into a pile, fan it into a cascade
+     with every name showing, or spread it back out over clear board. */
+  if(!many && !boardLocked()){
+    const st = stackOf(o);
+    if(st.length > 1){
+      if(!squared(st)) items.push(it(`square:${id}`, 'layers', 'Square Up'));
+      if(!fanned(st)) items.push(it(`fan:${id}`, 'list', 'Fan Out'));
+      items.push(it(`spread:${id}`, 'grid', 'Spread Out'));
+    }
+  }
   if(many) items.push(it(`group:${id}`, 'layers', `Group ${sel.length}`));
   if(!many && groupOf(o)) items.push(it(`ungroup:${id}`, 'cut', 'Ungroup'));
   items.push(it(`intodrawer:${id}`, 'folder', 'Add to New Drawer'));
@@ -3023,6 +3038,7 @@ function openCtx(x,y,id){
     }).join('')}`;
   const r=$('#frame').getBoundingClientRect();
   el.classList.remove('shapering');
+  el.classList.remove('pilemenu');
   el.classList.add('open','palette','radial');
   el.style.setProperty('--rad', R+'px');
   /* Centred on the finger, and nudged in from the edges only as far as it
@@ -3056,12 +3072,35 @@ function openCtx(x,y,id){
 function closeCtx(){
   const el = $('#ctx');
   if(el.classList.contains('shapering') && el.classList.contains('open')) pending.cell = null;
-  el.classList.remove('open','shapering','renaming');
+  el.classList.remove('open','shapering','renaming','pilemenu');
+}
+
+/* ---- a pile, looked through — decision 308 -------------------------------
+   A tap on a squared pile does not open the top sheet: it drops the pile
+   down as slips, each sheet's name on its own strip in the order they lie,
+   the top one first, the way you riffle the corner of a stack of paper to
+   find the one you want. A strip opens that sheet; the foot fans the pile
+   out on the board for good, or spreads it. */
+function openPile(id){
+  const o = byId(id), st = o ? stackOf(o).slice().reverse() : [];
+  const el = document.querySelector(`#app .grid .drawer[data-row="${id}"]`);
+  if(!el || st.length < 2) return false;
+  openMenu(el, `<div class="ctxhead">${st.length} in this pile</div>
+    <div class="pilestrips">${st.map((x,i)=>`<button class="pilestrip" data-act="pileopen" data-id="${esc(x.id)}" style="--i:${i}">
+      <i>${ic(iconOf(x),13)}</i><b>${esc(x.title || K(x.kind).nm)}</b>${
+      String(x.body||'').trim() ? `<u>${esc(plainText(x.body).slice(0, 70))}</u>` : ''}</button>`).join('')}</div>
+    <div class="pilefoot"><button class="pill" data-act="pilefan" data-id="${esc(id)}">${ic('list',13)} Fan out</button>
+      <button class="pill" data-act="pilespread" data-id="${esc(id)}">${ic('grid',13)} Spread out</button></div>`);
+  const m = $('#ctx'); m.classList.add('pilemenu'); PILE_AT = Date.now();
+  // under the pile and level with it, the way the slips would fall
+  const r = $('#frame').getBoundingClientRect(), a = el.getBoundingClientRect();
+  m.style.left = clamp(a.left - r.left, 6, Math.max(6, r.width - m.offsetWidth - 6)) + 'px';
+  return true;
 }
 
 export { plansPanel, planCard, boardRow,
   overlayHTML, openPanel, closePanel, refreshPanel, repositionPanel, panelKey, panelBack, draft,
-  openMenu, sortMenu, sectionMenu, shapeRing, shapeKinds, ringJustOpened, ringInto, VARIANTS, variantsOf, variantPatch, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
+  openMenu, openPile, sortMenu, sectionMenu, shapeRing, shapeKinds, ringJustOpened, ringInto, VARIANTS, variantsOf, variantPatch, modalNewObject, holdPanel, objectPanel, drawerPanel, modalNewKind,
   renderPreview, modalMove, tagFirstPanel, familyPanel, becomePanel, lifeFirstPanel, donePanel,
   sampleObject, sampleTile, kindSample,
   objectPanelBody, objBackTo, openCmd, closeCmd, cmdList, cmdMove, cmdAt, runCmd, drawerFromSelection, openCtx, closeCtx,

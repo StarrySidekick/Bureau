@@ -398,6 +398,16 @@ added a box drawn with the Magic Selector, filled by Claude. The next step
 along the same line is a board that can be asked what it is missing on its
 own.
 
+### Added 2026-10-05, later — paper that overlaps
+
+*"big idea but simple: what if objects on boards can simply overlap like
+actual paper to make space and create things like dropdowns and tables of
+contents and things like that. overlapping and stacking for that would be
+great."* Decision 308: a drop of paper on paper lays it on top; a stack can
+be squared into a pile that drops down as slips when tapped, fanned into a
+column whose names are a contents page, or spread back out. Next along it: a
+paste or Claude laying a pile or a fan directly.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

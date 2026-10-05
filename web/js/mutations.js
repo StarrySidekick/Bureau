@@ -4,7 +4,7 @@ import { S, byId, K, KINDS, KEYS, kindHas, has, isContainer, genKindOf, streak, 
   ctlOf, isPrimary, SECONDARY, MASTERS, inMaster, isCut, doesOf, isPicture, isDecor, shapeOf, isBackdrop,
   BORDER_SLOTS, STOCK_SLOTS, SEAL_KEYS, TSIZES, FILL_KEYS, BUTTON_IMGS,
   placeOf, cfgOf, isHeld, stampsOf, isZone, zoneWrites, zoneSaid, ZONE_TRAITS, inBin, isInbox, pipeFor, makesSmart, heldObjects, homeFor , attrsOf, relate, rulesOf, CALSHOWS, SMART, habitPlan, habitOn, tagSlug, mediaTypeOf, measureOf, amountSaid, setting, setSetting, isShelved, isGone, prioOf } from './model.js';
-import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf } from './grid.js';
+import { TILE, GRID, PHONE_GRIDS, colsOf, gridOf, shelfRows, freeSpot, anySpot, fitSpot, roomFor, lay, boxOk, sizeOfKind, keepSize, shelvesOf, addBoard, randomSizeOf, formOf, stackOf, boxOver, growDown } from './grid.js';
 import { randomFront, randomBoard, randomLook, styleDefaults,
   STYLES, CHECKS, DARKMODES, styleKey, applyStyle, applyLook, OBJ0, OBJN } from './look.js';
 import { render, reveal } from './views.js';
@@ -809,6 +809,62 @@ function seedInto(o, kind){
    Never a branch on a name: `kindHas(kind,'container')` is what decides
    whether there is anything to seed, and the caller decides which types are
    worth offering. */
+/* ---- a stack, squared, fanned or spread — decision 308 -------------------
+   Three ways to put a stack of paper in order, each one move. **Square up**
+   lays every sheet at the bottom one's corner, the one you held on top: a
+   pile, which takes the room of its biggest sheet and drops down as slips
+   when tapped. **Fan out** lays them one row apart down a column in the
+   order they lie, so every sheet's name shows above the next: a contents
+   page made of the pages themselves. Both group the stack so it is carried
+   as one. **Spread out** gives each its own clear place again and lets go
+   of the group. A stack that will not fit where it is asked to go stays as
+   it was and says so. */
+const boxCopy = b => b ? Object.assign({}, b) : b;
+function stackMove(label, st, dv, place){
+  pushSets(label, st.flatMap(x=>[[x.id, dv, boxCopy(x[dv])], [x.id, 'z', x.z], [x.id, 'grp', x.grp]]));
+  place();
+  save(); render();
+}
+function squareStack(id){
+  const o = byId(id), st = o ? stackOf(o) : [];
+  if(st.length < 2) return false;
+  const dv = dev(), home = o.parent||ROOT, a = lay(st[0], dv, home);
+  const order = st.filter(x=>x.id!==id).concat(o);
+  const boxes = order.map(x=>({x:a.x, y:a.y, w:lay(x, dv, home).w, h:lay(x, dv, home).h}));
+  if(!boxes.every((b, i)=>boxOver(b, order[i].id, dv, home))){ toast('No room to square them up there'); return false; }
+  const g = order.map(x=>x.grp).find(Boolean) || uid('g');
+  stackMove('Squared up', order, dv, ()=>order.forEach((x, i)=>{ x[dv] = boxes[i]; x.z = i+1; x.grp = g; }));
+  toast(`A pile of ${order.length}: tap it to look through`, true);
+  return true;
+}
+function fanStack(id){
+  const o = byId(id), st = o ? stackOf(o) : [];
+  if(st.length < 2) return false;
+  const dv = dev(), home = o.parent||ROOT, a = lay(st[0], dv, home);
+  const boxes = st.map((x, i)=>({x:a.x, y:a.y + i, w:lay(x, dv, home).w, h:lay(x, dv, home).h}));
+  // a tiled board grows a page to take the column, the way a paste's does
+  for(let n = 0; n < 6 && !boxes.every((b, i)=>boxOver(b, st[i].id, dv, home)); n++) if(!growDown(home)) break;
+  if(!boxes.every((b, i)=>boxOver(b, st[i].id, dv, home))){ toast('No room to fan them out here'); return false; }
+  const g = st.map(x=>x.grp).find(Boolean) || uid('g');
+  stackMove('Fanned out', st, dv, ()=>st.forEach((x, i)=>{ x[dv] = boxes[i]; x.z = i+1; x.grp = g; }));
+  toast(`${st.length} fanned out, every name showing`, true);
+  return true;
+}
+function spreadStack(id){
+  const o = byId(id), st = o ? stackOf(o) : [];
+  if(st.length < 2) return false;
+  const dv = dev(), home = o.parent||ROOT, g = st.map(x=>x.grp).find(Boolean);
+  stackMove('Spread out', st, dv, ()=>{
+    // the bottom sheet stays; each above it finds clear board, nearest first
+    st.slice(1).forEach(x=>{ const b = lay(x, dv, home);
+      const spot = fitSpot(b.w, b.h, dv, home, {x:b.x, y:b.y}) || anySpot(b.w, b.h, dv, home, {x:b.x, y:b.y});
+      if(spot) x[dv] = spot; });
+    st.forEach(x=>{ delete x.z; if(g && x.grp===g) delete x.grp; });
+  });
+  toast('Spread out', true);
+  return true;
+}
+
 function becomeKind(id, kind){
   const o=byId(id);
   if(!o || !KINDS[kind] || o.kind===kind) return null;
@@ -1764,7 +1820,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { squareStack, fanStack, spreadStack, binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,
