@@ -650,6 +650,27 @@ const CHROME = process.env.BUREAU_CHROME;
           S.objects.forEach(o => { if (!gone.has(o.id) && gone.has(o.parent)) { gone.add(o.id); more = true; } }); }
         S.objects = S.objects.filter(o => !gone.has(o.id)); BUREAU.render(); return true; })());
   });
+  /* A paste can say where inside a container it made (decision 303): the
+     box lands as written on both devices, a row past the first tile grows
+     the board to reach it, the board opens on its first tile, and a deck
+     with `seed: false` holds only the cards it was given. */
+  const pasteWhere = await page.evaluate(() => {
+    const S = BUREAU.state;
+    BUREAU.paste(JSON.stringify([{ type: 'drawer', title: 'Laid out', children: [
+      { type: 'label', title: 'Heading', x: 1, y: 1, w: 8, h: 1 },
+      { type: 'note', title: 'Left page', x: 1, y: 2, w: 4, h: 3 },
+      { type: 'note', title: 'Low page', x: 5, y: 20, w: 4, h: 3 },
+      { type: 'deck', title: 'Words', seed: false, x: 1, y: 5, children: [{ type: 'card', title: 'Only card' }] } ] }]));
+    const at = t => S.objects.find(o => o.title === t);
+    const box = (t, dv) => { const b = at(t)[dv] || {}; return [b.x, b.y, b.w, b.h].join(','); };
+    const d = at('Laid out'), deck = at('Words');
+    const r = { phone: box('Left page', 'phone'), desk: box('Left page', 'desk'), low: box('Low page', 'phone'),
+      start: d.start, cards: S.objects.filter(o => o.parent === deck.id).map(o => o.title) };
+    const gone = new Set([d.id, ...S.objects.filter(o => o.parent === d.id).map(o => o.id), deck.id]);
+    S.objects = S.objects.filter(o => !gone.has(o.id) && !gone.has(o.parent)); BUREAU.render();
+    return r.phone === '1,2,4,3' && r.desk === '1,2,4,3' && r.low === '5,20,4,3'
+      && r.start && r.start.x === 0 && r.start.y === 0 && r.cards.join() === 'Only card' ? true : JSON.stringify(r);
+  });
 
   // --- magic rules: a magic drawer collects by rule, and completed things
   // leave their own drawer for the archive (decisions 15 and 2)
@@ -11541,7 +11562,7 @@ const CHROME = process.env.BUREAU_CHROME;
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
-    pasteOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
+    pasteOk, pasteWhere, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,

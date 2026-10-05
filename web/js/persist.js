@@ -1,6 +1,6 @@
 import { D, uid, clamp, ROOT, BIN } from './util.js';
 import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev } from './model.js';
-import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold } from './grid.js';
+import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold, boxOk, growDown } from './grid.js';
 import { toast, create, makeCompound, pushUndo } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
@@ -19,7 +19,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '2.98';
+const APP_VERSION = '2.99';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -1880,6 +1880,22 @@ function fillOne(o, v, tally){
   if(v.dates && typeof v.dates==='object') S.objects.filter(x=>x.parent===o.id && v.dates[x.title])
     .forEach(x=>{ x.due=v.dates[x.title]; });
 }
+/* **A paste can say where, inside a container it made** (2026-10-05).
+   Placing by free spot fans out from the middle of a tile, so the order of a
+   paste's children never decided where they went and a laid-out board (a
+   wiki: headings across, pages two to a row) could not be written. `x` and
+   `y` are 1-based cells on the container's board, honored only if the box is
+   free there, growing a tiled board down to reach it; otherwise the thing is
+   placed as before. Not on the desk, whose corner moves (decision 287). */
+function askedSpot(spec, o, w, h, dv, parentId){
+  const x=parseInt(spec.x,10), y=parseInt(spec.y,10);
+  if(!(x>=1 && y>=1) || parentId===ROOT) return null;
+  const box={x, y, w, h};
+  for(let n=0; n<PAGES_GUARD && y+h-1 > gridOf(dv, parentId).rows; n++) if(!growDown(parentId)) break;
+  return boxOk(box, o.id, dv, parentId) ? box : null;
+}
+const PAGES_GUARD = 40;
+
 function addSpec(spec, parentId, tally){
   if(spec==null) return;
   if(typeof spec==='string') spec={type:'task', title:spec};   // a bare line is a task
@@ -1915,8 +1931,9 @@ function addSpec(spec, parentId, tally){
   // something with children has to be able to hold them
   const kind = (kids.length && !kindHas(asked,'container')) ? 'drawer' : asked;
   // `"due": null` says undated, where leaving it out takes the type's default
+  // `"seed": false` leaves out what the type is born holding (a deck's blank card)
   const o=create(kind,Object.assign({parent:parentId, title:String(spec.title||spec.name||'Untitled')},
-    'due' in spec ? {due:spec.due||null} : {}));
+    'due' in spec ? {due:spec.due||null} : {}, spec.seed===false ? {noSeed:true} : {}));
   if(spec.tags) o.tags=[].concat(spec.tags).map(String);
   SPEC_FIELDS.forEach(f=>{ if(spec[f]!=null) o[f]=spec[f]; });
   // a Link keeps its address where the Link reads it
@@ -1928,10 +1945,15 @@ function addSpec(spec, parentId, tally){
   if(spec.onclick) o.onclick=spec.onclick;
   const [dw,dh]=sizeOfKind(kind, dev());
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
-  o[dev()]=anySpot(w,h,dev(),parentId);
+  o[dev()]=askedSpot(spec, o, w, h, dev(), parentId) || anySpot(w,h,dev(),parentId);
+  const other = dev()==='phone' ? 'desk' : 'phone', there = askedSpot(spec, o, w, h, other, parentId);
+  if(there) o[other] = there;
   tally[isContainer(o)?'drawers':'objects']++;
   tally.made.push(o.id);
   kids.forEach(c=>addSpec(c, o.id, tally));
+  /* A board laid out by the paste reads from the top, so it opens on its
+     first tile rather than the middle of what is on it (decision 287). */
+  if(kids.some(c=>c && c.x!=null && c.y!=null)) o.start={x:0, y:0};
   return o;
 }
 

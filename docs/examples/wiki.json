@@ -1,0 +1,1086 @@
+[
+  {
+    "type": "project",
+    "title": "Bureau",
+    "color": 7,
+    "children": [
+      {
+        "type": "note",
+        "title": "What it is",
+        "body": "Bureau is a personal to-do, note, idea and writing app for one person. **Everything sits on a grid**: drawers are containers on that grid and open onto grids of their own; objects are everything else, and what an object can do is defined by its attributes.\n\n| | |\n| --- | --- |\n| **Version** | 2.98 |\n| **Where** | iPhone, installed Safari PWA first |\n| **Stack** | Hand-written HTML, CSS, ES modules. No build, no dependencies |\n| **Storage** | Local only. Export and import JSON is the bridge |",
+        "w": 8,
+        "h": 4,
+        "x": 1,
+        "y": 3
+      },
+      {
+        "type": "outlink",
+        "title": "Open Bureau",
+        "url": "https://starrysidekick.github.io/Bureau/",
+        "x": 1,
+        "y": 7
+      },
+      {
+        "type": "outlink",
+        "title": "The repository",
+        "url": "https://github.com/StarrySidekick/Bureau",
+        "x": 3,
+        "y": 7
+      },
+      {
+        "type": "outlink",
+        "title": "The Workshop",
+        "url": "https://claude.ai/artifact/4TjyQZ5xcuxCYFgfnRm76k",
+        "x": 5,
+        "y": 7
+      },
+      {
+        "type": "outlink",
+        "title": "The Scope",
+        "url": "https://claude.ai/artifact/MjuzPyN2CXcdYmN4MRxqJY",
+        "x": 7,
+        "y": 7
+      },
+      {
+        "type": "label",
+        "title": "The idea",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 9
+      },
+      {
+        "type": "quote",
+        "title": "The organizing idea",
+        "w": 4,
+        "h": 3,
+        "body": ">> The desk *is* the app. There is no toolbar and no sidebar, only the grid.",
+        "x": 1,
+        "y": 10
+      },
+      {
+        "type": "note",
+        "title": "Comparables",
+        "body": "**Things 3 —** for how a task feels\n**Bear —** for how writing feels\n**Obsidian —** for what to avoid: infinite nesting and file soup",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 10
+      },
+      {
+        "type": "note",
+        "title": "Not a product",
+        "body": "Bureau is not for other people. Every design decision is made for **one user**. It is used, for now, to fiddle with rather than live in, and the gap is a layout that fits an actual life.",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 13
+      },
+      {
+        "type": "note",
+        "title": "The axis now: functions",
+        "body": "What a paper desk lets you *do*: file, annotate, cross-reference, clip, stamp, copy, tear out, pin, date, archive. Fifteen of them are scoped in `docs/FUNCTIONS.md`. Look work is no longer the default answer to \"what now\".",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 13
+      },
+      {
+        "type": "label",
+        "title": "Vocabulary",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 16
+      },
+      {
+        "type": "deck",
+        "title": "Glossary",
+        "seed": false,
+        "children": [
+          {
+            "type": "card",
+            "title": "Desk",
+            "body": "The home board. Free: as big as what is on it, plus eight empty cells each side."
+          },
+          {
+            "type": "card",
+            "title": "Board",
+            "body": "What a container opens onto. A grid of square cells, eight across on a phone."
+          },
+          {
+            "type": "card",
+            "title": "Tile",
+            "body": "A stretch of a board, 8 × 14 in a container by default. More are laid by holding the wood beside it."
+          },
+          {
+            "type": "card",
+            "title": "Drawer",
+            "body": "A container. In the code, anything carrying the `container` attribute."
+          },
+          {
+            "type": "card",
+            "title": "Bench",
+            "body": "A container set up so one activity is easier in it than anywhere else. Once called a flow; `plan` in the code."
+          },
+          {
+            "type": "card",
+            "title": "Face",
+            "body": "How a container shows its contents on the outside: a front, a checklist, a calendar, a spine."
+          },
+          {
+            "type": "card",
+            "title": "Shape",
+            "body": "A thing's outline: card, note, page, plaque, postcard and the rest."
+          },
+          {
+            "type": "card",
+            "title": "Drawer front",
+            "body": "The rail across the bottom on a phone: glass, letter block, knob, padlock. Six places hold any object."
+          },
+          {
+            "type": "card",
+            "title": "Top lip",
+            "body": "The board's name, big and on the left, with the gear at its right."
+          },
+          {
+            "type": "card",
+            "title": "Carcass",
+            "body": "The wood around the boards."
+          },
+          {
+            "type": "card",
+            "title": "Notepad",
+            "body": "A ruled line. Write and press return: it becomes what it reads as."
+          },
+          {
+            "type": "card",
+            "title": "Inbox",
+            "body": "A container that makes whatever it reads as. Copper pipes tied to it carry each kind away."
+          },
+          {
+            "type": "card",
+            "title": "Rubber stamp",
+            "body": "Press it, then press things: each carries an impression and today's date."
+          },
+          {
+            "type": "card",
+            "title": "Spool",
+            "body": "Press it, then two things, and they are tied with string."
+          },
+          {
+            "type": "card",
+            "title": "Spiral coin",
+            "body": "Toss it and it makes one of anything, somewhere on the board."
+          },
+          {
+            "type": "card",
+            "title": "Garbage bin",
+            "body": "Where a delete goes. Hold one to put it back."
+          }
+        ],
+        "x": 1,
+        "y": 17
+      },
+      {
+        "type": "note",
+        "title": "The fifteen",
+        "body": "Timothy's master categories, which lead the picker:\n\nDrawer · List · Calendar · Tag · Text · Collage · Jar · Card · Paper · Picture · Video · Audio · Decoration · Doodad · Portal",
+        "w": 3,
+        "h": 3,
+        "x": 3,
+        "y": 17
+      },
+      {
+        "type": "note",
+        "title": "Ready benches",
+        "body": "Brain Dump · Prioritizer · Short Film · Feature Film · Brainstorm · Story Builder · Journal\n\nEvery other stock bench is shelved, not deleted. Add a key to `BENCH_READY` to bring one back.",
+        "w": 3,
+        "h": 3,
+        "x": 6,
+        "y": 17
+      },
+      {
+        "type": "label",
+        "title": "How it is built",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 20
+      },
+      {
+        "type": "note",
+        "title": "Five rules",
+        "body": "1. **Rendering is full re-render.** `render()` rebuilds `#app` from `S`.\n2. **An animation never holds anything up.**\n3. **Events are delegated**, through `data-act` and one listener set.\n4. **Everything is an object; containing is an attribute.**\n5. **Never branch on a type's name.** Ask `has(o,'check')`.",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 21
+      },
+      {
+        "type": "note",
+        "title": "The modules",
+        "body": "| Module | Holds |\n| --- | --- |\n| model.js | ATTRS, KINDS, the heart |\n| grid.js | Cells, boxes, free spots |\n| tiles.js | How a thing looks |\n| views.js | The desk and a drawer |\n| gestures.js | Drag, hold, swipe |\n| motion.js | Every movement |\n| persist.js | Storage, migrations, paste |\n| wire.js | The one listener |",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 21
+      },
+      {
+        "type": "note",
+        "title": "Shipping a change",
+        "body": "- Check it in WebKit first: `node test/safari.mjs`\n- The smoke suite is the gate\n- Bump `CACHE` and `APP_VERSION` together\n- A new file goes in `SHELL`\n- Pushing to main deploys to Pages",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 24
+      },
+      {
+        "type": "note",
+        "title": "Invariants that bite",
+        "body": "- Layouts are stored **per device**\n- Cells are square and measured, never assumed\n- Never round the cell size\n- `byId(ROOT)` is undefined: ask `container()`\n- Image bytes live in IndexedDB, never in the JSON\n- Anything that changes a field pushes an undo",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 24
+      },
+      {
+        "type": "label",
+        "title": "Open questions",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 27
+      },
+      {
+        "type": "question",
+        "title": "Edges closed or open?",
+        "body": "On a bench's board, closed by default and open on a drawer you made? Or always open unless a bench says so? (NAVIGATION §9)",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 28
+      },
+      {
+        "type": "question",
+        "title": "Name the tiles?",
+        "body": "Stations: worth naming tiles? The biggest new idea in the navigation scope, and the one Film and Story Builder most want.",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 28
+      },
+      {
+        "type": "question",
+        "title": "Story Builder as five stations?",
+        "body": "An act per tile, or keep the journey on one tile and make it bigger?",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 31
+      },
+      {
+        "type": "question",
+        "title": "Which tools to make?",
+        "body": "The compass, the loupe, the ribbon, the pencil ledge: which, if any?",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 31
+      },
+      {
+        "type": "label",
+        "title": "History",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 34
+      },
+      {
+        "type": "timeline",
+        "title": "How it got here",
+        "w": 8,
+        "h": 3,
+        "children": [
+          {
+            "type": "appt",
+            "title": "Merge and push without asking",
+            "due": "2026-08-27",
+            "body": "The standing instruction: once tested, finished work goes to main."
+          },
+          {
+            "type": "appt",
+            "title": "Intent recorded",
+            "due": "2026-09-06",
+            "body": "Functions are the axis. The margin ships first."
+          },
+          {
+            "type": "appt",
+            "title": "Things that sit on a desk",
+            "due": "2026-09-21",
+            "body": "Jar, nameplate, string, metronome, hourglass, candle, bell, clock, die."
+          },
+          {
+            "type": "appt",
+            "title": "The camera tabled",
+            "due": "2026-09-23",
+            "body": "A note scales up into its surface instead."
+          },
+          {
+            "type": "appt",
+            "title": "Scope artifact",
+            "due": "2026-09-28",
+            "body": "Knobs for each aspect of life, verbs for each bench."
+          },
+          {
+            "type": "appt",
+            "title": "Safari first, American English",
+            "due": "2026-09-30",
+            "body": "The phone is the primary test."
+          },
+          {
+            "type": "appt",
+            "title": "The grammar",
+            "due": "2026-10-01",
+            "body": "How Claude builds boards reliably."
+          },
+          {
+            "type": "appt",
+            "title": "Navigation scoped",
+            "due": "2026-10-03",
+            "body": "Gear on the top lip; the bench skill. v2.98."
+          }
+        ],
+        "x": 1,
+        "y": 35
+      }
+    ]
+  },
+  {
+    "type": "project",
+    "title": "Composer's Key",
+    "color": 12,
+    "children": [
+      {
+        "type": "note",
+        "title": "What it is",
+        "body": "A top-down puzzle game where sound is the tool. Coda carries the Composer's Key and fires sound waves through horns, strings, drums and flutes to play the phrase each lock wants.\n\nThis repo is the **browser prototype**: a fast-iteration harness for mechanics, which port back into the **Unity** project. No build, no engine. Open a page, paint a room, hear it.\n\n| | |\n| --- | --- |\n| **World** | 18 rooms in six areas, 13 × 13 each |\n| **Look** | Black and white, sketchy white line-work |\n| **Tiles** | 51 × 51 px |",
+        "w": 8,
+        "h": 5,
+        "x": 1,
+        "y": 3
+      },
+      {
+        "type": "outlink",
+        "title": "Play it",
+        "url": "https://starrysidekick.github.io/Composers-Prototype/",
+        "x": 1,
+        "y": 8
+      },
+      {
+        "type": "outlink",
+        "title": "The repository",
+        "url": "https://github.com/StarrySidekick/Composers-Prototype",
+        "x": 3,
+        "y": 8
+      },
+      {
+        "type": "outlink",
+        "title": "Asset review",
+        "url": "https://claude.ai/artifact/9WZenE4ds34khFiRf5TR91",
+        "x": 5,
+        "y": 8
+      },
+      {
+        "type": "metronome",
+        "title": "The Atrium's tempo",
+        "x": 7,
+        "y": 8
+      },
+      {
+        "type": "label",
+        "title": "The world",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 12
+      },
+      {
+        "type": "list",
+        "title": "Areas and moods",
+        "w": 4,
+        "h": 6,
+        "children": [
+          {
+            "type": "note",
+            "title": "The Discord",
+            "body": "**E phrygian · tense · 108 bpm**\n\nThe Discord, The Coda, The Unresolved Chord"
+          },
+          {
+            "type": "note",
+            "title": "The Bell Tower",
+            "body": "**G mixolydian · confident · 100 bpm**\n\nThe Triad, The Stand, The Stair"
+          },
+          {
+            "type": "note",
+            "title": "The Cloister",
+            "body": "**D dorian · reflective · 100 bpm**\n\nThe Valve, Left and Right, The Slide"
+          },
+          {
+            "type": "note",
+            "title": "The Undercroft",
+            "body": "**A aeolian · sad · 88 bpm**\n\nThe Kit, The Quiet Room, The Keyboard Floor"
+          },
+          {
+            "type": "note",
+            "title": "The Reed Gallery",
+            "body": "**F lydian · mysterious · 96 bpm**\n\nThe Flute, The Reed Loft"
+          },
+          {
+            "type": "note",
+            "title": "The Atrium",
+            "body": "**C ionian · content · 104 bpm**\n\nMetronome, First Breath, Crossroads, Crossing"
+          }
+        ],
+        "x": 1,
+        "y": 13
+      },
+      {
+        "type": "list",
+        "title": "Rooms, in order",
+        "w": 4,
+        "h": 6,
+        "children": [
+          {
+            "type": "note",
+            "title": "The Unresolved Chord",
+            "body": "The boss: echo its call, resolve its swarm, answer with a chord."
+          },
+          {
+            "type": "note",
+            "title": "The Coda",
+            "body": "The last lock listens to the whole world for la-sol-mi-do."
+          },
+          {
+            "type": "note",
+            "title": "The Discord",
+            "body": "Dissonants walk on the beat. A wave resolves them. The score gate wants nine."
+          },
+          {
+            "type": "note",
+            "title": "The Stair",
+            "body": "The lock wants A; the room is in G. Each step up raises the key."
+          },
+          {
+            "type": "note",
+            "title": "The Stand",
+            "body": "Carry the reed from the Reed Loft and set it on the stand."
+          },
+          {
+            "type": "note",
+            "title": "The Triad",
+            "body": "Three horns, three forks. Needs three waves in the air at once. The Burin is here."
+          },
+          {
+            "type": "note",
+            "title": "The Slide",
+            "body": "Every pull of the slide plays the horn's new note."
+          },
+          {
+            "type": "note",
+            "title": "Left and Right",
+            "body": "Find where to stand so the wave meets each head."
+          },
+          {
+            "type": "note",
+            "title": "The Valve",
+            "body": "One horn, two forks. Turn the valve, blow again."
+          },
+          {
+            "type": "note",
+            "title": "The Keyboard Floor",
+            "body": "Step on K to swing the mallet; press B on the lock to hear its phrase."
+          },
+          {
+            "type": "note",
+            "title": "The Quiet Room",
+            "body": "Three string runs, three lengths, three pitches."
+          },
+          {
+            "type": "note",
+            "title": "The Kit",
+            "body": "Drums are mirrors, and only the head reflects."
+          },
+          {
+            "type": "note",
+            "title": "The Reed Loft",
+            "body": "A reed keeps breathing: a wave every beat for a few beats."
+          },
+          {
+            "type": "note",
+            "title": "The Flute",
+            "body": "The note leaves by the first open hole. Cover holes to choose it."
+          },
+          {
+            "type": "note",
+            "title": "Crossing",
+            "body": "One wave, two locks, and a circuit that has to get past itself."
+          },
+          {
+            "type": "note",
+            "title": "Crossroads",
+            "body": "The tee divides the wave: half out of the bell below, half onward."
+          },
+          {
+            "type": "note",
+            "title": "First Breath",
+            "body": "Face right and press A. The wave travels one tile per sixteenth note."
+          },
+          {
+            "type": "note",
+            "title": "The Metronome",
+            "body": "Silence until you press B on it; then the tune starts on the next beat."
+          }
+        ],
+        "x": 5,
+        "y": 13
+      },
+      {
+        "type": "note",
+        "title": "How the rooms join",
+        "body": "Rooms sit on a grid, north to south. Solve a room and its door opens.\n\n**North —** Reed Loft, Flute\n**The Atrium row —** Metronome, Brass 01, Brass 02, Brass 03, Triad\n**Below it —** Keys 01, Strings 01, Percussion 01, Stand\n**The Cloister row —** Brass 04, Percussion 02, Brass 05, Stair\n**The Discord —** Unresolved Chord, Coda, Hall\n\nA shortcut from the Reed Loft back to Brass 01 opens only from the far side.",
+        "w": 8,
+        "h": 4,
+        "x": 1,
+        "y": 19
+      },
+      {
+        "type": "label",
+        "title": "Mechanics",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 23
+      },
+      {
+        "type": "deck",
+        "title": "Instruments",
+        "seed": false,
+        "children": [
+          {
+            "type": "card",
+            "title": "Horn",
+            "body": "Mouthpiece in, bells out. Tees divide a wave; valves turn; every tubing structure is a horn."
+          },
+          {
+            "type": "card",
+            "title": "Slide",
+            "body": "An instrument on its own: every pull plays the horn's new note."
+          },
+          {
+            "type": "card",
+            "title": "Strings",
+            "body": "Three runs, three lengths, three pitches. Pegs face their string."
+          },
+          {
+            "type": "card",
+            "title": "Piano keys",
+            "body": "Stepped on, they swing a mallet. They autotile, sixteen cases."
+          },
+          {
+            "type": "card",
+            "title": "Drums",
+            "body": "Mirrors in 45° steps. Only the head reflects; the back swallows the wave."
+          },
+          {
+            "type": "card",
+            "title": "Flute",
+            "body": "The fingering picks the note and the way out: the first open hole."
+          },
+          {
+            "type": "card",
+            "title": "Reed",
+            "body": "Keeps breathing: a wave a beat for several beats."
+          },
+          {
+            "type": "card",
+            "title": "Hi-hat",
+            "body": "Ticks. No puzzle yet."
+          },
+          {
+            "type": "card",
+            "title": "Strumentino",
+            "body": "A blank per-face instrument. No puzzle yet."
+          },
+          {
+            "type": "card",
+            "title": "The Burin",
+            "body": "Lifts drums and reeds into the satchel (L) and turns the one in hand (R)."
+          },
+          {
+            "type": "card",
+            "title": "Overtones",
+            "body": "An upgrade: more waves in the air at once."
+          },
+          {
+            "type": "card",
+            "title": "Dissonant",
+            "body": "A sour note that walks on the beat and shoves Coda. Any wave resolves it."
+          }
+        ],
+        "x": 1,
+        "y": 24
+      },
+      {
+        "type": "note",
+        "title": "Everything in time",
+        "body": "The wave travels **one tile per sixteenth note** at the room's bpm, and every sound is synchronized to it. `test/timing.mjs` checks it. Waves carry on through open doors, and a lock can listen to the whole world.",
+        "w": 3,
+        "h": 3,
+        "x": 3,
+        "y": 24
+      },
+      {
+        "type": "note",
+        "title": "Keys, modes, motif",
+        "body": "Each area is one key, mode and tempo, with a title card. Stairs climb: up raises the key. A four-bar motif gains a layer per solved room, ten in all, played in each area's mode.",
+        "w": 3,
+        "h": 3,
+        "x": 6,
+        "y": 24
+      },
+      {
+        "type": "label",
+        "title": "Open questions",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 27
+      },
+      {
+        "type": "question",
+        "title": "Should dissonance matter?",
+        "body": "A sour wave still lights every lock. Should note locks reject soured notes, or a sour wave fail to light a fork?",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 28
+      },
+      {
+        "type": "question",
+        "title": "Is the boss fun on a phone?",
+        "body": "Phase three wants the longest horn first and a beat to land all three. Fun or fiddly?",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 28
+      },
+      {
+        "type": "question",
+        "title": "Does the tune work?",
+        "body": "The motif was composed blind. Nobody has listened to it yet: judge it by ear.",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 31
+      },
+      {
+        "type": "question",
+        "title": "Hi-hat and strumentino?",
+        "body": "Both are in the game with no puzzle of their own. What should each one do?",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 31
+      },
+      {
+        "type": "label",
+        "title": "Porting to Unity",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 34
+      },
+      {
+        "type": "note",
+        "title": "The Y axis trap",
+        "body": "The prototype is **+y down**. Unity 2D is **+y up**, so every rotation flips.\n\n| | here | Unity |\n| --- | --- | --- |\n| CW | (-y, x) | (y, -x) |\n| up | (0, -1) | (0, 1) |\n\nCopy the intent (`Redirect90CW`), not the arithmetic.",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 35
+      },
+      {
+        "type": "note",
+        "title": "File map",
+        "body": "| Prototype | Unity |\n| --- | --- |\n| sound-wave.js | SoundWaveState.cs |\n| music.js | MusicalState.cs |\n| beat-clock.js | Tempo Manager.cs |\n| doodad.js | IWaveInteractable.cs |",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 35
+      },
+      {
+        "type": "checklist",
+        "title": "Port next",
+        "w": 4,
+        "h": 6,
+        "children": [
+          {
+            "type": "task",
+            "title": "The Unresolved Chord",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "The dissonant",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Waves through open doors",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Stairs that change the key",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "The Burin and the satchel",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Overtones",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Flute and reed",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Mirror drums",
+            "due": null
+          }
+        ],
+        "x": 1,
+        "y": 38
+      },
+      {
+        "type": "note",
+        "title": "Art protocol",
+        "body": "Black and white. A **3 px** main line. Ornament grows from the form. 51 × 51 tiles. Joined pieces change texture to show it.\n\nReal art exists for **15** slots; **41** are still placeholders.",
+        "w": 4,
+        "h": 4,
+        "x": 5,
+        "y": 38
+      },
+      {
+        "type": "task",
+        "title": "Drop the GDD into docs/",
+        "due": null,
+        "x": 5,
+        "y": 42
+      },
+      {
+        "type": "task",
+        "title": "Copy Unity's Assets/Sprites across",
+        "due": null,
+        "x": 5,
+        "y": 43
+      },
+      {
+        "type": "label",
+        "title": "History",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 44
+      },
+      {
+        "type": "timeline",
+        "title": "How it got here",
+        "w": 8,
+        "h": 3,
+        "children": [
+          {
+            "type": "appt",
+            "title": "Room report",
+            "due": "2026-09-06",
+            "body": "Says what a room does: its pitch range, the piece that carries it, the piece nothing reaches."
+          },
+          {
+            "type": "appt",
+            "title": "Art parity",
+            "due": "2026-10-01",
+            "body": "Black and white line-work; square rooms; doors lead to rooms."
+          },
+          {
+            "type": "appt",
+            "title": "The play screen",
+            "due": "2026-10-02",
+            "body": "Zelda-style bars, movable controls, Coda moves like Link."
+          },
+          {
+            "type": "appt",
+            "title": "The dungeon pass",
+            "due": "2026-10-03",
+            "body": "Sixteen interconnected rooms, woodwinds, the Burin, a motif that grows."
+          },
+          {
+            "type": "appt",
+            "title": "After playing it",
+            "due": "2026-10-04",
+            "body": "The boss, the metronome room, typing that sings, floors tinted by mode."
+          }
+        ],
+        "x": 1,
+        "y": 45
+      }
+    ]
+  },
+  {
+    "type": "project",
+    "title": "EveryPark",
+    "color": 10,
+    "children": [
+      {
+        "type": "note",
+        "title": "What it is",
+        "body": "An interactive map of **every publicly accessible outdoor place** in Connecticut and New York, built to be released.\n\nEverything is precomputed. The site fetches no live data and does no classification in the browser: a visit costs about **290 KB and a third of a second**.\n\n>> Find a park near me, verified that it's a good park, go there and get all the info.",
+        "w": 8,
+        "h": 5,
+        "x": 1,
+        "y": 3
+      },
+      {
+        "type": "counter",
+        "title": "Places",
+        "count": 24202,
+        "w": 5,
+        "h": 1,
+        "x": 1,
+        "y": 8
+      },
+      {
+        "type": "label",
+        "title": "places",
+        "w": 3,
+        "h": 1,
+        "x": 6,
+        "y": 8
+      },
+      {
+        "type": "outlink",
+        "title": "Open the map",
+        "url": "https://everypark.starrysidekick.com",
+        "x": 1,
+        "y": 9
+      },
+      {
+        "type": "outlink",
+        "title": "The repository",
+        "url": "https://github.com/StarrySidekick/EveryPark",
+        "x": 3,
+        "y": 9
+      },
+      {
+        "type": "outlink",
+        "title": "Icons to draw",
+        "url": "https://github.com/StarrySidekick/EveryPark/blob/main/docs/ASSETS-NEEDED.md",
+        "x": 5,
+        "y": 9
+      },
+      {
+        "type": "outlink",
+        "title": "Start here",
+        "url": "https://github.com/StarrySidekick/EveryPark/blob/main/docs/START-HERE.md",
+        "x": 7,
+        "y": 9
+      },
+      {
+        "type": "label",
+        "title": "What the map answers",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 11
+      },
+      {
+        "type": "card",
+        "title": "Can I go there?",
+        "body": "Green fill is public land. The popup says whether by right or by the owner's permission.",
+        "x": 1,
+        "y": 12
+      },
+      {
+        "type": "card",
+        "title": "Who runs it?",
+        "body": "Border color: state green, federal brown, town blue, land trust teal, cemetery purple.",
+        "x": 3,
+        "y": 12
+      },
+      {
+        "type": "card",
+        "title": "What kind of place?",
+        "body": "The pin's icon, plus chips for trails, water, sports, playground, historic and parking.",
+        "x": 5,
+        "y": 12
+      },
+      {
+        "type": "card",
+        "title": "How do I get there?",
+        "body": "Every road both states record, drawn at every zoom: 617,634 of them, with footpaths.",
+        "x": 7,
+        "y": 12
+      },
+      {
+        "type": "label",
+        "title": "How it works",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 15
+      },
+      {
+        "type": "note",
+        "title": "The data files",
+        "body": "| File | Size | Holds |\n| --- | --- | --- |\n| places.json | ~2 MB | Every place, classified |\n| everypark.pmtiles | 13.6 MB | Boundaries and trails, zooms 6–14 |\n| roads.pmtiles | 65 MB | 617,634 roads, none dropped at any zoom |",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 16
+      },
+      {
+        "type": "note",
+        "title": "Publishing: one rule",
+        "body": "!!! Data flows only through the Actions.\n\nEdit `data/verified.json` or code, commit, push. `publish.yml` applies it and deploys in about ninety seconds. A local deploy must never touch `data/`.",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 16
+      },
+      {
+        "type": "note",
+        "title": "How sure is it?",
+        "body": "CT is **72%** verified, NY **60%**, and the two do not rest on the same kind of evidence. The app shows a binary today where the data supports a gradient: `researched`, `sources`, `checked`.",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 19
+      },
+      {
+        "type": "note",
+        "title": "The 3D view",
+        "body": "An isometric island per park, elevation mapped onto the polygon, season and time of day changing the palette. **The centerpiece**, not a novelty beside the map.",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 19
+      },
+      {
+        "type": "label",
+        "title": "What is next",
+        "w": 8,
+        "h": 1,
+        "x": 1,
+        "y": 22
+      },
+      {
+        "type": "checklist",
+        "title": "In order",
+        "w": 4,
+        "h": 6,
+        "children": [
+          {
+            "type": "task",
+            "title": "Population centers on the roads",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "More detail in the 3D view",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Show how sure the data is",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Depth on land that can be verified",
+            "due": null
+          }
+        ],
+        "x": 1,
+        "y": 23
+      },
+      {
+        "type": "checklist",
+        "title": "Icons to draw",
+        "w": 4,
+        "h": 6,
+        "children": [
+          {
+            "type": "task",
+            "title": "Sports sprites, isometric",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "The rest of the card icons",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Grouped buildings for the 3D view",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "Trail, water, wooded, field, parking",
+            "due": null
+          },
+          {
+            "type": "task",
+            "title": "The four verdict glyphs",
+            "due": null
+          }
+        ],
+        "x": 5,
+        "y": 23
+      },
+      {
+        "type": "question",
+        "title": "A gradient, but how?",
+        "body": "Which signals make a place \"sure\": a cited source, a site visit, an official list? And how should a pin show it?",
+        "w": 4,
+        "h": 3,
+        "x": 1,
+        "y": 29
+      },
+      {
+        "type": "question",
+        "title": "Easements: hide or dim?",
+        "body": "Shaky-provenance spots are deprioritized, not deleted. Should they look different on the map?",
+        "w": 4,
+        "h": 3,
+        "x": 5,
+        "y": 29
+      },
+      {
+        "type": "note",
+        "title": "Not next",
+        "body": "**More states.** New York and Connecticut only for now; New England eventually. Each state costs a rules audit, not just a fetch.",
+        "w": 8,
+        "h": 2,
+        "x": 1,
+        "y": 32
+      }
+    ]
+  }
+]

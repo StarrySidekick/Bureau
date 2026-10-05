@@ -86,8 +86,10 @@ A paste is a JSON **array of specs** (a single spec also works). Fences
 | `loc` | Location | Text |
 | `url` | A web address | On a Button or Portal it becomes where the press goes. |
 | `answer` | An answer | For a Question. |
+| `x`, `y` | Where, inside a container the paste made | 1-based cells on that container's board. Honored only where the box is free (a tiled board grows down to reach it); otherwise it is placed as usual. A board given positions opens on its first tile. Never on the desk. |
+| `seed` | `false` leaves out what the type is born holding | A deck's blank *Write on me* card, a project's *Add to this…* notepad. |
 
-Anything else in a spec is **ignored**, including `x`/`y`, `rel`, `milestones`,
+Anything else in a spec is **ignored**, including `rel`, `milestones`,
 `media` and every look field. Not an error: it simply does not arrive.
 
 ## 4. Building on a bench: `plan`, `fill`, `children`
@@ -141,7 +143,11 @@ loose `children` is the fallback for when nothing fits.
 This is the gap between the grammar and the flat-pack, and the list of what
 the flat-pack format has to add. Each is a real limit today, not a convention.
 
-1. **Place.** No `x`/`y`: things land at the first free spot.
+1. **Place on the desk.** `x`/`y` work only inside a container the paste
+   made (§3); a top-level spec lands at the first free spot. Without `x`/`y`,
+   the free spot fans out from a tile's middle, so a paste's order does not
+   decide its layout. `docs/examples/wiki.json` (made by
+   `scripts/wiki-paste.mjs`) is a laid-out board written this way.
 2. **Put things into an existing drawer.** A paste always starts on the desk.
 3. **Tie with string.** `rel` holds ids, and a paste has no way to name
    another object in the same paste. Compounds do this already, with local
