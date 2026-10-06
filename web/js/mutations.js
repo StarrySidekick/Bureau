@@ -825,28 +825,43 @@ function stackMove(label, st, dv, place){
   place();
   save(); render();
 }
+/* Where each of `os` goes to lie as a pile or a fan at the first one's
+   corner, or null when the board will not take them there (a fan may grow a
+   tiled board a page first). `layStack()` puts them there, grouped, each a
+   sheet higher than the last; a paste's `pile` and `fan` use it too. */
+function stackBoxes(os, form, dv, home, at){
+  const a = at || lay(os[0], dv, home);
+  const boxes = os.map((x, i)=>({x:a.x, y:a.y + (form==='fan' ? i : 0), w:lay(x, dv, home).w, h:lay(x, dv, home).h}));
+  const fits = () => boxes.every((b, i)=>boxOver(b, os[i].id, dv, home));
+  if(form==='fan') for(let n = 0; n < 6 && !fits(); n++) if(!growDown(home)) break;
+  return fits() ? boxes : null;
+}
+function layStack(os, form, dv, home, boxes){
+  boxes = boxes || stackBoxes(os, form, dv, home);
+  if(!boxes) return false;
+  const g = os.map(x=>x.grp).find(Boolean) || uid('g');
+  os.forEach((x, i)=>{ x[dv] = boxes[i]; x.z = i+1; x.grp = g; });
+  return true;
+}
 function squareStack(id){
   const o = byId(id), st = o ? stackOf(o) : [];
   if(st.length < 2) return false;
-  const dv = dev(), home = o.parent||ROOT, a = lay(st[0], dv, home);
+  const dv = dev(), home = o.parent||ROOT;
+  // at the bottom sheet's corner, the one you held on top
   const order = st.filter(x=>x.id!==id).concat(o);
-  const boxes = order.map(x=>({x:a.x, y:a.y, w:lay(x, dv, home).w, h:lay(x, dv, home).h}));
-  if(!boxes.every((b, i)=>boxOver(b, order[i].id, dv, home))){ toast('No room to square them up there'); return false; }
-  const g = order.map(x=>x.grp).find(Boolean) || uid('g');
-  stackMove('Squared up', order, dv, ()=>order.forEach((x, i)=>{ x[dv] = boxes[i]; x.z = i+1; x.grp = g; }));
+  const boxes = stackBoxes(order, 'pile', dv, home, lay(st[0], dv, home));
+  if(!boxes){ toast('No room to square them up there'); return false; }
+  stackMove('Squared up', order, dv, ()=>layStack(order, 'pile', dv, home, boxes));
   toast(`A pile of ${order.length}: tap it to look through`, true);
   return true;
 }
 function fanStack(id){
   const o = byId(id), st = o ? stackOf(o) : [];
   if(st.length < 2) return false;
-  const dv = dev(), home = o.parent||ROOT, a = lay(st[0], dv, home);
-  const boxes = st.map((x, i)=>({x:a.x, y:a.y + i, w:lay(x, dv, home).w, h:lay(x, dv, home).h}));
-  // a tiled board grows a page to take the column, the way a paste's does
-  for(let n = 0; n < 6 && !boxes.every((b, i)=>boxOver(b, st[i].id, dv, home)); n++) if(!growDown(home)) break;
-  if(!boxes.every((b, i)=>boxOver(b, st[i].id, dv, home))){ toast('No room to fan them out here'); return false; }
-  const g = st.map(x=>x.grp).find(Boolean) || uid('g');
-  stackMove('Fanned out', st, dv, ()=>st.forEach((x, i)=>{ x[dv] = boxes[i]; x.z = i+1; x.grp = g; }));
+  const dv = dev(), home = o.parent||ROOT;
+  const boxes = stackBoxes(st, 'fan', dv, home);
+  if(!boxes){ toast('No room to fan them out here'); return false; }
+  stackMove('Fanned out', st, dv, ()=>layStack(st, 'fan', dv, home, boxes));
   toast(`${st.length} fanned out, every name showing`, true);
   return true;
 }
@@ -1653,19 +1668,33 @@ function roll(o, depth){
 function furnish(o, depth){
   if(!o) return o;
   roll(o, depth||0);
+  return mediaFor(o);
+}
+/* **What a thing that shows something is given to show** (split out of
+   furnish() for decision 309): a painting from its gallery, a picture, a
+   record, a clip, a portal's opening and somewhere for it to go, a collage's
+   pictures. `which` names one (`'a07'`, `'p03'`, `'s02'`, `'v05'`) where a
+   shipped board wants a particular one; otherwise it is any. Nothing it has
+   already is replaced. */
+function mediaFor(o, which){
+  if(!o) return o;
+  const one = list => { const w = typeof which==='string' && which ? list.find(x=>String(x.f).startsWith(which)) : null;
+    return w || list[Math.floor(Math.random()*list.length)]; };
   const gal = galleryOf(o);
-  if(gal && !(o.media && (o.media.src||o.media.assetId))){
-    hangPainting(o, gal[Math.floor(Math.random()*gal.length)]);
-  } else if(isPicture(o) && !isDecor(o) && !(o.media && (o.media.src||o.media.assetId))){
-    const p = samplePicture(); if(p) o.media = pictureMedia(p);
-  } else if(mediaTypeOf(o)==='audio' && SOUNDS.length && !(o.media && (o.media.src||o.media.assetId))){
-    const c = pick(SOUNDS);
+  // one asked for by name replaces whatever it was born holding
+  const kept = !!(o.media && (o.media.src||o.media.assetId)) && !(typeof which==='string' && which);
+  if(gal && !kept){
+    hangPainting(o, one(gal));
+  } else if(isPicture(o) && !isDecor(o) && !kept){
+    const p = typeof which==='string' && which ? one(PICTURES) : samplePicture(); if(p) o.media = pictureMedia(p);
+  } else if(mediaTypeOf(o)==='audio' && SOUNDS.length && !kept){
+    const c = one(SOUNDS);
     o.media = soundMedia(c);
     if(!o.title || o.title===K(o.kind).nm) o.title = c.t;
-  } else if(mediaTypeOf(o)==='video' && !(o.media && (o.media.src||o.media.assetId))){
-    const c = CLIPS[Math.floor(Math.random()*CLIPS.length)];
+  } else if(mediaTypeOf(o)==='video' && !kept){
+    const c = one(CLIPS);
     o.media = clipMedia(c);
-    if(!o.title) o.title = c.t;
+    if(!o.title || o.title===K(o.kind).nm) o.title = c.t;
   }
   /* A portal the coin or the spiral makes is any of them (decision 223): one
      of the three openings, in any of the aesthetic's object colours. */
@@ -1820,7 +1849,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { squareStack, fanStack, spreadStack, binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { mediaFor, layStack, squareStack, fanStack, spreadStack, binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

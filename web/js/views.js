@@ -973,7 +973,14 @@ function settingsBody(sec, cid){
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="pill" data-act="dashboards">${ic('grid',13)} Put them on the desk</button>
     </div>
-    <div class="mini" style="--k:var(--brass);margin-top:6px">Bureau, Composer’s Key and EveryPark, each a board of what is next, the open questions, and pages about it. One already on the desk is brought up to date, and anything you wrote on it stays.</div>` : '',
+    <div class="mini" style="--k:var(--brass);margin-top:6px">Bureau, Composer’s Key and EveryPark, each a board of what is next, the open questions, and pages about it. One already on the desk is brought up to date, and anything you wrote on it stays.</div>
+    ${/* The Showroom (decision 309): a room for each part of Bureau, laid
+          fresh, the last one to the bin. */''}
+    <div class="section-h" style="margin-top:18px"><h2>Showroom</h2><div class="rule"></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="pill" data-act="showroom">${ic('grid',13)} Lay out a fresh Showroom</button>
+    </div>
+    <div class="mini" style="--k:var(--brass);margin-top:6px">A drawer on the desk with a room for each part of Bureau, every kind of thing in it, to look at and to try. A fresh one replaces the last, which goes to the bin; nothing in it reaches your real Now or calendars.</div>` : '',
     at('about') ? `
 
     <div class="section-h"><h2>Version</h2><div class="rule"></div></div>

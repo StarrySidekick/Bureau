@@ -1,9 +1,10 @@
 import { D, uid, clamp, ROOT, BIN } from './util.js';
-import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev, isGone } from './model.js';
+import { S, K, KINDS, KEYS, kindHas, has, byId, isContainer, refreshKinds, defaultLook, dev, isGone, relate, groupTogether } from './model.js';
 import { WORD_KEYS } from './words.js';
 import { DASH_V, DASHBOARDS } from './dashboards.js';
+import { SHOW_V, SHOWROOM } from './showroom.js';
 import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold, boxOk, growDown } from './grid.js';
-import { toast, create, makeCompound, pushUndo, readLine } from './mutations.js';
+import { toast, create, makeCompound, pushUndo, readLine, mediaFor, layStack, binMany } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
@@ -21,7 +22,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '3.04';
+const APP_VERSION = '3.05';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -288,7 +289,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 63;
+const DATA_V = 64;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1570,6 +1571,11 @@ const MIGRATIONS = [
   {v:63, up(d){
     d.deskCfg = Object.assign({layout:'grid', sort:null}, d.deskCfg, {dashPending:true});
   }},
+  /* ---- the Showroom (decision 309) ------------------------------------
+     Asked for the same way: boot.js lays it with `shipShowroom()`. */
+  {v:64, up(d){
+    d.deskCfg = Object.assign({layout:'grid', sort:null}, d.deskCfg, {showPending:true});
+  }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -2008,9 +2014,15 @@ const PAGES_GUARD = 40;
    back. */
 function packSpot(w, h, dv, parentId, pack, id){
   const cols = gridOf(dv, parentId).cols; w = Math.min(w, cols);
+  /* In reading order nothing lies on anything (decision 309): a zone, a
+     background or a plant floats over the board as far as boxOk() is
+     concerned, so it takes the room it is given here, and what comes after
+     it keeps clear of it, or two zones would land on the same row. */
+  const sibs = S.objects.filter(d=>d.id!==id && (d.parent||ROOT)===parentId && d[dv] && d[dv].x);
+  const clearOfAll = box => !sibs.some(d=>overlaps(box, d[dv]));
   for(let y = pack.floor, n = 0; n < 400; y++, n++){
     for(let g = 0; g < PAGES_GUARD && y+h-1 > gridOf(dv, parentId).rows; g++) if(!growDown(parentId)) return null;
-    for(let x = 1; x+w-1 <= cols; x++){ const box = {x, y, w, h}; if(boxOk(box, id, dv, parentId)) return box; }
+    for(let x = 1; x+w-1 <= cols; x++){ const box = {x, y, w, h}; if(boxOk(box, id, dv, parentId) && clearOfAll(box)) return box; }
   }
   return null;
 }
@@ -2128,8 +2140,12 @@ function addSpec(spec, parentId, tally, ctx){
   const kind = (kids.length && !kindHas(asked,'container')) ? 'drawer' : asked;
   // `"due": null` says undated, where leaving it out takes the type's default
   // `"seed": false` leaves out what the type is born holding (a deck's blank card)
+  /* `"due": "+3"` is three days from the day it is laid (decision 309), so a
+     board that ships can carry a week ahead that is always ahead. */
+  const due = 'due' in spec ? (/^[+-]\d+$/.test(String(spec.due)) ? D.iso(D.add(D.today(), parseInt(spec.due,10))) : spec.due||null) : undefined;
+  if(due!==undefined) spec = Object.assign({}, spec, {due});   // the fields copied below carry it as read
   const o=create(kind,Object.assign({parent:parentId, title:String(spec.title||spec.name||'Untitled')},
-    'due' in spec ? {due:spec.due||null} : {}, spec.seed===false ? {noSeed:true} : {}));
+    due!==undefined ? {due} : {}, spec.seed===false ? {noSeed:true} : {}));
   if(spec.tags) o.tags=[].concat(spec.tags).map(String);
   SPEC_FIELDS.forEach(f=>{ if(spec[f]!=null) o[f]=spec[f]; });
   // a Link keeps its address where the Link reads it
@@ -2145,25 +2161,96 @@ function addSpec(spec, parentId, tally, ctx){
     WORD_KEYS.forEach(k=>{ if(spec.words[k]!=null) o[k]=String(spec.words[k]); });
   // a front that says what is open inside (decision 304)
   if(spec.status) o.status='open';
+  /* ---- the rest of how it looks, and what it shows — decision 309 -------
+     `look` sets the fields the editor's Look and Behavior doors write, by
+     their stored names (LOOK_FIELDS); `dress` gives a picture, a painting, a
+     record, a clip or a portal's opening, `true` for any or a file's name
+     (`"a07"`) for that one. Names (`ref`) are kept for the end of the paste,
+     where `tie` strings things to them and `group` makes them move as one. */
+  if(spec.look && typeof spec.look==='object')
+    LOOK_FIELDS.forEach(k=>{ if(spec.look[k]!==undefined) o[k] = JSON.parse(JSON.stringify(spec.look[k])); });
+  if(spec.dress){
+    // untitled, it takes the name of what it shows: the painting's, the clip's
+    if(!(spec.title||spec.name)) o.title = '';
+    mediaFor(o, spec.dress===true ? null : String(spec.dress));
+    if(!o.title) o.title = (o.media && o.media.label) || K(o.kind).nm;
+    // a collage is hung with pictures, and they are part of the paste too
+    S.objects.forEach(x=>{ if(x.parent===o.id && !tally.made.includes(x.id)) tally.made.push(x.id); });
+  }
+  if(spec.ref) (tally.refs || (tally.refs = {}))[String(spec.ref)] = o.id;
+  if(spec.tie) (tally.ties || (tally.ties = [])).push([o.id, [].concat(spec.tie).map(String)]);
+  if(spec.group){ const g = tally.groups || (tally.groups = {}); (g[spec.group] || (g[spec.group] = [])).push(o.id); }
   marksSpec(o, spec);
   const [dw,dh]=sizeOfKind(kind, dev());
   const w=clamp(parseInt(spec.w,10)||dw,1,gridOf().cols), h=Math.max(1,parseInt(spec.h,10)||dh);
   const pack = ctx && ctx.pack, other = dev()==='phone' ? 'desk' : 'phone';
-  o[dev()]=askedSpot(spec, o, w, h, dev(), parentId)
+  /* **A pile or a fan, laid as one** (decision 309). On a board packed in
+     reading order the first of a stack takes room for all of it (worked
+     out from every member before any is made, `stacksIn()`), and the rest
+     lie on it there: at its corner for a pile, a row lower each for a fan.
+     Its members are written one after another. Anywhere else the stack is
+     laid at the end of the paste, by the same rule the ring uses. */
+  const sname = spec.pile || spec.fan, stk = sname && ctx && ctx.stacks && ctx.stacks[sname];
+  let stacked = false;
+  if(stk && pack && parentId!==ROOT){
+    if(!stk.at){ stk.at = packSpot(Math.min(stk.w, gridOf(dev(), parentId).cols), stk.h, dev(), parentId, pack, o.id); stk.i = 0; stk.grp = uid('g'); }
+    if(stk.at){ o[dev()] = {x:stk.at.x, y:stk.at.y + (stk.form==='fan' ? stk.i : 0), w:Math.min(w, stk.w), h};
+      o.z = stk.i + 1; o.grp = stk.grp; stk.i++; stacked = true; }
+  }
+  if(sname && !stacked){ const st = tally.stacks || (tally.stacks = {});
+    (st[sname] || (st[sname] = {form: spec.fan ? 'fan' : 'pile', ids:[]})).ids.push(o.id); }
+  if(!stacked) o[dev()]=askedSpot(spec, o, w, h, dev(), parentId)
     || (pack && parentId!==ROOT && packSpot(w, h, dev(), parentId, pack, o.id)) || anySpot(w,h,dev(),parentId);
   if(pack && has(o,'heading') && w >= gridOf(dev(), parentId).cols) pack.floor = o[dev()].y;
-  const there = askedSpot(spec, o, w, h, other, parentId)
+  const there = stacked ? Object.assign({}, o[dev()]) : askedSpot(spec, o, w, h, other, parentId)
     || (pack && parentId!==ROOT && boxOk(o[dev()], o.id, other, parentId) ? Object.assign({}, o[dev()]) : null);
   if(there) o[other] = there;
   tally[isContainer(o)?'drawers':'objects']++;
   tally.made.push(o.id);
-  const kidCtx = spec.arrange==='rows' ? {pack:{floor:1}} : null;
+  const kidCtx = spec.arrange==='rows' ? {pack:{floor:1}, stacks:stacksIn(kids, o.id)} : null;
   kids.forEach(c=>addSpec(c, o.id, tally, kidCtx));
   if(kids.length) o.laid = kids.map(c=>specKey(typeof c==='string' ? {title:c} : c)).filter(Boolean);
   /* A board laid out by the paste reads from the top, so it opens on its
      first tile rather than the middle of what is on it (decision 287). */
   if(kidCtx || kids.some(c=>c && c.x!=null && c.y!=null)) o.start={x:0, y:0};
   return o;
+}
+
+/* Each pile or fan among a container's children, and the room it needs:
+   as wide as its widest sheet, and as tall as its tallest (a pile) or as
+   far down as its last sheet reaches, a row lower each (a fan). */
+function stacksIn(kids, parentId){
+  const out = {};
+  kids.forEach(c=>{
+    const nm = c && typeof c==='object' && (c.pile || c.fan); if(!nm) return;
+    const st = out[nm] || (out[nm] = {form: c.fan ? 'fan' : 'pile', n:0, w:1, h:1});
+    const [dw, dh] = sizeOfKind(kindFromName(c.type||c.kind), dev(), parentId);
+    const w = parseInt(c.w,10) || dw, h = parseInt(c.h,10) || dh;
+    st.w = Math.max(st.w, w); st.h = Math.max(st.h, (st.form==='fan' ? st.n : 0) + h); st.n++;
+  });
+  return out;
+}
+/* The fields a spec's `look` may set (decision 309): what the Look and
+   Behavior doors write, by their stored names. Never a box, a parent, an id
+   or a type: those are the paste's own business. */
+const LOOK_FIELDS = ['c','border','stock','panel','plate','knob','knobc','knobsize','kshape','texture','binding','frame',
+  'shape','tsize','seal','vinyl','decor','fill','bimg','does','ctl','genKind','calview','calshow','measure','steps','at',
+  'count','goal','atGoal','wheelc','wink','wfont','bpm','mins','burn','sides','clock','pshape','pstyle','pedge',
+  'suit','back','down','deckTap','faceup','stamps','gum','filter','sort','check','tug','addbox','clfit','proj','onclick','read',
+  'writes','takes','drafted','layout','milestones','sample'];
+/* **What a paste names, settled once it is all made** (decision 309): each
+   `tie` strung to the thing its name points at, each `group` made one, and
+   each pile or fan not already laid by a packed board laid now. Every caller
+   of addSpec() that is a whole paste calls this before its undo move. */
+function settle(tally){
+  const refs = tally.refs || {};
+  (tally.ties || []).forEach(([id, names])=>names.forEach(n=>{ if(refs[n]) relate(id, refs[n]); }));
+  Object.values(tally.groups || {}).forEach(ids=>groupTogether(ids));
+  Object.values(tally.stacks || {}).forEach(st=>{
+    const os = st.ids.map(byId).filter(Boolean);
+    if(os.length > 1) layStack(os, st.form, dev(), os[0].parent || ROOT);
+  });
+  return tally;
 }
 
 /* ---- the shipped dashboards — decision 304 ------------------------------
@@ -2193,11 +2280,44 @@ function shipDashboards(force){
     addSpec(spec, ROOT, tally);
     laid.add(spec.key);
   });
+  settle(tally);
   cfg.dashLaid = [...laid]; cfg.dashV = DASH_V; delete cfg.dashPending;
   if(tally.made.length || tally.sets.length)
     pushUndo('Project dashboards', [...tally.made.map(id=>({add:id})), ...tally.sets]);
   save();
   return tally;
+}
+
+/* ---- the Showroom — decision 309 ------------------------------------------
+   Laid once on a desk from before it (migration 64), laid again **fresh**
+   when `SHOW_V` moves and one is on the desk, and whenever Settings asks
+   (`force`). Fresh, not brought up to date: it is a place to try things, so
+   what was tried in the last one goes to the bin with it, and the new one
+   takes its place on the desk. One thrown away is not put back unasked. The
+   three dashboards are what its wiki cards are tied to (`dash:` names); the
+   button lays any that are missing first. */
+function shipShowroom(force){
+  const cfg = S.deskCfg || (S.deskCfg = {layout:'grid', sort:null});
+  const was = S.objects.find(o=>o.sk==='showroom' && (o.parent||ROOT)===ROOT && !isGone(o));
+  if(!(force || cfg.showPending || (was && (cfg.showV||0) < SHOW_V))) return null;
+  if(force) shipDashboards(true);
+  const dv = dev(), tally = {drawers:0, objects:0, made:[], sets:[], updated:0, refs:{}};
+  ['bureau','composerskey','everypark'].forEach(k=>{
+    const d = S.objects.find(o=>o.sk===k && (o.parent||ROOT)===ROOT && !isGone(o));
+    if(d) tally.refs['dash:'+k] = d.id; });
+  const at = was && was[dv] && was[dv].x ? Object.assign({}, was[dv]) : null;
+  const binned = was ? binMany([was.id]) : [];
+  const box = addSpec(JSON.parse(JSON.stringify(SHOWROOM)), ROOT, tally);
+  if(box){
+    box.sample = true;
+    const want = at && box[dv] ? {x:at.x, y:at.y, w:box[dv].w, h:box[dv].h} : null;
+    if(want && boxOk(want, box.id, dv, ROOT)) box[dv] = want;
+  }
+  settle(tally);
+  cfg.showV = SHOW_V; delete cfg.showPending;
+  pushUndo('Showroom', [...tally.made.map(id=>({add:id})), ...binned]);
+  save();
+  return box ? {box, tally, replaced: !!was} : null;
 }
 
 function pasteObjects(text, parentId){
@@ -2210,7 +2330,7 @@ function pasteObjects(text, parentId){
   const list=Array.isArray(data)?data:[data];
   if(!list.length) return toast('Nothing to add');
   const tally={drawers:0,objects:0,made:[],sets:[],updated:0};
-  try{ list.forEach(sp=>addSpec(sp, parentId||ROOT, tally)); }
+  try{ list.forEach(sp=>addSpec(sp, parentId||ROOT, tally)); settle(tally); }
   catch(e){ toast('Could not read that: '+e.message); return; }
   save(); render();
   const bits=[];
@@ -2225,6 +2345,6 @@ function pasteObjects(text, parentId){
   toast(said || (tally.sets.length ? 'Up to date' : 'Nothing new to add'), !!(tally.made.length || tally.sets.length));
 }
 
-export { aiCfg, setAiCfg, addSpec, dailyBackup, backupBefore, backupList, restoreBackup, shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
+export { shipShowroom, settle, aiCfg, setAiCfg, addSpec, dailyBackup, backupBefore, backupList, restoreBackup, shipDashboards, APP_VERSION, DATA_V, migrate, rescalePhone, rescaleOneBoard, rescaleBoxes, writeNow, save, saveIfDirty, storeSize, load, exportBackup,
   importBackup, assetDel, hydrateAssets, importImage, importMedia, importFile, imgFor,
   pasteObjects, install };

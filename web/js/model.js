@@ -1651,7 +1651,24 @@ reset();
 // which drawer layout we are looking at — the real device, unless you have
 // deliberately opened the other one to arrange it
 const dev = ()=> S.layoutEdit || S.device;
-const byId = id => S.objects.find(o=>o.id===id);
+/* **An index, checked against the array on every use** (decision 309).
+   This was a `find()` over every object, and it is asked for everything:
+   laying a board of six hundred things asked it millions of times through
+   `boxOk()` and took seventeen seconds. The index holds where each id was;
+   a hit counts only if the object at that place still has that id, so a
+   splice, an undo, a reorder or a whole new array can never make it answer
+   with the wrong thing, only send it back to the array. A miss is the old
+   `find()`, and finding something rebuilds the index, which is how a thing
+   just made gets into it. The first of two with one id is the answer, as
+   `find()` gave. */
+let IDX = new Map(), IDX_OF = null;
+function byId(id){
+  const objs = S.objects;
+  if(IDX_OF===objs){ const i = IDX.get(id); if(i!==undefined){ const o = objs[i]; if(o && o.id===id) return o; } }
+  const o = objs.find(x=>x.id===id);
+  if(o){ IDX = new Map(); for(let i = objs.length-1; i >= 0; i--) IDX.set(objs[i].id, i); IDX_OF = objs; }
+  return o;
+}
 
 /* The desk is the root container. It is never drawn as a tile — it is the grid
    everything else starts on. Giving it a real object keeps every code path that
@@ -2691,6 +2708,7 @@ function inContainer(c,o){
        would be in two places — which is the one thing containment promises it
        cannot be. See decision 107. */
     if(isGone(o)) return false;
+    if(sampleOf(o)!==sampleOf(c)) return false;   // a showroom keeps to itself (309)
     if(!inScope(c,o)) return false;    // before anything else: it cannot see it
     if(f.done) return !!o.done;        // the archive
     if(o.done && !keepsDone(c)) return false;   // finished things leave elsewhere
@@ -2977,9 +2995,24 @@ const upOf = id => {
   if(!PARENTS){ PARENTS = new Map(); S.objects.forEach(o=>PARENTS.set(o.id, o)); }
   return PARENTS.get(id);
 };
-let NEXTS = null;
-const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; NEXTS = null; };
-const endPass   = ()=>{ KIDS = null; PARENTS = null; NEXTS = null; };
+let NEXTS = null, SAMPLES = null;
+const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; NEXTS = null; SAMPLES = new Map(); };
+const endPass   = ()=>{ KIDS = null; PARENTS = null; NEXTS = null; SAMPLES = null; };
+/* ---- a board of examples — decision 309 ----------------------------------
+   A container carrying `sample` (the Showroom) is a world of its own to the
+   sorting drawers: what is in it is collected only by a sorting drawer in
+   the same one, and a sorting drawer in it collects only from it. So its
+   dated tasks, open projects and tagged things never reach the real Now,
+   Today or a calendar on the desk, and its own Now shows only its own. The
+   nearest one up, itself included; remembered for the length of a pass. */
+function sampleOf(o){
+  if(!o) return null;
+  if(SAMPLES && SAMPLES.has(o.id)) return SAMPLES.get(o.id);
+  let at = o, n = 0, found = null;
+  while(at && n++ < 32){ if(at.sample){ found = at.id; break; } at = at.parent && at.parent!==ROOT ? upOf(at.parent) : null; }
+  if(SAMPLES) SAMPLES.set(o.id, found);
+  return found;
+}
 /* ---- what to do now — decision 305 -------------------------------------
    A project that reports what is open (`status`, decision 304) has a next
    step: the first thing to check off in its reading order, a board read top
@@ -3932,7 +3965,7 @@ function marginPlus(o, text){
   return t ? marginOf(o).concat({d:D.iso(D.today()), t}) : marginOf(o);
 }
 
-export { stepOf, isNow, linkTarget, linkedFrom, linksIn, homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
+export { sampleOf, stepOf, isNow, linkTarget, linkedFrom, linksIn, homeFor, SMART, makesSmart, COMPOUNDS, isCompound, COUNTS, countsOf, countOf, ATTRS, FIELDS, fieldOf, USER_ATTRS, KINDS, KEYS, refreshKinds, K, searchHits, isDisc,
   attrsOf, has, kindHas, T, dz, S, sensedDevice, reset, defaultLook, dev, byId,
   deskTitle, rootObj, container, cfgOf, ENV_KEYS, ENV_NAMES, isBench, envSync, setting, setSetting, putLook, unsetSetting, benchHere, lookNow, decidedBy, withoutEnv, envDepth, isContainer, FACES, faceOf, layoutOf, SHAPES,
   SHAPES_KEPT, shapeName, shapeChoices,

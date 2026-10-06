@@ -919,6 +919,44 @@ const spreadOut = await page.evaluate(i => { const S = BUREAU.state; S.readId = 
 out.spreadOutGivesEachItsPlace = spreadOut.clear && spreadOut.loose || JSON.stringify(spreadOut);
 await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 
+// ---- the Showroom (decision 309) ---------------------------------------------
+// Laid by its Settings button: a drawer on the desk with a room for each part
+// of Bureau, quick to lay; a tap opens it; a wiki card goes into the real
+// dashboard; nothing in it reaches the desk's Now; the packed parcel unfolds;
+// a fan written in the paste is laid as one, a row apart.
+const sr = await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; S.readId = null; BUREAU.render();
+  const t0 = performance.now(); const r = BUREAU.showroom(true); const ms = Math.round(performance.now() - t0);
+  const sh = r && r.box; BUREAU.render();
+  const el = sh && document.querySelector(`#app [data-drawer="${sh.id}"]`); if (el) el.scrollIntoView({ block: 'center' });
+  return { id: sh && sh.id, ms, sample: !!(sh && sh.sample), rooms: sh ? S.objects.filter(o => o.parent === sh.id && o.kind === 'drawer').map(o => o.title) : [] }; });
+await nap(500);
+await page.locator(`#app [data-drawer="${sr.id}"]`).first().tap(); await nap(900);
+const inRoom = await page.evaluate(id => BUREAU.state.drawerId === id, sr.id);
+await shot('29-showroom');
+const wikiGo = await page.evaluate(() => { const S = BUREAU.state, card = S.objects.find(o => o.parent === S.drawerId && o.kind === 'card' && o.title === 'Bureau');
+  const el = card && document.querySelector(`#app [data-row="${card.id}"]`); if (el) el.scrollIntoView({ block: 'center' });
+  return card && card.id; });
+await nap(500);
+if (wikiGo) await page.locator(`#app [data-row="${wikiGo}"]`).tap(); await nap(1000);
+const wentTo = await page.evaluate(() => { const S = BUREAU.state; return (S.objects.find(o => o.id === S.drawerId) || {}).sk; });
+await shot('29b-wiki');
+const kept = await page.evaluate(id => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const now = S.objects.find(o => o.sk === 'now' && o.parent === 'root'); if (!now) return 'no Now on the desk';
+  const el = document.querySelector(`#app [data-drawer="${now.id}"]`); const words = el ? el.textContent : '';
+  const sr = S.objects.find(o => o.id === id), insideNow = S.objects.find(o => o.kind === 'now' && o.title === 'Now' && o.parent !== 'root' && (S.objects.find(x => x.id === o.parent) || {}).title === 'A desk that helps');
+  return { desk: !/Renew the lens insurance/.test(words), room: !!insideNow }; }, sr.id);
+const parcel = await page.evaluate(() => { const S = BUREAU.state, p = S.objects.find(o => o.kind === 'flatpack' && o.title === 'A weekend in Lisbon' && o.pack);
+  if (!p) return 'no parcel'; BUREAU.unfold(p.id); const b = S.objects.find(o => o.title === 'A weekend in Lisbon' && o.kind === 'project');
+  return { unfolded: !!b, inside: b ? S.objects.filter(o => o.parent === b.id).length : 0, inBin: p.parent === '__bin' }; });
+const fan = await page.evaluate(() => { const S = BUREAU.state, f = t => S.objects.find(o => o.title === t && o.phone);
+  const c = ['1. The radio', '2. The boat', '3. The storm', '4. The light'].map(f);
+  return c.every(Boolean) && c.every((o, i) => o.phone.x === c[0].phone.x && o.phone.y === c[0].phone.y + i && o.z === i + 1 && o.grp === c[0].grp); });
+out.theShowroomHasARoomForEachPart = sr.rooms.length === 12 && sr.sample && sr.ms < 6000 && inRoom || JSON.stringify(sr);
+out.aWikiCardGoesToTheDashboard = wentTo === 'bureau' || JSON.stringify({ wikiGo, wentTo });
+out.itKeepsToItself = kept && kept.desk && kept.room || JSON.stringify(kept);
+out.itsParcelUnfoldsAndItsFanIsLaid = parcel && parcel.unfolded && parcel.inside >= 5 && parcel.inBin && fan || JSON.stringify({ parcel, fan });
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

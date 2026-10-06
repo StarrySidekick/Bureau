@@ -408,6 +408,18 @@ be squared into a pile that drops down as slips when tapped, fanned into a
 column whose names are a contents page, or spread back out. Next along it: a
 paste or Claude laying a pile or a fan directly.
 
+### Added 2026-10-05, last — a showroom
+
+*"create a bunch of example boards to illustrate all the different aspects
+of Bureau and all these new things that we've made so I can kind of see
+them and have that be something that I can just sort of easily access it so
+that when we test I can see these big spreads and everything. And that
+includes the wikis that we've made, of course."* Decision 309: the Showroom,
+a drawer on the desk with a room per part of Bureau and cards into the three
+wikis, laid fresh from Settings → About. **When something new is built, give
+it a place in the Showroom** (`web/js/showroom.js`) and bump `SHOW_V`, so it
+is there to look at when he tests.
+
 ## Deliberately not next
 
 - **Sync between devices.** It is real and it is coming, *after* the feature set

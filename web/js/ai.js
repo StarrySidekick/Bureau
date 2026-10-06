@@ -31,7 +31,7 @@
    none), which keeps them inside the limits on optional and union fields. */
 import { $, esc, ic, D, ROOT, BIN } from './util.js';
 import { S, K, KINDS, KEYS, byId, has, isContainer, childrenOf, container, isCut, isShelved, kindHas, answered, dev, homeFor, faceOf } from './model.js';
-import { aiCfg, setAiCfg, addSpec, backupBefore, save } from './persist.js';
+import { aiCfg, setAiCfg, addSpec, settle, backupBefore, save } from './persist.js';
 import { create, toast, pushUndo, pushSet, becomeKind, binMany } from './mutations.js';
 import { anySpot, boxOk, sizeOfKind } from './grid.js';
 import { openPanel, closePanel, refreshPanel } from './panels.js';
@@ -379,6 +379,7 @@ function unfold(id){
   const binned = binMany([id]);
   const tally = {drawers:0, objects:0, made:[], sets:[], updated:0};
   const b = addSpec(spec, home, tally);
+  settle(tally);
   if(b && at && b[dv]){
     const want = {x:at.x, y:at.y, w:b[dv].w, h:b[dv].h};
     if(boxOk(want, b.id, dv, home)) b[dv] = want;

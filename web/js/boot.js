@@ -29,7 +29,7 @@ import { openingFor, stepDrawer, spray, sprayAt, sprayCount, sprayNow, sprayMark
   applyTilt, tiltTo, tiltRecentre } from './motion.js';
 import { gravityReport, gravitySettle, gravityApply, gravityWake,
   gravityGrab, gravityDrag, gravityDrop } from './gravity.js';
-import { load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup, aiCfg, setAiCfg } from './persist.js';
+import { shipShowroom, load, writeNow, save, hydrateAssets, pasteObjects, migrate, shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup, aiCfg, setAiCfg } from './persist.js';
 import { renderSheet, openWriter, openRead, openViewer, closeSheet, asMarkdown , openZoom, openCard } from './sheet.js';
 import { openPaint, closePaint, paintOpen, PT, artLayer } from './paint.js';
 import { gather } from './mutations.js';
@@ -114,6 +114,11 @@ if(restored){
     toast(t.made.some(id=>(byId(id)||{}).parent===ROOT) ? 'Your project dashboards are on the desk'
       : 'Project dashboards brought up to date', true);
   }
+  /* The Showroom (decision 309): once on a desk from before it, and fresh
+     when the shipped one moves. */
+  const sh = shipShowroom();
+  if(sh){ render(); toast(sh.replaced ? 'A new Showroom is on the desk · the last one is in the bin'
+    : 'The Showroom is on the desk: a room for each part of Bureau', true); }
 }
 save();
 
@@ -180,7 +185,7 @@ window.BUREAU = {
   migrated(d){ migrate(d); return d; },
   // a counter's readout and a thing in the drawer front (decisions 252, 254)
   countOf, inFront,
-  paste: pasteObjects, readLine, dashboards: shipDashboards, dailyBackup, backupBefore, backupList, restoreBackup, linkTarget, linkedFrom, boardText: id => asMarkdown(byId(id)), relate, pin: togglePin, setPin, renderSheet,
+  paste: pasteObjects, readLine, byId, dashboards: shipDashboards, showroom: shipShowroom, dailyBackup, backupBefore, backupList, restoreBackup, linkTarget, linkedFrom, boardText: id => asMarkdown(byId(id)), relate, pin: togglePin, setPin, renderSheet,
   /* The instruments, so a test can press one and read what it did rather than
      driving a gesture to find out. */
   activeTap, actOf, isActive, metroGoing, stopAllMetros, checkAlarms, zoom: openZoom,

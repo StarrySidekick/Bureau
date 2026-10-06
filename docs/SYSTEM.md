@@ -619,6 +619,13 @@ paused and scrubbed together by negative `animation-delay`, so the pulled
 version and the played version are the same movement rather than two that can
 disagree. See decision 109.
 
+
+**A board that keeps to itself** (decision 309). A container carrying
+`sample` (the Showroom) is a world of its own to the sorting drawers: what
+is in it is collected only by a sorting drawer in it, and a sorting drawer in
+it collects only from it (`sampleOf()`). Its dated tasks and open projects
+never reach the real Now, Today or a calendar.
+
 ## 8. The grid
 
 Each container is its own coordinate space, and every device has its own.

@@ -729,6 +729,41 @@ const CHROME = process.env.BUREAU_CHROME;
      required, nothing recursive), a list's lines arrive first on top, a
      flat-pack is offered by no picker, and a paste can carry one that
      unfolds into what it packs. */
+  /* The Showroom's grammar (decision 309) and the id index under everything.
+     A paste can set a look, give a picture by name, tie string by local
+     name, group, lay a fan as one and date a thing days ahead; and byId()
+     answers rightly through a delete, an undo, a whole new array and two
+     things with one id (the first, as find() did). */
+  const gramOk = await page.evaluate(() => {
+    const S = BUREAU.state, bad = [], f = t => S.objects.find(o => o.title === t);
+    BUREAU.paste(JSON.stringify({ type: 'drawer', title: 'Grammar 309', arrange: 'rows', children: [
+      { type: 'note', title: 'G309 fan a', fan: 'x', w: 4, h: 4 }, { type: 'note', title: 'G309 fan b', fan: 'x', w: 4, h: 4 },
+      { type: 'outlink', title: 'G309 portal', url: 'https://example.com', look: { pshape: 'arch', pedge: 'vines' } },
+      { type: 'painting', title: '', dress: 'a03', ref: 'pic' }, { type: 'note', title: 'G309 tied', tie: 'pic', group: 'g' },
+      { type: 'note', title: 'G309 mate', group: 'g' }, { type: 'appt', title: 'G309 ahead', due: '+3' } ] }), 'root');
+    const a = f('G309 fan a'), b = f('G309 fan b'), pic = S.objects.find(o => o.kind === 'painting' && o.parent === (f('Grammar 309')||{}).id);
+    if (!a || !b || b.phone.y !== a.phone.y + 1 || b.phone.x !== a.phone.x || b.z !== 2 || a.grp !== b.grp) bad.push('fan');
+    if (f('G309 portal').pshape !== 'arch' || f('G309 portal').pedge !== 'vines') bad.push('look');
+    if (!pic || !/a03/.test(pic.media.url) || pic.title === 'Untitled') bad.push('dress');
+    if (!(f('G309 tied').rel || []).includes(pic && pic.id)) bad.push('tie');
+    if (!f('G309 tied').grp || f('G309 tied').grp !== f('G309 mate').grp) bad.push('group');
+    const d = new Date(); d.setDate(d.getDate() + 3);
+    if (f('G309 ahead').due !== `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`) bad.push('due ' + f('G309 ahead').due);
+    // the index
+    const t = BUREAU.create('note', { parent: 'root', title: 'Index me' }), id = t.id;
+    if (BUREAU.byId(id) !== t) bad.push('found');
+    // taken out of the array outright, it is gone; put back, it is found again
+    const at = S.objects.indexOf(t); S.objects.splice(at, 1); if (BUREAU.byId(id)) bad.push('removed still found');
+    S.objects.splice(at, 0, t); if (BUREAU.byId(id) !== t) bad.push('put back');
+    // a delete files it in the bin (285) and an undo brings it back to the desk
+    BUREAU.del(id); BUREAU.undo(); if (!BUREAU.byId(id) || BUREAU.byId(id).parent !== 'root') bad.push('undo');
+    S.objects = S.objects.slice().reverse(); if (BUREAU.byId(id) !== S.objects.find(o => o.id === id)) bad.push('new array');
+    S.objects = S.objects.slice().reverse();
+    const twin = Object.assign({}, t, { title: 'Twin' }); S.objects.push(twin);
+    if (BUREAU.byId(id).title !== 'Index me') bad.push('first of two');
+    S.objects.splice(S.objects.indexOf(twin), 1); BUREAU.del(id);
+    return bad.length ? bad : true;
+  });
   const claudeOk = await page.evaluate(async () => {
     const S = BUREAU.state, bad = [];
     BUREAU.setAiCfg({ key: 'sk-ant-smoke-0000', model: 'claude-sonnet-5-5' }); BUREAU.save();
@@ -2335,11 +2370,12 @@ const CHROME = process.env.BUREAU_CHROME;
       clear,
       /* …bar the shipped dashboards, which migration 63 lays on any desk
          that comes from before them (decision 304): the three projects and
-         Now (decision 305), and nothing else. */
+         Now (decision 305), and the Showroom (migration 64, decision 309),
+         and nothing else. */
       nothingElseAdded: (() => { const S = BUREAU.state;
         const dash = new Set(S.objects.filter(o => o.sk && o.parent === 'root').map(o => o.id));
         const under = o => { for (let p = o, n = 0; p && n < 50; p = S.objects.find(x => x.id === p.parent), n++) if (dash.has(p.id)) return true; return false; };
-        return dash.size === 4 && S.objects.filter(o => !under(o)).length === 4; })(),
+        return dash.size === 5 && S.objects.filter(o => !under(o)).length === 4; })(),
       /* the Mac's boxes as they were, one beside the next: since decision 287
          the board is fitted to what is on it at load, which moves every
          number on it by the same margin and nothing in relation to anything */
@@ -10739,7 +10775,13 @@ const CHROME = process.env.BUREAU_CHROME;
     BUREAU.render(); await nap(250);
     // …and grows to fit since decision 287, which may be wider as well
     out.aFullBoardGrowsDown = BUREAU.shelvesOf(b.id).h > FH && BUREAU.shelvesOf(b.id).w >= FW;
-    // …and the page it grew is the one you are on once you scroll down to it
+    /* …and the page it grew is the one you are on once you scroll down to it.
+       Scrolled the way a person does: an input first (a wheel, which is what
+       the board counts as a finger), because a scroll with no finger inside
+       900ms of a glide the app made is the glide's, and ignored (GLIDE_MS in
+       views.js). This passed for months only because creating sixty notes
+       used to take longer than that (decision 309 made byId() fast). */
+    document.dispatchEvent(new WheelEvent('wheel', {bubbles: true}));
     sc().scrollTop = sc().scrollHeight; sc().dispatchEvent(new Event('scroll')); await nap(500);
     out.upAndDownWalksThePages = S.drawerId === b.id && BUREAU.shelfAt(b.id).y >= 1;
     S.objects.length=0; was.forEach(o=>S.objects.push(o));
@@ -11697,7 +11739,7 @@ const CHROME = process.env.BUREAU_CHROME;
     gridClass, offlineWorks, railGone, tabsGone, shelfGone, tileNavigates,
     holdArms, maxDrift,
     settingsIsPanel, pickerPreviews, builderPreview, everyMenuIsAPanel,
-    pasteOk, pasteWhere, sectionsOk, helpsOk, claudeOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
+    pasteOk, pasteWhere, sectionsOk, helpsOk, gramOk, claudeOk, magicOk, rollupOk, relationsOk, relationsUI, stringLayer,
     timeLayer, checklistBox, pluckWorks, checklistMoves, listFace, achievementLook, buttonWorks, randomAllTheWay, answering, seedAndKnobs, longPress, drawerSize, tagDrawer, tagsAndHabits, groupMove, dropStates,
     adaptiveTiles, bubblePanel, scrollKept, kindSizes,
     phoneGrid, phoneMigration, turnedSideways, pouring,

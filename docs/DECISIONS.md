@@ -13205,3 +13205,88 @@ note laid over another is on top and is what a finger finds there, with
 `z` in the undo; the ring's three; the pile's slips in order and one
 opening its sheet; the fan's names each pressable; spread back to clear
 board; shots 28 to 28c).
+
+## 309. The Showroom, the grammar it needed, and a fast byId (v3.05, 2026-10-06)
+
+Timothy, 2026-10-05: *"I want you to create a bunch of example boards to
+illustrate all the different aspects of Bureau and all these new things that
+we've made so I can kind of see them and have that be something that I can
+just sort of easily access it so that when we test I can see these big
+spreads and everything. And that includes the wikis that we've made, of
+course."*
+
+**The Showroom** (`web/js/showroom.js`, `shipShowroom()` in persist.js) is
+one drawer on the desk holding a room per part of Bureau, each a full board
+laid in reading order with real things on it (about six hundred in all):
+**Paper** (every paper type, the same sheet in every border, stock, seal and
+shape, cards and a deck, a story world), **Words** (typefaces, inks and
+papers, setting, the ten page layouts, one page with all of the markdown),
+**Lists and tasks** (tasks typed the way you type them, checklists and
+lists, a notepad tied to a list, a calendar, a timeline, a progress bar),
+**Drawers and faces** (knob shapes, panels and plates, the jar, pigeonhole,
+spines, collage, project and film fronts, line view), **Doodads and tools**
+(every instrument and clock, counters, the habit tracker, buttons, every
+tool), **Pictures and decor** (pictures in frames, paintings, a window,
+records, clips, the three portals, plants, objects, backgrounds, a Board),
+**Sections and links**, **String, stamps and zones**, and the new things:
+**Paper on paper** (a pile, a fan of chapters, fanned index cards),
+**Claude** (the pen, a parcel packed in advance that unfolds without a key, a
+drafted answer), **A desk that helps** (its own Now, the read line, backups)
+and **Benches** (the seven that are ready). Its lobby ends with **three
+cards tied to the real project dashboards** (`tug:'open'`, `dash:` names
+filled in at lay time), so the wikis are one press away and never copied.
+
+It arrives once on a desk from before it (migration 64, `showPending`),
+**fresh** when `SHOW_V` moves and one is on the desk, and from Settings →
+About → Showroom. Fresh, not updated: it is a place to try things, so the
+last one goes to the bin (one Undo) and the new one takes its place on the
+desk. One thrown away is not put back unasked. `test/showroom.mjs` lays it
+in WebKit and screenshots every room a screen at a time
+(`test/shots/showroom/`, `--mac` for the Mac's too).
+
+**It keeps to itself** (`sample`, `sampleOf()` in model.js): a sorting
+drawer collects only from the sample board it is in, and one outside
+collects nothing from a sample board. So the Showroom's dated tasks and open
+projects never reach the real Now, Today or a calendar, its own Nows show
+only its own, and a bench laid in it never puts its quick add in the desk's
+drawer front (`quickPad()`). `sample` is set before its rooms are laid.
+
+**The grammar it needed** (in `addSpec()`, so every paste has it now, and
+GRAMMAR §3c and §5 say so):
+
+- `look`: any field the Look and Behavior doors write, by stored name
+  (`LOOK_FIELDS`: colors, borders, stocks, knobs and panels, a portal's
+  shape and edge, a counter's wheels, a card's suit and back, a button's
+  doing, an instrument's setting, stamps, milestones, a zone's writes...).
+  Never a box, a parent, an id or a type.
+- `dress`: a picture, painting, record or clip, `true` for any or a file's
+  name (`"a07"`) for that one; untitled, it takes the name of what it shows
+  (`mediaFor()`, split out of `furnish()`).
+- `ref` / `tie`: string, by local name, settled at the end of the paste
+  (`settle()`, called by every whole paste: the paste bridge, the
+  dashboards, the Showroom, a flat-pack's unfold).
+- `group`: things with one group name move as one.
+- `pile` / `fan`: a stack, laid as one. On a board packed in reading order
+  the first of a stack takes room for all of it (`stacksIn()`) and the rest
+  lie on it; anywhere else it is laid at the end by the ring's own rule
+  (`layStack()`, now shared with Square Up and Fan Out).
+- `"due": "+3"`: three days from the day it is laid.
+- Packing in reading order now keeps clear of floating things too (a zone,
+  a background, a plant), so two zones no longer land on one row.
+
+**byId is an index** (model.js). Laying the Showroom first took seventeen
+seconds in WebKit: `boxOk()` asks about the board for every cell of every
+candidate, each ask went through `byId()`, and `byId()` was a `find()` over
+every object. It keeps a map of where each id was and trusts it only if the
+object at that place still has that id, so a splice, an undo, a reorder or a
+new array sends it back to the array rather than to a wrong answer; a miss
+is the old `find()`, and a find rebuilds the map. The Showroom now lays in
+about a second and a half in WebKit, and every render is lighter for it.
+`scale-probe` still reads one layout and one style pass.
+
+Tested in WebKit first (`test/safari.mjs` block 29: laid by its button in
+under six seconds with twelve rooms, opened by a tap, a wiki card going into
+the Bureau dashboard, the desk's Now not showing a Showroom task, the packed
+parcel unfolding, the pasted fan laid a row apart). Smoke: `gramOk` (every
+new grammar field, and the index through a removal, an undo, a new array and
+a duplicate id); the old-desk migration check counts the Showroom.

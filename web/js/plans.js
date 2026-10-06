@@ -36,7 +36,7 @@
    localStorage — a plan is stored *inside* that snapshot, so a plan carrying a
    photograph would be a data URL smuggled past the one place that stops them.
    A plan is an arrangement; it is not an asset store. */
-import { S, K, T, byId, isContainer, container, childrenOf, has } from './model.js';
+import { S, K, T, byId, isContainer, container, childrenOf, has, sampleOf } from './model.js';
 import { uid, ROOT, clamp } from './util.js';
 import { create } from './mutations.js';
 import { GRID, SHELVES, ensureBox, boxOk, freeSpot, anySpot, gridOf, lay, overlaps,
@@ -392,6 +392,8 @@ function stampPlan(planId, intoId, at){
    that one, so a second Brain Dump does not crowd the front. */
 function quickPad(home){
   const into = home!==ROOT && byId(home); if(!into) return null;
+  // a bench laid in the Showroom never reaches into the desk's own front (309)
+  if(sampleOf(into)) return null;
   if(S.objects.some(o=>(o.parent||ROOT)===ROOT && o.front && o.frontAll && !o.done && byId(o.into))) return null;
   return create('notepad', {parent:ROOT, into:into.id, front:'right', frontAt:Date.now(), frontAll:true});
 }

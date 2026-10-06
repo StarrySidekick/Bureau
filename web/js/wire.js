@@ -34,7 +34,7 @@ import { gravityApply, gravityWake } from './gravity.js';
 import { plans, planFrom, stampPlan, planById, delPlan, planSize, renamePlan } from './plans.js';
 import { squareStack, fanStack, spreadStack } from './mutations.js';
 import { openAsk, askGo, parcelTap, askSteps, askAnswer, keepDraft, tryKey, keepKey, forgetKey, chooseModel } from './ai.js';
-import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards, backupList, restoreBackup } from './persist.js';
+import { save, writeNow, exportBackup, importBackup, importFile, imgFor, pasteObjects, install , assetDel, shipDashboards, shipShowroom, backupList, restoreBackup } from './persist.js';
 
 /* A sorting drawer, made with its rule already in it. Both ways into
    tagFirstPanel() land here — a tag that exists and a tag you typed — so the
@@ -1189,6 +1189,14 @@ function act(name, el){
       render(); refreshPanel();
       toast(laid ? `Put ${laid===1?'a dashboard':laid+' dashboards'} on the desk`
         : t && t.updated ? 'Brought the dashboards up to date' : 'The dashboards are already on the desk', true);
+      break;
+    }
+    // the Showroom, laid fresh (decision 309)
+    case 'showroom': {
+      const r = shipShowroom(true);
+      closePanel(); render();
+      if(r && r.box) reveal(r.box.id);
+      toast(r && r.replaced ? 'A fresh Showroom is on the desk · the last one is in the bin' : 'The Showroom is on the desk', true);
       break;
     }
     case 'sections': {

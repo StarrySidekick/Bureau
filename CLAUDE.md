@@ -518,6 +518,14 @@ wants clear board. A stack is computed, not stored (`stackOf()`,
 `pilesOn()`); the ring squares it into a pile (a tap drops it down as slips,
 `openPile()`), fans it into a cascade (a contents of its pages) or spreads it
 (`squareStack()`/`fanStack()`/`spreadStack()` in mutations.js).
+**v3.05** (decision 309): **the Showroom** (`web/js/showroom.js`,
+`shipShowroom()`): a drawer on the desk with a room per part of Bureau and
+cards into the three wikis; migration 64 lays it once, Settings → About lays
+it fresh (the last to the bin); `test/showroom.mjs` screenshots every room.
+It keeps to itself (`sample`, `sampleOf()`): nothing in it reaches the real
+Now or calendars. The paste grammar gained `look`, `dress`, `ref`/`tie`,
+`group`, `pile`/`fan` and `"due": "+3"` (`LOOK_FIELDS`, `settle()`), and
+**`byId()` is a self-checking index**, not a `find()`.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.
@@ -551,6 +559,7 @@ node test/version.mjs         # CACHE, APP_VERSION and SHELL agree; the commit h
 node test/scale-probe.mjs     # what a render costs as the desk fills up
 node scripts/catalogue.mjs out.html   # the specimen book, to a file (Settings opens it too)
 node test/lived-in.mjs        # the lived-in desk, every board screenshotted on both devices
+node test/showroom.mjs        # the Showroom in WebKit, every room a screen at a time (--mac too)
 scripts/webkit.sh             # Safari's engine for the tests, once per container
 node test/safari.mjs          # the app in WebKit at an iPhone's size: the first check
 ```
@@ -737,6 +746,7 @@ clause at the bottom of each file — that list is each module's public surface.
 | `words.js` | How a written thing is set (decision 247): the typefaces, inks, papers and layouts, `wordOf()` through four layers, and `wordStyle()`, the one class-and-property answer the tile, the reader, the ruler and the writer all draw from. |
 | `paint.js` | **A custom look drawn by hand** (decision 271): `o.art`'s strokes, `artLayer()` for a tile, and the painter at `#paint`, which has its own listeners in the capture phase. |
 | `ai.js` | **Claude in Bureau** (decision 306): the request (`askClaude()`, structured outputs, no SDK), the system prompt built from the types (`grammarPrompt()`), the schemas, the Ask card, the flat-pack's packing and unfolding, and the ring's three verbs. `AI.stub` stands in for the network in tests. |
+| `showroom.js` | **The Showroom** (decision 309): pure data in the paste grammar, a room per part of Bureau and cards into the wikis, laid by `shipShowroom()` in persist.js. Bump `SHOW_V` to lay a fresh one on every desk that has one. |
 | `setup.js` | The **setup card** (decision 229): the questions a new drawer, project, goal, counter and the rest ask on their first tap, `SETUPS` and `STEPS`, drawn into `#setup` beside `#app`. Every answer writes a field the editor already has. |
 | `panels.js` | `openPanel()` — **every menu in the app** — plus `openMenu()` for a popup hung off a button, the command palette (⌘K), the context menu, and `sampleObject`/`sampleTile` for drawing a type as the thing it makes. |
 | `gestures.js` | Pointer-based drag, resize, lasso, swipe. The fiddliest code in the app. |

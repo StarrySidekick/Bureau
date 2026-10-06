@@ -130,6 +130,19 @@ what the fountain pen makes.
 Anything else in a spec is **ignored**, including `rel`, `milestones`,
 `media` and every look field. Not an error: it simply does not arrive.
 
+### 3c. Looks, pictures, string, groups and stacks
+
+Decision 309 (what the Showroom needed, so every paste has it):
+
+| Field | What it does |
+| --- | --- |
+| `"look": {...}` | Any field the Look and Behavior doors write, by its stored name: `c` (color slot), `border`, `stock`, `panel`, `plate`, `knob`, `kshape`, `binding`, `frame`, `shape`, `tsize`, `seal`, `vinyl`, `decor`, `fill`, `bimg`, `does`, `genKind`, `ctl`, `calview`, `calshow`, `count`, `goal`, `wheelc`, `wink`, `wfont`, `bpm`, `mins`, `burn`, `sides`, `clock`, `pshape`, `pstyle`, `pedge`, `suit`, `back`, `down`, `deckTap`, `stamps`, `milestones`, `writes`, `takes`, `tug`, `drafted` and a few more (`LOOK_FIELDS` in persist.js). Never a box, a parent, an id or a type. |
+| `"dress": true` or `"a07"` | Gives a Picture, Painting, Window, Audio or Video something to show: any, or the bundled file named (`p01`–`p12` pictures, `a01`–`a26` paintings, `s01`… sounds, `v01`–`v10` clips). Untitled, it takes that thing's name. A Collage is hung with pictures. |
+| `"ref": "name"` and `"tie": ["name"]` | String, by local name: a thing with `tie` is tied to the thing whose `ref` it names, anywhere in the same paste. With `"look": {"tug": "open"}` and a tie to a drawer, pressing it goes into that drawer. |
+| `"group": "name"` | Everything with the same group name (and the same parent) moves as one. |
+| `"pile": "name"` or `"fan": "name"` | A stack (decision 308). Write its members one after another. Inside a container with `"arrange": "rows"` the first takes room for all of them and the rest lie on it: at its corner (a pile, which a tap drops down as slips) or a row lower each (a fan, every name showing, a contents of its pages). |
+| `"due": "+3"` | Three days from the day it is pasted; `"-2"` is two days ago. |
+
 ## 4. Building on a bench: `plan`, `fill`, `children`
 
 The strongest thing a paste can do. A spec with `plan` makes a container
@@ -190,19 +203,17 @@ the flat-pack format has to add. Each is a real limit today, not a convention.
 2. **Put things into a drawer it did not make.** A paste starts on the
    desk; `update` (§3a) reaches a container only if it sits on the desk and
    matches.
-3. **Tie with string.** `rel` holds ids, and a paste has no way to name
-   another object in the same paste. Compounds do this already, with local
-   names (`ref:'list'`, `rel:['@list']`, `tracks:'@list'` in `COMPOUNDS`);
-   the flat-pack should use the same idea.
-4. **Group.** `grp` is not written.
+3. **Tie with string** to something outside the paste. Inside one, `ref`
+   and `tie` do it (§3c).
+4. **Group** with something outside the paste (§3c groups within one).
 5. **Compounds need room.** A compound (`cp_*`) is made whole, its parts
    grouped and tied, but only where its full footprint is clear; on a crowded
    board nothing is made. Its parts keep their own titles.
-6. **Define milestones.** `fill` can tick existing ones; a spec cannot make
-   them.
-7. **Look.** Knobs, panels, papers, paintings, drawn art, the drawer
-   front's six places (`front`): none. Words can be set (`words`, §3).
-8. **Pictures, sound, video.** Bytes live in IndexedDB; a paste carries none.
+6. *(Milestones can be set now: `"look": {"milestones": [...]}`.)*
+7. **Drawn art and the drawer front's six places** (`front`). Every other
+   look can be set (`look`, §3c), and words (`words`, §3).
+8. **Your own pictures, sound and video.** Bytes live in IndexedDB; a paste
+   carries none. The bundled ones can be given by name (`dress`, §3c).
 9. **A new board shape.** A container is made at its type's size; a bench's
    `boards`/`dims` come only from the bench.
 
