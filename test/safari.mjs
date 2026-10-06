@@ -957,6 +957,41 @@ out.itKeepsToItself = kept && kept.desk && kept.room || JSON.stringify(kept);
 out.itsParcelUnfoldsAndItsFanIsLaid = parcel && parcel.unfolded && parcel.inside >= 5 && parcel.inBin && fan || JSON.stringify({ parcel, fan });
 await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 
+// ---- up and down only, and a desk that does not swell (decision 310) --------
+// A room of the Showroom is a screen wide: it draws no pad beside it, cannot
+// be scrolled sideways even when told to, and still scrolls down; the desk,
+// wider than the screen, still goes sideways. Laying the Showroom again
+// leaves no old one in the bin and the desk no bigger; a save that cannot be
+// written says so.
+const col = await page.evaluate(id => { const S = BUREAU.state;
+  const room = S.objects.find(o => o.parent === id && o.kind === 'drawer' && o.title === 'Paper');
+  S.view = 'drawer'; S.drawerId = room.id; BUREAU.render();
+  const sc = document.querySelector('#app .scroll'), g = document.querySelector('#app .grid');
+  sc.scrollLeft = 120; sc.scrollTop = 300;
+  const r = { colonly: sc.classList.contains('colonly'), cols: g && g.style.getPropertyValue('--cols'), wide: sc.scrollWidth - sc.clientWidth,
+    left: sc.scrollLeft, down: sc.scrollTop > 0, overflowX: getComputedStyle(sc).overflowX };
+  S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const dk = document.querySelector('#app .scroll'); dk.scrollLeft = 0; dk.scrollLeft = 120;
+  r.desk = { colonly: dk.classList.contains('colonly'), left: dk.scrollLeft };
+  return r; }, sr.id);
+await nap(300);
+const relaid = await page.evaluate(() => { const S = BUREAU.state;
+  BUREAU.showroom(true); const n0 = S.objects.length; BUREAU.showroom(true);
+  const inBin = S.objects.filter(o => o.sk === 'showroom' && o.parent === '__bin').length;
+  return { grew: S.objects.length - n0, inBin, onDesk: S.objects.filter(o => o.sk === 'showroom').length }; });
+const full = await page.evaluate(async () => { const set = Storage.prototype.setItem;
+  Storage.prototype.setItem = function(){ const e = new Error('The quota has been exceeded.'); e.name = 'QuotaExceededError'; throw e; };
+  try { BUREAU.save(); } finally { Storage.prototype.setItem = set; }
+  await new Promise(r => setTimeout(r, 50));
+  const t = document.querySelector('.toast'); const said = t ? t.textContent : '';
+  BUREAU.save(); return said; });
+await shot('30-column');
+out.aScreenWideBoardGoesUpAndDownOnly = col.colonly && col.cols === '8' && col.wide <= 1 && col.left === 0 && col.down && col.overflowX === 'hidden'
+  && !col.desk.colonly && col.desk.left > 0 || JSON.stringify(col);
+out.layingTheShowroomAgainDoesNotSwellTheDesk = relaid.inBin === 0 && relaid.onDesk === 1 && Math.abs(relaid.grew) <= 4 || JSON.stringify(relaid);
+out.aSaveThatFailsIsSaid = /Not saved: storage is full/.test(full) || JSON.stringify(full);
+await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();

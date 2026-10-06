@@ -13290,3 +13290,79 @@ the Bureau dashboard, the desk's Now not showing a Showroom task, the packed
 parcel unfolding, the pasted fan laid a row apart). Smoke: `gramOk` (every
 new grammar field, and the index through a removal, an undo, a new array and
 a duplicate id); the old-desk migration check counts the Showroom.
+
+## 310. A desk that does not swell, and a column that only goes down (v3.06, 2026-10-06)
+
+Timothy, 2026-10-06: "The app is very freezy right now, especially when the
+showroom is placed, as in like a lot of things just kind of freeze up or
+don't delete or kind of are messy. And then also when you're on a board with
+like a fixed size, you can kind of scroll over to the left and right into
+empty space… instead of it just constraining to a singular scroll up and
+down."
+
+**What was measured first** (WebKit at an iPhone's size, the Showroom laid).
+A tap is one render. The render's script and layout are 40 to 60ms, and the
+frame after it about 240ms, but that frame is the same on a desk with the
+Showroom and without it (417 elements or 606): WebKit on Linux paints in
+software, and two thirds of it is box shadows. So the frame is this
+container's renderer, not the Showroom, and nothing was restyled on its
+evidence. What *was* the Showroom's:
+
+**The bin was swallowing it.** The Settings button lays the Showroom fresh,
+and threw the last one in the bin, whole: six hundred things and 230KB of
+saved desk a press, kept forever, walked by every sorting drawer. Four
+presses took the desk from 568KB to 1.26MB and 2,800 objects. Safari gives an
+origin about 5MB of localStorage, shared here with Activinator, and a save
+that failed was only logged, so a full desk would silently stop keeping
+changes: a delete that comes back at the next launch, which would look
+exactly like "don't delete" and "messy". (Whether his phone's desk reached
+the limit could not be seen from here; the leak was real either way.) Now:
+
+- laying it fresh **deletes the old one for good** (`familyOf()` and
+  `removeMany()` in mutations.js), still one Undo; the size stays flat
+  however often it is pressed;
+- **migration 65** deletes a Showroom already in the bin, with everything in
+  it; nothing else in the bin is touched (the Showroom is the app's own
+  examples, laid again from Settings any time);
+- **a save that fails says so** (`writeNow()`): "Not saved: storage is full.
+  Empty the bin." at most once a minute;
+- `SHOW_V` is 2, because its note said the old one goes to the bin.
+
+**The rooms were slow to build.** A room four tiles down is 448 cells, and
+`boardsOf()` asked `isBoard()` of each, which rebuilt the board's form and
+tile key every time; `shelfAt()` called it through `nearestBoard()` on every
+read. The set is asked for once now, and on a whole rectangle (nearly every
+board) the nearest cell is the point held inside it. A room's build halved
+(12 to 6.6ms a render in Chromium), and the Showroom lays in about half a
+second in WebKit (was 1.3). `childrenOf()` of an ordinary drawer filters
+only what is filed in it (`filedIn()`, grouped once a pass like `KIDS`),
+and `removeMany()` finds its places in one walk.
+
+**A column that only goes down.** Since decision 273 every phone board was
+drawn with a cell of empty slots on each side, so a container exactly the
+screen's width panned a cell either way into nothing. Now `gridOf()` draws
+that sideways pad only when the board is wider than the screen at its zoom,
+or pinched out (`narrowOf()`, `columnOnly()` in grid.js); the scroller of
+such a board carries `.colonly`: `overflow-x:hidden`, the grid `pan-y`, and
+the grid `overflow-x:clip`, because a last-column tile's resize corners hang
+8px past it and made the board 8px wider than the screen. The slots above
+and below are still drawn, so a tile is still added below by holding the
+wood there; one beside it is added zoomed out, where the pad comes back. The
+desk, a free board wider than the screen, still goes every way.
+
+**Not done, and next if it still feels slow on the phone:** the paint. The
+shadows on drawer fronts, knobs and the rail are most of each frame in this
+WebKit; on an iPhone they are cheaper but are still repainted whole after
+every render. And the render starts by reading the old board's scroll,
+which forces a layout of a board about to be thrown away whenever a tap
+changed it first (about 30ms in WebKit on a check).
+
+Tested in WebKit first (`test/safari.mjs` block 30: a Showroom room is a
+column, 8 wide, `.colonly`, not scrollable sideways even when told to, still
+scrollable down, while the desk still goes sideways; laying the Showroom
+twice leaves none in the bin and the desk the same size; a failed save says
+so). Smoke: `oneFingerFindsASlot` now asserts the slot is above or below and
+nothing is sideways; the tools block takes back the quick notepad a random
+Brain Dump from the coin puts in the front: the likeliest reason three of
+its checks failed in one full run and passed in every run of the block
+alone; they now print the front they read if they fail again.

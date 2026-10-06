@@ -2995,9 +2995,24 @@ const upOf = id => {
   if(!PARENTS){ PARENTS = new Map(); S.objects.forEach(o=>PARENTS.set(o.id, o)); }
   return PARENTS.get(id);
 };
+/* ---- and what is filed in each container ----------------------------
+   An ordinary drawer holds what names it as `parent`, so asking it what is
+   inside walked every object on the desk to find the few that do: fine at two
+   hundred, and at a thousand (the Showroom, decision 309) a board of fifty
+   containers was fifty thousand checks to draw one screen. So a pass groups
+   the objects by parent once, in array order, and childrenOf() filters the
+   one group. On the same terms as KIDS: built on first use, null outside a
+   pass. See decision 310. */
+let FILED = null;
+const filedIn = id => {
+  if(!KIDS) return S.objects.filter(o=>o.parent===id);
+  if(!FILED){ FILED = new Map();
+    for(const o of S.objects){ const a = FILED.get(o.parent); a ? a.push(o) : FILED.set(o.parent, [o]); } }
+  return FILED.get(id) || [];
+};
 let NEXTS = null, SAMPLES = null;
-const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; NEXTS = null; SAMPLES = new Map(); };
-const endPass   = ()=>{ KIDS = null; PARENTS = null; NEXTS = null; SAMPLES = null; };
+const beginPass = ()=>{ KIDS = new Map(); PARENTS = null; FILED = null; NEXTS = null; SAMPLES = new Map(); };
+const endPass   = ()=>{ KIDS = null; PARENTS = null; FILED = null; NEXTS = null; SAMPLES = null; };
 /* ---- a board of examples — decision 309 ----------------------------------
    A container carrying `sample` (the Showroom) is a world of its own to the
    sorting drawers: what is in it is collected only by a sorting drawer in
@@ -3023,7 +3038,7 @@ function firstStep(c, dv, depth){
   if(!c || depth > 4) return null;
   const live = o => o && !o.done && !isGone(o);
   const kids = depth===0
-    ? S.objects.filter(o=>live(o) && o.parent===c.id).sort((a,b)=>{
+    ? filedIn(c.id).filter(live).sort((a,b)=>{
         const p = a[dv]||{}, q = b[dv]||{};
         return (p.y||1e9)-(q.y||1e9) || (p.x||0)-(q.x||0); })
     : childrenOf(c).filter(live);
@@ -3053,7 +3068,8 @@ const NOW_SORT = (a,b)=> (a.due ? 0 : 1) - (b.due ? 0 : 1) || String(a.due||'').
 function childrenOf(c){
   if(!c) return [];
   if(KIDS){ const hit=KIDS.get(c.id); if(hit) return hit; }
-  const list = S.objects.filter(o=>inContainer(c,o));
+  // a sorting drawer collects from anywhere; anything else holds only its own
+  const list = (has(c,'magic') ? S.objects : filedIn(c.id)).filter(o=>inContainer(c,o));
   const s = (c.filter && c.filter.next && has(c,'magic')) ? [null, NOW_SORT] : SORTS[sortOf(c)];
   list.sort(s ? s[1] : (a,b)=>(a.ord||0)-(b.ord||0));
   if(KIDS) KIDS.set(c.id, list);

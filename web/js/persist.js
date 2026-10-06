@@ -4,7 +4,7 @@ import { WORD_KEYS } from './words.js';
 import { DASH_V, DASHBOARDS } from './dashboards.js';
 import { SHOW_V, SHOWROOM } from './showroom.js';
 import { GRID, PHONE_GRIDS, overlaps, gridOf, freeSpot, anySpot, sizeOfKind, keepSize, shelvesToHold, boxOk, growDown } from './grid.js';
-import { toast, create, makeCompound, pushUndo, readLine, mediaFor, layStack, binMany } from './mutations.js';
+import { toast, create, makeCompound, pushUndo, readLine, mediaFor, layStack, familyOf, removeMany } from './mutations.js';
 import { render } from './views.js';
 import { renderSheet } from './sheet.js';
 import { closePanel } from './panels.js';
@@ -22,7 +22,7 @@ import { plans, stampPlan } from './plans.js';
    Bureau is this phone running" is exactly the question you ask when a change
    appears not to have deployed. Shown in Settings, so it can be read off the
    device rather than guessed at. */
-const APP_VERSION = '3.05';
+const APP_VERSION = '3.06';
 const KEY = 'bureau.v1';
 const install = {deferred:null};   // the browser's install prompt, when one is on offer
 let saveTimer = null;
@@ -64,10 +64,21 @@ function snapshot(){
    ride it, so a write lands at least that often however busy it is.
    See decision 64. */
 let dirty = false;
+/* **A save that fails is said** (decision 310), not only logged: a desk that
+   cannot be written forgets every change at the next launch, which looks
+   exactly like a delete that would not stay deleted. Once a minute at most,
+   and quiet again as soon as a write gets through. */
+let SAVE_FAILED = 0;
 function writeNow(){
   dirty = false;
-  try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); }
-  catch(e){ console.warn('Bureau could not save:', e.message); }
+  try{ localStorage.setItem(KEY, JSON.stringify(snapshot())); SAVE_FAILED = 0; }
+  catch(e){
+    console.warn('Bureau could not save:', e.message);
+    if(Date.now() - SAVE_FAILED > 60000){
+      SAVE_FAILED = Date.now();
+      toast('Not saved: storage is full. Empty the bin.');
+    }
+  }
 }
 function save(){
   dirty = true;
@@ -289,7 +300,7 @@ function rescalePhone(d, from, cols){
    skips all of them, an old backup replays only what it is missing. These
    used to be ad-hoc per-load mutations inside adopt(); a new repair that
    should run once belongs here, as the next numbered step. */
-const DATA_V = 64;
+const DATA_V = 65;
 const MIGRATIONS = [
   // Drawers and objects were two arrays and a drawer could not live inside
   // anything. foldDrawers also replays the old dense flow to give v1 drawers
@@ -1576,6 +1587,22 @@ const MIGRATIONS = [
   {v:64, up(d){
     d.deskCfg = Object.assign({layout:'grid', sort:null}, d.deskCfg, {showPending:true});
   }},
+  /* ---- a Showroom in the bin is gone for good (decision 310) ---------------
+     Laying the Showroom again used to throw the last one in the bin, six
+     hundred things a press, all of it saved and walked by every sorting
+     drawer, toward the phone's storage limit, past which changes are no
+     longer kept. A Showroom is the app's own examples and Settings lays a new
+     one any time, so one in the bin, with everything in it, is deleted. */
+  {v:65, up(d){
+    const objs = d.objects || [];
+    const drop = new Set(objs.filter(o=>o && o.sk==='showroom' && o.parent===BIN).map(o=>o.id));
+    if(!drop.size) return;
+    const kids = new Map();
+    objs.forEach(o=>{ if(!o) return; const a = kids.get(o.parent); a ? a.push(o.id) : kids.set(o.parent, [o.id]); });
+    const q = [...drop];
+    for(let i = 0; i < q.length; i++) (kids.get(q[i])||[]).forEach(k=>{ if(!drop.has(k)){ drop.add(k); q.push(k); } });
+    d.objects = objs.filter(o=>o && !drop.has(o.id));
+  }},
 ];
 function migrate(d){
   let v = d.v||0;
@@ -2292,7 +2319,8 @@ function shipDashboards(force){
    Laid once on a desk from before it (migration 64), laid again **fresh**
    when `SHOW_V` moves and one is on the desk, and whenever Settings asks
    (`force`). Fresh, not brought up to date: it is a place to try things, so
-   what was tried in the last one goes to the bin with it, and the new one
+   what was tried in the last one goes with it, deleted for good (decision
+   310: it went to the bin, six hundred things a press), and the new one
    takes its place on the desk. One thrown away is not put back unasked. The
    three dashboards are what its wiki cards are tied to (`dash:` names); the
    button lays any that are missing first. */
@@ -2306,7 +2334,11 @@ function shipShowroom(force){
     const d = S.objects.find(o=>o.sk===k && (o.parent||ROOT)===ROOT && !isGone(o));
     if(d) tally.refs['dash:'+k] = d.id; });
   const at = was && was[dv] && was[dv].x ? Object.assign({}, was[dv]) : null;
-  const binned = was ? binMany([was.id]) : [];
+  /* Fresh means fresh (decision 310): the last one is deleted for good with
+     everything tried in it, not kept in the bin, where each press of the
+     button left six hundred things in the saved desk and every sorting
+     drawer's walk. The move still undoes. */
+  const gone = was ? removeMany(familyOf(was.id)) : [];
   const box = addSpec(JSON.parse(JSON.stringify(SHOWROOM)), ROOT, tally);
   if(box){
     box.sample = true;
@@ -2315,7 +2347,7 @@ function shipShowroom(force){
   }
   settle(tally);
   cfg.showV = SHOW_V; delete cfg.showPending;
-  pushUndo('Showroom', [...tally.made.map(id=>({add:id})), ...binned]);
+  pushUndo('Showroom', [...tally.made.map(id=>({add:id})), ...gone]);
   save();
   return box ? {box, tally, replaced: !!was} : null;
 }

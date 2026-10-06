@@ -9,7 +9,7 @@ import { S, K, T, byId, has, isContainer, containers, container, childrenOf, cha
   URGES, workday, searchHits, sortOf, SORT_FACES, MANUAL, STAMP_WORDS, STAMP_INKS, stampOf, stampInk, setting, setSetting, unsetSetting, envSync, benchHere, decidedBy, isBench, ENV_KEYS, ENV_NAMES } from './model.js';
 import { sectionsOf, GRID, PHONE_GRIDS, CELL, COLW, MEASURE, sideways, colsOf, gridKeyOf, SHELVES, PAGES_MAX, shelvesOf,
   shelfRows, viewRows, shelfOfBox, shelfAt, setShelf, shelfOrigin, SHELF, drawCols, drawRows,
-  lay, gridOf, cellW, ensureBox, PLACED, flows, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
+  lay, gridOf, cellW, ensureBox, PLACED, flows, columnOnly, byTile, rigidOn, rigidSwipe, padded, zoomOf, zoomRange, setZoom,
   isBoard, boardsOf, reachable, boardHolds, removeBoard, SPAN, startOf, DIM_MIN, DIM_MAX, DIM_MAX_H, VIEW_COLS, TILE, fitBoard, MARGIN, formOf, tilesOf } from './grid.js';
 import { themeNow, applyLook, lookVal, STYLES, BACKDROPS, SURFACES, DARKMODES, darkMode, hasDark,
   palNow, styleNow, hexOf, objColour, slotName, OBJ0, CHECKS, dressAs, LOOKSIG, lookSig } from './look.js';
@@ -476,7 +476,7 @@ function viewDesk(){
   // and navigation that scrolls away is navigation you can't reach
   return `
   ${gridBar(c)}
-  <div class="scroll deskscroll"${revealStyle()}>
+  <div class="scroll deskscroll${columnOnly(dev(), ROOT)?' colonly':''}"${revealStyle()}>
     ${cavityWalls()}
     ${S.layoutEdit?`<div class="banner">${ic('resize',14)} You are arranging the <b style="margin:0 3px">${S.layoutEdit==='desk'?'Mac':'iPhone'}</b> layout.
       <button data-act="stopedit">Back to this device</button></div>`:''}
@@ -679,7 +679,7 @@ function viewDrawer(){
        scroller gives up its own side padding for the grid's — see `.flushlist`
        in board.css. Only for a list: a book, a calendar and a timeline are not
        columns of tiles and keep the reading inset. */''}
-  <div class="scroll${view==='grid'?' deskscroll':''}${view==='list'?' flushlist':''}"${
+  <div class="scroll${view==='grid'?' deskscroll':''}${view==='grid'&&columnOnly(dev(), d.id)?' colonly':''}${view==='list'?' flushlist':''}"${
       view==='grid'?revealStyle():listStyle()}>
     ${view==='grid'?cavityWalls():''}
     ${kinds.length>1&&view!=='grid'?`<div class="filterbar">

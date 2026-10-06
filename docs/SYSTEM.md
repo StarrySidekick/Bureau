@@ -624,9 +624,15 @@ disagree. See decision 109.
 `sample` (the Showroom) is a world of its own to the sorting drawers: what
 is in it is collected only by a sorting drawer in it, and a sorting drawer in
 it collects only from it (`sampleOf()`). Its dated tasks and open projects
-never reach the real Now, Today or a calendar.
+never reach the real Now, Today or a calendar. Laid again, the last one is
+deleted for good rather than binned (decision 310).
 
 ## 8. The grid
+
+**On a phone, a board no wider than the screen goes up and down only**
+(decision 310): no slots drawn beside it, the scroller `.colonly`, nothing to
+pan sideways (`columnOnly()` in grid.js). Pinched out, or on a board wider
+than the screen, such as the desk, the slots beside it come back.
 
 Each container is its own coordinate space, and every device has its own.
 
@@ -1194,7 +1200,10 @@ is about (decision 306).
   write JSON — and builds them through `create()`, so nothing can arrive that
   the model wouldn't have made itself.
 - **Storage can throw.** Private browsing and quota exhaustion both fail; every
-  call is wrapped, and a failed save must never take down a render.
+  call is wrapped, and a failed save must never take down a render. It is
+  **said**, though, not only logged (decision 310): a toast, at most once a
+  minute, because a desk that cannot be written forgets every change at the
+  next launch. Safari gives the origin about 5MB, shared with Activinator.
 
 Ids must be unique across sessions. `uid()` once restarted a counter on every
 load, so the Nth object made today collided with the Nth made yesterday, and

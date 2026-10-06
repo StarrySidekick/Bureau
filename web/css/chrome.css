@@ -5134,6 +5134,15 @@ input,textarea,select,[contenteditable],
 .is-phone.flowscroll.rigid .scroll.deskscroll{overflow:hidden}
 .is-phone.flowscroll.rigid .grid{touch-action:none}
 .is-phone.flowscroll .grid.g-phone{width:calc(var(--cols) * var(--rowh));max-width:none;flex:none}
+/* **A board no wider than the screen goes up and down only** (decision
+   310): no pad beside it (`gridOf()`), and nothing native to pan sideways, so
+   a column you read down cannot be nudged a pixel off the screen's edges. */
+.is-phone.flowscroll .scroll.deskscroll.colonly{overflow-x:hidden}
+/* …and the corner handles of a tile in the last column, which hang 8px
+   past it, are clipped at the board's edge rather than making it 8px wider
+   than the screen: the scroller cut them off there anyway. `clip`, not
+   `hidden`, so the grid does not become a scroller of its own. */
+.is-phone.flowscroll .colonly .grid{touch-action:pan-y;overflow-x:clip}
 /* The rim's inset shading is an absolute box at `inset:0`, which inside a
    scroller covers the first screenful and scrolls away with it. Stuck to the
    viewport instead: the last thing in the column, as tall as the viewport and

@@ -25,10 +25,11 @@
 
    Shipped by `shipShowroom()`: laid on an existing desk once (migration 64),
    and laid again, fresh, when `SHOW_V` moves or Settings → About asks; the
-   one it replaces goes to the bin. It is a place to look and to try things,
+   one it replaces is deleted for good (decision 310; it went to the bin,
+   six hundred things a press). It is a place to look and to try things,
    so nothing in it is kept across a new version. */
 
-const SHOW_V = 1;
+const SHOW_V = 2;   // 2: its note no longer says the old one goes to the bin (310)
 
 const H = title => ({type:'label', title, w:8, h:1});
 const about = (body, h=5) => ({type:'note', title:'What this room shows', body, w:4, h});
@@ -405,7 +406,7 @@ const wiki = (title, key, color) => ({type:'card', title, body:'Your project wik
 const SHOWROOM = {type:'drawer', key:'showroom', title:'Showroom', w:4, h:3, arrange:'rows',
   // `sample` first, so the benches laid inside it already know where they are
   look:{c:7, kshape:'compass', panel:'fielded', plate:'engraved', sample:true}, children:[
-  {type:'note', title:'Read me first', body:'A room for each part of Bureau, each a full board with real things on it, to look at and to try. Open a room, press things, hold them, move them: nothing here is yours to keep, and a new version of the Showroom replaces this one (the old one goes to the bin).\n\nNothing in here reaches your real **Now**, **Today** or calendars.\n\nTo lay a fresh one: **Settings, About, Showroom**. Every type and every look side by side is the **Specimen book**, in Settings.', w:4, h:6},
+  {type:'note', title:'Read me first', body:'A room for each part of Bureau, each a full board with real things on it, to look at and to try. Open a room, press things, hold them, move them: nothing here is yours to keep, and a new version of the Showroom replaces this one, and what was tried in this one goes with it.\n\nNothing in here reaches your real **Now**, **Today** or calendars.\n\nTo lay a fresh one: **Settings, About, Showroom**. Every type and every look side by side is the **Specimen book**, in Settings.', w:4, h:6},
   contents(6),
   H('The rooms'),
   paper, words, lists, drawers, doodads, decor, sections, string,

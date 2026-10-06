@@ -526,6 +526,13 @@ It keeps to itself (`sample`, `sampleOf()`): nothing in it reaches the real
 Now or calendars. The paste grammar gained `look`, `dress`, `ref`/`tie`,
 `group`, `pile`/`fan` and `"due": "+3"` (`LOOK_FIELDS`, `settle()`), and
 **`byId()` is a self-checking index**, not a `find()`.
+**v3.06** (decision 310): laying the Showroom again **deletes the old one
+for good** (it was binned, 600 things and 230KB of saved desk a press;
+migration 65 clears one already in the bin), **a failed save is said** in a
+toast, a room builds in half the time (`boardsOf()` asks for the board's set
+once; `filedIn()` in childrenOf), and **on a phone a board no wider than the
+screen goes up and down only** (`columnOnly()`, `.colonly`: no side pad, no
+sideways scroll) unless pinched out.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

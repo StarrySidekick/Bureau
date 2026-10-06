@@ -288,15 +288,26 @@ function redo(){
    backwards, so descending removal comes back ascending and everything lands
    where it was. */
 function removeMany(ids){
-  const steps=[];
-  ids.map(id=>S.objects.findIndex(o=>o.id===id)).filter(i=>i>=0).sort((a,b)=>b-a)
-     .forEach(i=>{ steps.push({del:{o:S.objects[i], i}}); S.objects.splice(i,1); });
+  const steps=[], want=new Set(ids), at=[];
+  // one walk for the places, not one per id: the Showroom is six hundred (310)
+  S.objects.forEach((o,i)=>{ if(want.has(o.id)) at.push(i); });
+  at.reverse().forEach(i=>{ steps.push({del:{o:S.objects[i], i}}); S.objects.splice(i,1); });
   // whatever was open on it can't stay open — a surface, a panel, or a tile
   // being typed in
   if(ids.includes(S.writeId)||ids.includes(S.readId)||ids.includes(S.viewId)) closeSheet();
   if(ids.includes(S.editId)) S.editId=null;
   S.sel=(S.sel||[]).filter(x=>!ids.includes(x));
   return steps;
+}
+/* A container and everything filed under it, however deep, done things
+   included: what has to go with it when it is deleted for good. Grouped by
+   parent once, and guarded against the cycle a reparenting bug could make. */
+function familyOf(id){
+  const kids = new Map();
+  S.objects.forEach(o=>{ const a = kids.get(o.parent); a ? a.push(o.id) : kids.set(o.parent, [o.id]); });
+  const out = [id], seen = new Set(out);
+  for(let i = 0; i < out.length; i++) (kids.get(out[i])||[]).forEach(k=>{ if(!seen.has(k)){ seen.add(k); out.push(k); } });
+  return out;
 }
 /* ---- the garbage bin — decision 285 -------------------------------------
    Delete used to be removal, with twenty moves of undo and nothing after.
@@ -1849,7 +1860,7 @@ function unstamp(id, i){
   save(); toast('Stamp lifted', true);
 }
 
-export { mediaFor, layStack, squareStack, fanStack, spreadStack, binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
+export { familyOf, removeMany, mediaFor, layStack, squareStack, fanStack, spreadStack, binMany, readLine, madeSaid, rekind, zoneDrop, zoneUnder, stampIt, unstamp, toast, setGridSize, toggleDone, spawnNext, del, delMany, delDrawer, theBin, unbin, emptyBin, binned, inboxTake, sortInbox, undo, redo,
   pushUndo, pushSet, pushSets, toggleFree, setPin, togglePin, becomeKind, seedInto,
   drawerForTag, create, makeCompound, guessKind, AT_GOAL, goalOf, reachedGoal, gather, quickAdd, spawnInto, randomThing,
   loadTexts, CONTROLS, CTL_KEYS, ctlSpec, ctlSaid, ctlIsOn, ctlForm, ctlNum, ctlIndex, ctlPress, someKind,

@@ -422,8 +422,9 @@ function isBoard(cid, x, y){
 }
 /* Every board there is, in reading order. */
 function boardsOf(cid){
-  const id = cid==null ? hereId() : cid, r = shelvesOf(id), out = [];
-  for(let y=0; y<r.h; y++) for(let x=0; x<r.w; x++) if(isBoard(id, x, y)) out.push({x, y});
+  // the set asked for once, not once a cell: a room four tiles down is 448 (310)
+  const id = cid==null ? hereId() : cid, r = shelvesOf(id), out = [], set = boardList(id);
+  for(let y=0; y<r.h; y++) for(let x=0; x<r.w; x++) if(!set || set.has(x+','+y)) out.push({x, y});
   return out;
 }
 /* A magic drawer holds nothing, so it has nothing to put on a second board. */
@@ -763,6 +764,13 @@ function shelvesToHold(o, objects){
    The cell is derived from the device's own width over the *desk's* columns,
    not over this board's — that is what makes a drawer's eight columns the same
    size as the desk's, rather than three times as big. */
+/* A phone board that fits across the screen at the zoom it is at, so it
+   scrolls up and down and never sideways (decision 310). */
+const narrowOf = (d, id, cols)=> d==='phone' && zoomOf(id) > 0.999 && cols*zoomOf(id) <= VIEW_COLS;
+const columnOnly = (device, cid)=>{
+  const d = device||dev(), id = cid==null ? hereId() : cid;
+  return d==='phone' && flows(d) && narrowOf(d, id, colsOf(id, d)*shelvesOf(id, d).w);
+};
 const gridOf = (device, cid)=>{
   const d=device||dev(), shelfW=colsOf(cid, d);
   const m=MEASURE[d];
@@ -782,8 +790,12 @@ const gridOf = (device, cid)=>{
   const pad = padded(d, id) && !growsNot(id) && formOf(id).form!=='fixed' ? shelfH : 0;
   /* …and to the left and right (Timothy, 2026-09-29): the phone scrolls
      every way, so the slot one step off either side is somewhere you can
-     scroll to as well. */
-  const padX = pad ? shelfW : 0;
+     scroll to as well. **Not beside a board no wider than the screen**
+     (Timothy, 2026-10-06): a container a tile across panned a cell either way
+     into nothing, and a column you read down should only go down. Pinched
+     out, or on a board wider than the screen, the slots beside it are back.
+     See decision 310. */
+  const padX = pad && (d!=='phone' || !narrowOf(d, id, shelfW*sh.w)) ? shelfW : 0;
   return {cols: shelfW*sh.w,
           rows: shelfH*sh.h,
           shelfW, shelfH, shelves:sh, gap:GRID[d].gap, rowh, maxW, maxH, pad, padX};
@@ -899,6 +911,10 @@ function startOf(id){
   return boardsOf(id)[0] || {x:0, y:0};
 }
 function nearestBoard(id, p){
+  /* A whole rectangle of boards, which is nearly every board: the nearest
+     cell is the point held inside it, without listing every cell to find it. */
+  if(!boardList(id)){ const r = shelvesOf(id);
+    if(r.w > 0 && r.h > 0) return {x:clamp(p.x, 0, r.w-1), y:clamp(p.y, 0, r.h-1)}; }
   const all = boardsOf(id);
   if(!all.length) return {x:0, y:0};
   return all.reduce((best, b)=>
@@ -1536,7 +1552,7 @@ function cellW(grid,g){
   return (r.width - g.gap*(n-1))/n;
 }
 
-export { hasBox, lays, boxOver, zAbove, stackOf, squared, fanned, pilesOn, sectionsOf, TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
+export { hasBox, columnOnly, lays, boxOver, zAbove, stackOf, squared, fanned, pilesOn, sectionsOf, TILE, VIEW_COLS, WIDE, viewRows, byTile, rigidOn, rigidSwipe, padded, ZOOM, ZOOM_MAX, zoomOf, zoomRange, setZoom, snapZoom, GRID, PHONE_GRIDS, PHONE_MAX_H, rangeOfKind, inRange, randomSizeOf, CELL, COLW, MEASURE, sideways,
   SHELVES, DESK_SHELF_COLS, FRESH, DIM_MIN, DIM_MAX, DIM_MAX_H, PAGES_MAX, SPAN, isBoard, boardsOf, reachable, addBoard, removeBoard,
   ensureBoards, boardHolds, onBoard, fitBoard, fitAll, MARGIN, FORMS, formOf, tiledBoard, tilesOf, tileRectOf, setForm, setTileDim, fitTiles, startOf, nearestBoard, onBoards, randomSpot, growsDown, growDown, shelvesToHold, colsOf, gridKeyOf, shelvesOf,
   shelfRows, shelfOfBox, oneShelf, shelfAt, setShelf, shelfOrigin, SHELF, fitSpot, flows,

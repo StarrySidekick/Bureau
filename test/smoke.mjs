@@ -10763,12 +10763,15 @@ const CHROME = process.env.BUREAU_CHROME;
       M.pagerMove(-260); await nap(40); M.pagerEnd(); await nap(450);
       out.aSwipeGoesNextDoor = S.view==='drawer' && S.drawerId === b.id;
     } else out.aSwipeGoesNextDoor = 'no neighbour';
-    /* One finger pans natively every way since decision 273, and the board
-       is drawn with a tile of slots round it: the finger finds a slot off
-       the edge by scrolling to it, and it wears no plus (276). */
+    /* One finger pans natively since decision 273, and the board is drawn
+       with slots round it: the finger finds a slot off the edge by scrolling
+       to it, and it wears no plus (276). **Above and below only** on a board
+       no wider than the screen (decision 310): nothing beside it to pan to. */
     const sc = () => document.querySelector('#app .scroll.deskscroll');
     out.oneFingerFindsASlot = S.drawerId === b.id && !!document.querySelector('#drawergrid .noboard')
-      && sc().scrollWidth > sc().clientWidth + 1 && !document.querySelector('#drawergrid .addboard');
+      && sc().classList.contains('colonly') && sc().scrollWidth <= sc().clientWidth + 1
+      && sc().scrollHeight > sc().clientHeight + 1 && !document.querySelector('#drawergrid .addboard')
+      || JSON.stringify({at: S.drawerId === b.id, slot: !!document.querySelector('#drawergrid .noboard'), cls: sc().className, w: sc().scrollWidth - sc().clientWidth, h: sc().scrollHeight - sc().clientHeight});
     BUREAU.goShelfTo(b.id, 0, 0); await nap(150);
     // and a full board grows a page at the bottom instead of refusing
     for(let i=0; i<60; i++) BUREAU.create('note', {parent:b.id, title:'n'+i});
@@ -11023,6 +11026,9 @@ const CHROME = process.env.BUREAU_CHROME;
     // one thing, or one compound: several objects made as one group (decision 254)
     const fresh = S.objects.filter(o => o.parent === 'root' && !had.has(o.id) && !o.front);   // a Brain Dump's front notepad is not the board (297)
     out.coinMakesOne = fresh.length === 1 || (fresh.length > 1 && fresh.every(o => o.grp && o.grp === fresh[0].grp));
+    // …and that notepad is taken back out, or the front read below has a tool more (310)
+    S.objects.filter(o => !had.has(o.id) && o.front).forEach(o => { delete o.front; delete o.frontAll; o.parent = 'root'; o.desk = null; o.phone = null; });
+    B.render(); await nap(100);
     const a = S.objects.find(o=>o.id==='d_today'), b = S.objects.find(o=>o.id==='d_in');
     a.rel = []; T.tileTap(ids.spool); out.spoolPicksUp = !!S.threading;
     T.tileTap(a.id); out.firstIsHeld = S.threading && S.threading.from === a.id && S.view === 'desk';
@@ -11039,15 +11045,15 @@ const CHROME = process.env.BUREAU_CHROME;
     // the padlock draws as `unlock` while the board is open
     // the gear is on the top lip since decision 302, not in the front
     out.defaultFront = JSON.stringify(tools()).replace('unlock','lock') === JSON.stringify(['glass,block', 'lock'])
-      && !!document.querySelector('.toplip .lipgear [data-act="appsettings"]');
+      && !!document.querySelector('.toplip .lipgear [data-act="appsettings"]') || JSON.stringify(tools());
     S.deskCfg.rail = {left:['coin'], right:['spool','glass','stamp']}; B.render(); await nap(150);
-    out.frontIsTheBoards = JSON.stringify(tools()) === JSON.stringify(['coin', 'spool,glass,stamp']);
+    out.frontIsTheBoards = JSON.stringify(tools()) === JSON.stringify(['coin', 'spool,glass,stamp']) || JSON.stringify(tools());
     const knob = document.querySelector('.railknob').getBoundingClientRect();
     out.knobStaysCentred = Math.abs(knob.x + knob.width/2 - innerWidth/2) < 3;
     // a gear a board stored before 302 is passed over, not drawn twice
     S.deskCfg.rail = {left:[], right:['lock','gear']}; B.render(); await nap(150);
     out.noneOnOneSide = JSON.stringify(tools()).replace('unlock','lock') === JSON.stringify(['', 'lock'])
-      && document.querySelectorAll('[data-act="appsettings"]').length === 1;
+      && document.querySelectorAll('[data-act="appsettings"]').length === 1 || JSON.stringify(tools());
     delete S.deskCfg.rail; B.render();
     const pl = S.plans.find(p=>p.stock==='brainstorming');
     out.flowSaysItsFront = !!(pl && pl.rail && pl.rail.left.includes('coin'));
