@@ -22,6 +22,9 @@
   --glow:#D9B57C;      /* slot 4 — selection, the day you are on, the thing you picked */
   --shadow:0 1px 2px rgba(42,36,28,.13),0 6px 18px -10px rgba(42,36,28,.28);
   --shadow-lg:0 2px 6px rgba(42,36,28,.16),0 22px 46px -20px rgba(42,36,28,.42);
+  /* the shadow of a thing in your hand, read off this element so it is the
+     theme's, and carried into a board where the other two are zero (311) */
+  --lift:var(--shadow-lg);
   --board-1:#EFEADA;        /* the board, light square */
   --board-2:#DDE5CE;        /* the board, other square — a soft green */
   /* ---- corners: round, or square, and nothing in between ---------------
@@ -2037,8 +2040,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 .pigeontile .pgframe{
   position:absolute;inset:0;z-index:2;pointer-events:none;border-radius:inherit;
   border:6px solid var(--c);
-  box-shadow:0 1px 3px rgba(0,0,0,.30), inset 0 1px 4px rgba(0,0,0,.34),
-    inset 0 0 0 1px rgba(0,0,0,.12);
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.34), inset 0 0 0 1px rgba(0,0,0,.12);
 }
 .drawer.dtile.pigeontile.sz-narrow .pgframe{border-width:4px}
 /* The moulding is worked into the frame and stops at its inner edge: a mask
@@ -3208,8 +3210,7 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
     repeating-linear-gradient(0deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px),
     repeating-linear-gradient(90deg, rgba(0,0,0,.022) 0 1px, transparent 1px 4px);
   border-radius:var(--cardr);
-  box-shadow:0 1px 2px rgba(0,0,0,.22), 0 6px 14px rgba(0,0,0,.16),
-             inset 0 0 0 1px rgba(0,0,0,.16);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.16);
   container-type:inline-size;
 }
 .dkcard .dkrule{
@@ -3642,18 +3643,15 @@ html[data-style="aero"] .gridbar .here{color:var(--brass)}
 /* ---- a tag on the desk: a luggage tag ----------------------------------
    The tile gives up its ground, edge, padding and shadow — the jar's bargain
    — and the tag is `.tagcard`, clipped to the silhouette and punched with a
-   mask. The shadow is a `drop-shadow` on the tile, because a box-shadow on a
-   clipped element is clipped with it and a filter follows the shape. `--tp` is
+   mask. It casts no shadow (decision 311): it lies flat on the board. `--tp` is
    how far the point runs in; `--hr` is the eyelet's radius. The hole sits in
    the middle of the point, the eyelet ring (brass, like every fitting on the
    desk) over the punched edge, and the string leaves through it. */
 .drawer.dtile.tagtile{
   background:none;border:0;box-shadow:none;padding:0;overflow:visible;border-radius:0;
-  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.28)) drop-shadow(0 3px 5px rgba(0,0,0,.14));
   --hx:calc(var(--tp) * .62);
 }
-@media (hover:hover){.drawer.dtile.tagtile:hover{box-shadow:none;
-  filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.3)) drop-shadow(0 5px 9px rgba(0,0,0,.2)) brightness(1.05)}}
+@media (hover:hover){.drawer.dtile.tagtile:hover{box-shadow:none;filter:brightness(1.05)}}
 .tagtile > .dpanel,.tagtile > .dgrain,.tagtile > .dside,.tagtile > .dwash,
 .tagtile > .dsweep,.tagtile > .darris,.tagtile > .drecess{display:none}
 .tagtile .tagcard{
@@ -3765,7 +3763,7 @@ html[data-theme="walnut"] .zonetile .zonelab{color:color-mix(in srgb, var(--c) 5
   background-size:var(--checkerx,96px) var(--checkery,96px);
   background-position:calc(var(--checkerx,96px) / -2 * var(--mx,0)) calc(var(--checkery,96px) / -2 * var(--my,0));
   box-shadow:inset 0 0 0 4px var(--wood, #8a5a33), inset 0 0 0 5px color-mix(in srgb, var(--wood, #8a5a33) 70%, #000),
-    inset 0 6px 8px -4px rgba(0,0,0,.35), 0 2px 6px rgba(0,0,0,.18)}
+    inset 0 6px 8px -4px rgba(0,0,0,.35)}
 html[data-surface="plain"] .drawer.otile.bgtile.fill-board{background-image:none}
 .drawer.otile.bgtile.fill-check{background-image:
   conic-gradient(color-mix(in srgb, var(--c) 55%, #fff) 25%, transparent 0 50%, color-mix(in srgb, var(--c) 55%, #fff) 0 75%, transparent 0);
@@ -3937,11 +3935,10 @@ html[data-surface="wood"] .grid > .showpaper{display:none}
 
 /* ---- the tools — decision 220 -----------------------------------------
    A tool on a board is the drawing and nothing else, like every instrument,
-   with the drop shadow a thing standing on a desk throws. A tossed coin spins
+   flat on the board, casting nothing (decision 311). A tossed coin spins
    on its edge, which is `rotateY`, and slows as it settles; the spool glows
    while it is holding a thread, and the first thing tied is ringed until the
    second is pressed. */
-.acttile .toolBody{filter:drop-shadow(0 1.5px 1.2px rgba(0,0,0,.45))}
 .coinspin{animation:coinspin .95s cubic-bezier(.2,.7,.3,1) 1;transform-origin:50% 50%}
 @keyframes coinspin{
   0%{transform:perspective(200px) rotateY(0) scale(1)}
@@ -4018,7 +4015,7 @@ html[data-surface="wood"] .grid > .showpaper{display:none}
   background-size:100% 100%, 100% var(--pitch);
   background-position:0 0, 0 var(--gumh);
   background-repeat:no-repeat, repeat-y;
-  box-shadow:0 1px 1.5px rgba(40,30,15,.18), 0 3px 0 -1px #F1ECD9, 0 4px 3px -1px rgba(40,30,15,.14);
+  box-shadow:0 3px 0 -1px #F1ECD9, 0 3px 0 0 rgba(40,30,15,.16);
   overflow:hidden}
 .padgum{position:absolute;left:0;right:0;top:0;height:var(--gumh);background:var(--gum, var(--c));opacity:.9;
   box-shadow:inset 0 -1px 0 rgba(0,0,0,.25)}
@@ -4157,8 +4154,7 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
    showing under the top one, down and to the right, the way a squared-up
    deck shows its sides. */
 .acttile.act-deck .dkBody{width:calc(100% - 4px);height:calc(100% - 4px);align-self:flex-start;justify-self:flex-start;
-  box-shadow:2px 2px 0 #ECE5D4, 2px 2px 0 1px rgba(0,0,0,.16), 4px 4px 0 #E6DECB, 4px 4px 0 1px rgba(0,0,0,.18),
-    0 6px 14px rgba(0,0,0,.18)}
+  box-shadow:2px 2px 0 #ECE5D4, 2px 2px 0 1px rgba(0,0,0,.16), 4px 4px 0 #E6DECB, 4px 4px 0 1px rgba(0,0,0,.18)}
 
 /* ---- what an inbox line was taken for — decision 296 --------------------
    A small label at the end of the line, in the line's own ink, that a tap
@@ -4231,7 +4227,7 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
     repeating-linear-gradient(103deg, rgba(255,255,255,.05) 0 2px, transparent 2px 7px),
     repeating-linear-gradient(17deg, rgba(60,30,8,.07) 0 1px, transparent 1px 5px),
     linear-gradient(160deg, #CDA06A, var(--kraft) 45%, var(--kraftlo));
-  box-shadow:0 3px 5px rgba(0,0,0,.4), inset 0 0 0 1px rgba(255,235,200,.18), inset 0 -6px 10px rgba(60,30,8,.25);
+  box-shadow:inset 0 0 0 1px rgba(255,235,200,.18), inset 0 -6px 10px rgba(60,30,8,.25);
 }
 .parceltile .twine{position:absolute;background:var(--twine);
   box-shadow:0 0 0 .5px rgba(80,50,20,.45), 0 1px 1px rgba(0,0,0,.25)}
@@ -4284,3 +4280,19 @@ html[data-theme="dark"] .drawer.otile.padtile{filter:brightness(.88)}
 .drawer.dragging.laysover{box-shadow:var(--shadow-lg), 0 14px 22px -6px rgba(0,0,0,.35)}
 .drawer.piletop{box-shadow:var(--shadow-lg, 0 4px 10px rgba(0,0,0,.25))}
 .drawer.pileunder{filter:brightness(.97)}
+
+/* ---- flat on the table — decision 311 ------------------------------------
+   Timothy, 2026-10-06: what is on a board lies flat on it, and nothing casts
+   a shadow that puts it above or below anything else. So the two shadow
+   tokens are zero **inside a board**, and every tile drawn with them (every
+   front, sheet, list, calendar, frame and spine) loses its shadow at once,
+   while what is drawn over a board (a panel, a menu, the ring, the toast)
+   keeps its own, because that does float. A zero shadow and never `none`:
+   half the border slots write `inset …, var(--shadow)` (see the Shadows
+   switch in look.js). What a thing carries on itself stays: a knob on a
+   front, a seal on a letter, a panel's bevel, a mark pressed into a drawer.
+   A thing in your hand is not on the table, so it lifts: the tokens are the
+   theme's shadow again on the thing carried (`--lift`), and whichever rule
+   draws it, a front's edge slot or the drag's own, casts it. */
+.grid{--shadow:0 0 0 rgba(0,0,0,0);--shadow-lg:0 0 0 rgba(0,0,0,0)}
+.grid .drawer.dragging,.grid .drawer.lifted{--shadow:var(--lift);--shadow-lg:var(--lift)}

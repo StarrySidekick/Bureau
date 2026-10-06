@@ -162,6 +162,16 @@ token nobody applied is a rule nobody follows. See decision 125.
 slots write `box-shadow: inset …, var(--shadow)`, and `none` is only legal as
 the sole value of the property — it would take the inset rings down with it.
 
+**Nothing on a board casts a shadow** (Timothy, decision 311): things lie flat
+on the table. Both tokens are zero inside `.grid`, so a tile drawn with them is
+flat whatever the switch says; the chrome over a board (panels, menus, the
+ring, the toast) keeps its shadow because it floats. Never give a tile an
+**outer** shadow or a soft `drop-shadow`, in any aesthetic: an inset, a
+zero-blur hairline that draws an edge, and detail a thing carries on itself (a
+knob, a seal, a bevel) are fine. A carried tile lifts by setting the tokens to
+`--lift`. `test/safari.mjs` block 31 checks every tile on the desk and four
+Showroom rooms.
+
 **CSS uses custom properties for kind colour.** `--k` is set inline on the element
 and everything inside inherits it. `--c` does the same for drawer colour. Don't
 hardcode a hex value in a component rule.

@@ -533,6 +533,10 @@ toast, a room builds in half the time (`boardsOf()` asks for the board's set
 once; `filedIn()` in childrenOf), and **on a phone a board no wider than the
 screen goes up and down only** (`columnOnly()`, `.colonly`: no side pad, no
 sideways scroll) unless pinched out.
+**v3.07** (decision 311): **nothing on a board casts a shadow.** The two
+shadow tokens are zero inside `.grid`; rules that wrote a shadow in full lost
+their outer layer and kept their insets; a carried tile lifts (`--lift`); the
+chrome over a board keeps its shadows. Don't give a tile an outer shadow.
 
 **Start here each session:** `docs/SYSTEM.md` is the reference for what Bureau is
 made of — objects, attributes, types, drawers, the grid, the surfaces, storage.

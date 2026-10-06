@@ -1333,7 +1333,7 @@ html .drawer.dtile.cltile{background-image:none}
     conic-gradient(from 25deg, rgba(255,255,255,.09) 0 5%, transparent 13% 50%, rgba(255,255,255,.06) 55%, transparent 62%),
     repeating-radial-gradient(circle at 50% 50%, rgba(255,255,255,.06) 0 2px, transparent 2px 4px),
     var(--vinyl, #6A665F);
-  box-shadow:0 3px 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(0,0,0,.3);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.3);
 }
 .projdisc .cd b{
   position:absolute;inset:32%;border-radius:50%;
@@ -1723,12 +1723,11 @@ html .drawer.dtile.cltile{background-image:none}
 :is(.drawer.otile,.bookpaper).st-wove{
   background-image:radial-gradient(120% 90% at 30% 12%,
     rgba(255,255,255,.75), rgba(0,0,0,.05) 78%) }
-/* card: a sheet you can see the thickness of, so it stands a little higher and
-   the bottom edge is its own cut rather than a shadow */
+/* card: a sheet you can see the thickness of: the bottom edge is its own cut
+   rather than a shadow, and it casts none (decision 311) */
 :is(.drawer.otile,.bookpaper).st-card{
   background-image:linear-gradient(180deg, rgba(255,255,255,.45), rgba(0,0,0,.04));
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.10), inset 0 -4px 0 rgba(255,255,255,.35),
-             0 3px 5px rgba(0,0,0,.16) }
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.10), inset 0 -4px 0 rgba(255,255,255,.35) }
 /* aged: foxed at the corners and warm toward the edges, which is what a sheet
    left in a drawer for thirty years actually does */
 :is(.drawer.otile,.bookpaper).st-aged{
@@ -1767,7 +1766,7 @@ html .drawer.dtile.cltile{background-image:none}
 /* slate: a dark cool ground with the cleave of the stone across it */
 :is(.drawer.otile,.bookpaper).st-card.ststy-carca{ background-image:
   linear-gradient(168deg, rgba(40,50,60,.30), rgba(20,26,34,.42));
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.30), 0 3px 5px rgba(0,0,0,.20);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.30);
   --dink:#F2F4F6;--dink-2:rgba(242,244,246,.72);--dink-3:rgba(242,244,246,.5) }
 :is(.drawer.otile,.bookpaper).st-aged.ststy-carca{ background-image:
   radial-gradient(circle at 14% 88%, rgba(90,110,70,.28) 0 9%, transparent 40%),
@@ -1807,7 +1806,7 @@ html .drawer.dtile.cltile{background-image:none}
 :is(.drawer.otile,.bookpaper).st-card.ststy-stelaine{ background-image:
   linear-gradient(126deg, rgba(255,255,255,.16) 0 32%, rgba(0,0,0,.10) 32% 58%,
     rgba(255,255,255,.10) 58% 78%, rgba(0,0,0,.14) 78%);
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.14), 0 3px 6px rgba(0,0,0,.18) }
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.14) }
 :is(.drawer.otile,.bookpaper).st-aged.ststy-stelaine{ background-image:
   radial-gradient(150% 130% at 50% 20%, rgba(255,255,255,.12), transparent 58%),
   linear-gradient(180deg, transparent 40%, color-mix(in srgb,var(--paper) 60%,transparent)) }
@@ -1845,7 +1844,7 @@ html .drawer.dtile.cltile{background-image:none}
   radial-gradient(circle at 30% 40%, rgba(0,0,0,.10) 0 1px, transparent 1.6px),
   linear-gradient(180deg, rgba(190,105,60,.22), rgba(150,72,42,.30));
   background-size:9px 9px, 100% 100%;
-  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18), 0 3px 5px rgba(0,0,0,.18) }
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.18) }
 :is(.drawer.otile,.bookpaper).st-aged.ststy-girando{ background-image:
   linear-gradient(184deg, rgba(255,255,255,.14), transparent 46%),
   radial-gradient(140% 120% at 50% 0%, rgba(255,240,200,.12), transparent 60%) }
@@ -1912,8 +1911,7 @@ html .drawer.dtile.cltile{background-image:none}
 /* acrylic: a thick sheet, so the edge is a lit band rather than a shadow */
 :is(.drawer.otile,.bookpaper).st-card.ststy-aero{ background-image:
   linear-gradient(180deg, rgba(255,255,255,.42), rgba(255,255,255,.06));
-  box-shadow:inset 0 -4px 0 rgba(255,255,255,.5), inset 0 -5px 0 rgba(0,0,0,.10),
-             0 3px 6px rgba(0,0,0,.16) }
+  box-shadow:inset 0 -4px 0 rgba(255,255,255,.5), inset 0 -5px 0 rgba(0,0,0,.10) }
 :is(.drawer.otile,.bookpaper).st-aged.ststy-aero{ background-image:
   radial-gradient(120% 90% at 78% 6%, rgba(255,246,200,.5), transparent 62%),
   linear-gradient(180deg, rgba(255,255,255,.3), transparent 44%) }
@@ -2544,15 +2542,13 @@ html .drawer.dtile.cltile{background-image:none}
    zero-blur drop-shadows, one per direction, each offset by a hairline. A
    drop-shadow is computed from the element's alpha *after* the clip, so the
    line traces whatever the clip-path cut — the torn ends, the chip out of each
-   side, all of it. Then the real shadows go on top of the same filter chain,
-   which is also what stopped the sheet from floating with no shadow at all. */
+   side, all of it. It casts no shadow besides (decision 311): it lies flat. */
 .drawer.otile.sh-tornnote{
   border:0;
   --tornline:var(--line,rgba(0,0,0,.28));
   filter:
     drop-shadow(1px 0 0 var(--tornline)) drop-shadow(-1px 0 0 var(--tornline))
-    drop-shadow(0 1px 0 var(--tornline)) drop-shadow(0 -1px 0 var(--tornline))
-    drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
+    drop-shadow(0 1px 0 var(--tornline)) drop-shadow(0 -1px 0 var(--tornline));
   box-shadow:none;
   background:var(--paper-2);
   clip-path:polygon(0 0, 100% 0, 100% 62%, 96.5% 68%, 100% 74%, 100% 100%,
@@ -2585,8 +2581,7 @@ html .drawer.dtile.cltile{background-image:none}
   --tornline:var(--line,rgba(0,0,0,.30));
   filter:
     drop-shadow(1px 0 0 var(--tornline)) drop-shadow(-1px 0 0 var(--tornline))
-    drop-shadow(0 1px 0 var(--tornline)) drop-shadow(0 -1px 0 var(--tornline))
-    drop-shadow(0 1px 2px rgba(0,0,0,.14)) drop-shadow(0 5px 12px rgba(0,0,0,.10));
+    drop-shadow(0 1px 0 var(--tornline)) drop-shadow(0 -1px 0 var(--tornline));
 }
 /* A stamp has no room for a tear: two pixels of fuzz on forty is a quarter of
    the edge, and six filter passes on a mark is the cost decision 101 names. */
@@ -6187,8 +6182,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    standing in the middle of it. `1em` is the tile's height, which is what the
    roll's `translateY(-Nem)` counts in; the glyph is sized on its own `<s>` so
    a wheel narrower than it is tall still fits its digit. */
-.drawer.otile.cnttile{background:none;border:0;box-shadow:none;padding:0;border-radius:0;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.45))}
+.drawer.otile.cnttile{background:none;border:0;box-shadow:none;padding:0;border-radius:0}
 .drawer.otile.cnttile::before,.drawer.otile.cnttile::after,
 .cnttile > .dpanel,.cnttile > .dgrain,.cnttile > .dside{display:none}
 .cnttile .cntnum{width:100%;height:100%;gap:1px;font-size:100cqh;line-height:1;
@@ -6314,8 +6308,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
    glow. */
 .drawer.btntile.outtile.ptltile .outface .portal,
 .drawer.btntile.outtile.ptltile.pt-square .outface .portal,
-.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{--pfr:5px;
-  box-shadow:0 2px 7px rgba(0,0,0,.45)}
+.drawer.btntile.outtile.ptltile.pt-arch .outface .portal{--pfr:5px;box-shadow:none}
 .drawer.btntile.outtile.ptltile.pt-circle .outface .portal{
   background:radial-gradient(ellipse closest-side,
     #05030A 0 22%,
@@ -6340,8 +6333,8 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 /* **A glow** is the portal's own colour breathing round the frame. */
 .drawer.btntile.outtile.ptltile.pe-glow .outface .portal{animation:pglow 3.4s ease-in-out infinite}
 @keyframes pglow{
-  0%,100%{box-shadow:0 2px 7px rgba(0,0,0,.45), 0 0 6px 1px color-mix(in srgb, var(--c) 70%, transparent)}
-  50%{box-shadow:0 2px 7px rgba(0,0,0,.45), 0 0 22px 7px color-mix(in srgb, var(--c) 80%, #fff 10%)}}
+  0%,100%{box-shadow:0 0 6px 1px color-mix(in srgb, var(--c) 70%, transparent)}
+  50%{box-shadow:0 0 22px 7px color-mix(in srgb, var(--c) 80%, #fff 10%)}}
 
 /* **Drift**: two fields sliding past behind the frame, stars near and cloud
    far, each moving exactly one of its own tiles per loop so there is no seam. */
@@ -6581,8 +6574,7 @@ html[data-rows="fit"] .is-phone .gridbar.inrail .sqbtn{width:28px;height:28px}
 .pushcap{flex:0 0 auto;height:100%;aspect-ratio:1;display:grid;place-items:center;
   transition:transform .08s ease-out;cursor:pointer}
 .pushtile.tall .pushcap{height:auto;width:100%}
-.pushcap img{width:92%;height:92%;object-fit:contain;display:block;pointer-events:none;
-  filter:drop-shadow(0 2px 2px rgba(0,0,0,.28))}
+.pushcap img{width:92%;height:92%;object-fit:contain;display:block;pointer-events:none}
 /* pressed in, the way a button goes when you press it */
 .pushtile:active .pushcap,.pushtile.swallow .pushcap{transform:translateY(1px) scale(.94)}
 .pushline{flex:1;min-width:0;align-self:stretch;margin:6% 0;display:flex;align-items:center;padding:0 10px;

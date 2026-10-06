@@ -13366,3 +13366,44 @@ nothing is sideways; the tools block takes back the quick notepad a random
 Brain Dump from the coin puts in the front: the likeliest reason three of
 its checks failed in one full run and passed in every run of the block
 alone; they now print the front they read if they fail again.
+
+## 311. Flat on the table (v3.07, 2026-10-06)
+
+Timothy, 2026-10-06: "objects on the board have like a little shadow to them
+individually, just like around the outside, and we don't need that at all…
+everything should kind of be flat on the table. It shouldn't have a shadow
+making it appear like above or below anything on the board."
+
+There was a switch for this (`S.look.shadows`, decision 213 cut it from
+Settings and migration 43 set it back to on), but it is the wrong tool: it
+zeroes the two shadow tokens everywhere, and the same tokens are what make a
+panel, a menu, the ring and the toast read as floating over the board, which
+they do. So:
+
+- **The tokens are zero inside a board** (`.grid` in board.css), and every
+  tile drawn with them, which is most of them (fronts, sheets, lists,
+  calendars, frames, spines, a pile's top sheet, the hover on a Mac), lies
+  flat at once. A zero shadow, not `none`, for the reason the switch gives.
+  The specimen book draws its tiles in a `.grid`, so it agrees.
+- **Each rule that wrote its shadow out in full** lost its outer layer and
+  kept its insets: the tools' photographs, a counter's wheels, a tag, a
+  button's photograph, a record, a portal (its glow stays), a Board object,
+  a pigeonhole's frame, a deck's soft shadow (its card edges stay), the
+  notepad (the sheet under it is an edge now, not a shadow), torn paper and
+  fragments (the line that follows the tear stays), card stock in every
+  aesthetic, and the flat-pack parcel.
+- **What a thing carries on itself stays**: a knob on a front, a mark
+  pressed into a drawer, a seal on a letter, a panel's bevel, a spine's
+  caps, a portal's vines, the jar's glass, the paper balls in the bin.
+- **A thing in your hand is not on the table**, so it still lifts: `--lift`
+  is the theme's large shadow read at the root, and a carried or lifted tile
+  sets both tokens back to it, so whichever rule draws it casts it (a
+  front's edge slot outranks the drag's own rule).
+
+Every aesthetic, light and dark, was surveyed in WebKit on every board of
+the Showroom for any outer shadow with a blur or an offset; none is left
+but the zero-blur hairlines that are edges. `test/safari.mjs` block 31 holds
+it: nothing on the desk or four Showroom rooms casts one, a carried tile
+does, the toast does. It also takes paint off every frame, which decision
+310 found was mostly shadows: in WebKit on Linux the frame after a render
+went from about 240ms to between 155 and 210 (the same desks as 310).

@@ -992,6 +992,40 @@ out.layingTheShowroomAgainDoesNotSwellTheDesk = relaid.inBin === 0 && relaid.onD
 out.aSaveThatFailsIsSaid = /Not saved: storage is full/.test(full) || JSON.stringify(full);
 await page.evaluate(() => { const S = BUREAU.state; S.view = 'desk'; S.drawerId = null; BUREAU.render(); });
 
+// ---- flat on the table (decision 311) ---------------------------------------
+// Nothing on a board casts a shadow, on the desk or in a Showroom room: no
+// outer box-shadow with a blur or an offset that can be seen, and no soft
+// drop-shadow (the zero-blur hairlines that draw a torn edge are lines, not
+// shadows). A tile in the hand still lifts, and the toast over the board
+// still floats.
+const flat = await page.evaluate(async () => { const S = BUREAU.state;
+  const soft = v => v.split(/,(?![^(]*\))/).filter(l => !/inset/.test(l)).some(l => {
+    const a = l.match(/rgba?\(([^)]*)\)/), al = a ? parseFloat(a[1].split(',')[3] ?? '1') : 1;
+    const n = (l.replace(/rgba?\([^)]*\)|color\([^)]*\)|oklab\([^)]*\)/g, '').match(/-?[\d.]+px/g) || []).map(parseFloat);
+    return al > .02 && n.length >= 3 && n[2] > 0 && (n[0] || n[1]); });
+  const dark = v => /drop-shadow/.test(v) && [...v.matchAll(/drop-shadow\(([^()]*(?:\([^)]*\))?[^()]*)\)/g)]
+    .some(m => { const n = (m[1].replace(/rgba?\([^)]*\)|color\([^)]*\)|var\([^)]*\)/g, '').match(/-?[\d.]+px/g) || []).map(parseFloat); return n[2] > 0 && (n[0] || n[1]) && !/rgba\(0, 0, 0, 0\)/.test(m[1]); });
+  const own = /^(pull|dmark|wseal|dpanel|dtop|jar|binball|binrim|pipemouth|tlnowmark|tageye|tileimg|pvines|twine|parcellabel|spinetop|spinefoot)/;
+  const cast = [];
+  const look = () => document.querySelectorAll('#app .grid > .drawer, #app .grid > .drawer *').forEach(el => {
+    if ([...el.classList].some(c => own.test(c))) return;
+    const cs = getComputedStyle(el);
+    if (soft(cs.boxShadow) || dark(cs.filter)) cast.push([...el.classList].slice(0, 3).join('.')); });
+  look();
+  const sh = S.objects.find(o => o.sk === 'showroom');
+  for (const t of ['Paper', 'Doodads and tools', 'Pictures and decor', 'Claude']) {
+    const room = S.objects.find(o => o.parent === (sh && sh.id) && o.title === t); if (!room) continue;
+    S.view = 'drawer'; S.drawerId = room.id; BUREAU.render(); look(); }
+  S.view = 'desk'; S.drawerId = null; BUREAU.render();
+  const t = document.querySelector('#app .grid > .drawer.dtile');
+  t.classList.add('dragging'); await new Promise(r => setTimeout(r, 400));
+  const lifts = soft(getComputedStyle(t).boxShadow); t.classList.remove('dragging');
+  const M = await import('./js/mutations.js'); M.toast('Flat');
+  const floats = soft(getComputedStyle(document.querySelector('.toast')).boxShadow);
+  return { cast: [...new Set(cast)].slice(0, 8), lifts, floats }; });
+await shot('31-flat');
+out.nothingOnABoardCastsAShadow = !flat.cast.length && flat.lifts && flat.floats || JSON.stringify(flat);
+
 out.errors = errs;
 console.log(JSON.stringify(out, null, 2));
 await browser.close();
